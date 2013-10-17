@@ -46,6 +46,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CacheManifest.cs" />
+    <Compile Include="Compiler.cs" />
     <Compile Include="FileCacheStore.cs" />
     <Compile Include="FileHasher.cs" />
     <Compile Include="Program.cs" />
