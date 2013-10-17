@@ -8,3 +8,5 @@ CClash.Tests/obj/*
 cclash/obj/*
 cclash/bin/*
 UnitTests/*
+packages/*
+TestResults/*
