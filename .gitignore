@@ -1,9 +1,10 @@
 # git ignore file
 *.dll
 *.pdb
-CClash.Tests\bin\Debug*/
-cclash\bin\Debug*/
-cclash\obj\*.*
 *.exe
-CClash.Tests\bin\Debug\*.*
 *.mdf
+CClash.Tests/bin/*
+CClash.Tests/obj/*
+cclash/obj/*
+cclash/bin/*
+UnitTests/*
