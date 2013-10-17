@@ -7,8 +7,8 @@
     <ProjectGuid>{B4A548CB-16A3-4FE9-A0D9-76A66182E0B1}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>CClast.Tests</RootNamespace>
-    <AssemblyName>CClast.Tests</AssemblyName>
+    <RootNamespace>CClash.Tests</RootNamespace>
+    <AssemblyName>CClash.Tests</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -42,6 +42,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CompilerTest.cs" />
     <Compile Include="FileCacheTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -53,6 +54,11 @@
       <Project>{7bcf13a4-c4c9-493d-898b-e89aefc93c1a}</Project>
       <Name>CClash</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="test-sources\exists.c">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
