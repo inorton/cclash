@@ -148,8 +148,18 @@ namespace CClash
                     }
                     if (GeneratePdb && PdbFile == null)
                     {
-                        var f = Path.GetFileNameWithoutExtension(SourceFile) + ".pdb";
-                        PdbFile = Path.Combine(Environment.CurrentDirectory, f);
+                        for ( int x = 14; x > 8; x-- )
+                        {
+                            if ( CompilerExe.Contains(string.Format("Microsoft Visual Studio {0}.0",x)) )
+                            {
+                                var f = string.Format("vc{0}0.pdb", x); 
+                                PdbFile = Path.Combine(Environment.CurrentDirectory, f);
+                                break;
+                            }
+                        }
+                        if ( PdbFile == null ) {
+                            throw new InvalidProgramException("could not work out compiler version for auto generated pdb");
+                        }
                     }
                 }   
                      

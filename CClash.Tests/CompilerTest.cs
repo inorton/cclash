@@ -13,6 +13,15 @@ namespace CClash.Tests
     [TestFixture]
     public class CompilerTest
     {
+        const string CompilerPath = "C:\\Program Files (x86)\\Microsoft Visual Studio 11.0\\VC\\bin\\cl.exe";
+
+        static CompilerTest()
+        {
+            Environment.SetEnvironmentVariable("PATH", "C:\\Program Files (x86)\\Microsoft Visual Studio 11.0\\VC\\bin;"
+                + Environment.GetEnvironmentVariable("PATH"));
+            Environment.SetEnvironmentVariable("PATH", "C:\\Program Files (x86)\\Microsoft Visual Studio 11.0\\Common7\\IDE;"
+                + Environment.GetEnvironmentVariable("PATH"));
+        }
 
         void EnsureDeleted(string file)
         {
@@ -39,12 +48,7 @@ namespace CClash.Tests
             EnsureDeleted(c.ObjectTarget);
             EnsureDeleted(c.PdbFile);
             
-            c.CompilerExe = "C:\\Program Files (x86)\\Microsoft Visual Studio 11.0\\VC\\bin\\cl.exe";
-
-            Environment.SetEnvironmentVariable("PATH", "C:\\Program Files (x86)\\Microsoft Visual Studio 11.0\\VC\\bin;" 
-                + Environment.GetEnvironmentVariable("PATH"));
-            Environment.SetEnvironmentVariable("PATH", "C:\\Program Files (x86)\\Microsoft Visual Studio 11.0\\Common7\\IDE;"
-                + Environment.GetEnvironmentVariable("PATH"));
+            c.CompilerExe = CompilerPath;
 
             var ec = c.InvokeCompiler(
                 c.CommandLine,
@@ -64,9 +68,18 @@ namespace CClash.Tests
         public void ParseSupportedPdbArgs(params string[] argv)
         {
             var c = new Compiler();
+            c.CompilerExe = CompilerPath;
             Assert.IsTrue(c.ProcessArguments(argv));
             Assert.IsTrue(c.GeneratePdb);
             Assert.IsNotNullOrEmpty(c.PdbFile);
+            EnsureDeleted(c.PdbFile);
+            EnsureDeleted(c.ObjectTarget);
+            var stderr = new StringBuilder();
+            var stdout = new StringBuilder();
+            var ec = c.InvokeCompiler(c.CommandLine, stderr, stdout);
+            Assert.AreEqual(0, ec);
+            Assert.IsTrue(File.Exists(c.ObjectTarget));
+            Assert.IsTrue(File.Exists(c.PdbFile));
         }
         [Test]
         [TestCase("/c", "test-sources\\doesnotexist.c")]
