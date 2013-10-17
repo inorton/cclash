@@ -71,6 +71,11 @@ namespace CClash
             }
         }
 
+        public bool ContainsEntry(string key, string filename)
+        {
+            return Directory.Exists(MakePath(key)) && File.Exists(filename);
+        }
+
         public void AddFile(string key, string filePath, string contentName)
         {
             EnsureKey(key);
