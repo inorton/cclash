@@ -16,7 +16,7 @@ namespace CClash
         }
 
         public string FolderPath { get; private set; }
-        JavaScriptSerializer jss = new JavaScriptSerializer();
+        
         Mutex mtx = null;
 
         public void WaitOne()
