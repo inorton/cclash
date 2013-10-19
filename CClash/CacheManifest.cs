@@ -23,16 +23,25 @@ namespace CClash
         /// </summary>
         public Dictionary<string, string> IncludeFiles { get; set; }
 
-        public void ProcessIncludes( FileHasher hh, IEnumerable<string> files)
+        /// <summary>
+        /// A list of files that did not exist but will require a rebuild if they are added.
+        /// </summary>
+        public List<string> PotentialNewIncludes { get; set; }
+
+        public void ProcessIncludes( HashUtil hh, IEnumerable<string> files)
         {
             IncludeFiles = new Dictionary<string, string>();
             foreach (var f in files.Distinct())
             {
-                IncludeFiles.Add(f, hh.DigestFile(f));
+                var dg = hh.DigestFile(f);
+                if (dg.Result == DataHashResult.Ok)
+                {
+                    IncludeFiles.Add(f, dg.Hash);
+                }
             }
         }
 
-        public bool CheckIncludes(FileHasher hh)
+        public bool CheckIncludes(HashUtil hh)
         {
             foreach (var f in IncludeFiles.Keys)
             {
@@ -43,7 +52,9 @@ namespace CClash
                 }
                 else
                 {
-                    if (hh.DigestFile(f) != IncludeFiles[f]) return false;
+                    var dg = hh.DigestFile(f);
+                    
+                    if (dg.Result != DataHashResult.Ok || (dg.Hash != IncludeFiles[f])) return false;
                 }
             }
             return true;

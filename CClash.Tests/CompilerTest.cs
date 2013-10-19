@@ -17,10 +17,14 @@ namespace CClash.Tests
 
         static CompilerTest()
         {
-            Environment.SetEnvironmentVariable("PATH", "C:\\Program Files (x86)\\Microsoft Visual Studio 11.0\\VC\\bin;"
+            Environment.SetEnvironmentVariable("PATH", 
+                @"C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin;"
                 + Environment.GetEnvironmentVariable("PATH"));
-            Environment.SetEnvironmentVariable("PATH", "C:\\Program Files (x86)\\Microsoft Visual Studio 11.0\\Common7\\IDE;"
+            Environment.SetEnvironmentVariable("PATH", 
+                @"C:\Program Files (x86)\Microsoft Visual Studio 11.0\Common7\IDE;"
                 + Environment.GetEnvironmentVariable("PATH"));
+            Environment.SetEnvironmentVariable("INCLUDE", 
+                @"C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\INCLUDE;C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\ATLMFC\INCLUDE;C:\Program Files (x86)\Windows Kits\8.0\include\shared;C:\Program Files (x86)\Windows Kits\8.0\include\um;C:\Program Files (x86)\Windows Kits\8.0\include\winrt;c:\stuff\nonsense\;c:\comp\1;c:\comp2;c:\comp3;c:\foo");
         }
 
         void EnsureDeleted(string file)
@@ -52,9 +56,8 @@ namespace CClash.Tests
 
             var ec = c.InvokeCompiler(
                 c.CommandLine,
-                sbe, sbo);
-            Console.Error.WriteLine(sbe.ToString());
-            Console.Error.WriteLine(sbo.ToString());
+                Console.Error.WriteLine, Console.Error.WriteLine, false);
+
             Assert.AreEqual(0, ec);
 
             Assert.IsTrue(File.Exists(c.ObjectTarget));
@@ -76,11 +79,14 @@ namespace CClash.Tests
             EnsureDeleted(c.ObjectTarget);
             var stderr = new StringBuilder();
             var stdout = new StringBuilder();
-            var ec = c.InvokeCompiler(c.CommandLine, stderr, stdout);
+            var ec = c.InvokeCompiler(c.CommandLine,
+                x => stderr.AppendLine(x),
+                x => stdout.AppendLine(x), false);
             Assert.AreEqual(0, ec);
             Assert.IsTrue(File.Exists(c.ObjectTarget));
             Assert.IsTrue(File.Exists(c.PdbFile));
         }
+
         [Test]
         [TestCase("/c", "test-sources\\doesnotexist.c")]
         [TestCase("/c", "test-sources\\exists.c", "/Yu")]
@@ -88,6 +94,36 @@ namespace CClash.Tests
         {
             var c = new Compiler();
             Assert.IsFalse(c.ProcessArguments(argv));
+        }
+
+        [Test]
+        [TestCase("/c", "test-sources\\hello.c")]
+        public void PreProcessorTest(params string[] argv)
+        {
+            var c = new Compiler();
+            var hv = new List<string>();
+
+            Assert.IsTrue(c.ProcessArguments(argv));
+            hv.Add(Path.GetFullPath(c.SourceFile));
+            List<string> incdirs = new List<string>();
+            var rv = c.GetUsedIncludeFiles(c.CommandLine, hv, incdirs);
+            var couldinclude = c.GetPotentialIncludeFiles(incdirs, hv);
+            Assert.AreEqual(0, rv);
+            Assert.IsTrue(hv.Count > 0);
+        }
+
+        [Test]
+        [TestCase("/c", "test-sources\\hello.c")]
+        public void CompileObjectTest(params string[] argv)
+        {
+            var c = new Compiler();
+            
+            Assert.IsTrue(c.ProcessArguments(argv));
+            var stderr = new StringBuilder();
+            var stdout = new StringBuilder();
+            var rv = c.InvokeCompiler(c.CommandLine, x => stderr.AppendLine(x), x => stdout.AppendLine(x), false);
+
+            Assert.AreEqual(0, rv);
         }
     }
 }

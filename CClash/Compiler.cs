@@ -3,13 +3,16 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Diagnostics;
 
 namespace CClash
 {
-    public class Compiler
+    public sealed class Compiler
     {
+        static Regex findLineInclude = new Regex("#line\\s+\\d+\\s+\"([^\"]+)\"");
+
         public Compiler()
         {
             CompilerExe = "cl";
@@ -33,6 +36,8 @@ namespace CClash
         public bool ResponseFile { get; set; }
 
         List<string> srcs = new List<string>();
+        List<string> incs = new List<string>();
+        List<string> cliincs = new List<string>();
 
         public bool SingleSource
         {
@@ -91,6 +96,9 @@ namespace CClash
                             PrecompiledHeaders = true;
                             return false;
 
+                        case "/FI":
+                            return false;
+
                         case "/Zi":
                             GeneratePdb = true;
                             break;
@@ -128,6 +136,12 @@ namespace CClash
                                 {
                                     srcs.Add(full);
                                 }
+                            }
+                            if (!full.StartsWith("/I"))
+                            {
+                                var d = full.Substring(2);
+                                if (Directory.Exists(d))
+                                    cliincs.Add(d);
                             }
 
                             if (opt.StartsWith("@"))
@@ -191,32 +205,115 @@ namespace CClash
             return sb.ToString().TrimEnd();
         }
 
-        public int InvokeCompiler(IEnumerable<string> args, StringBuilder stderr, StringBuilder stdout)
+        public List<string> GetPotentialIncludeFiles(IEnumerable<string> incdirs, IEnumerable<string> incfiles)
+        {
+            List<string> possibles = new List<string>();
+            List<string> includelines = new List<string>();
+            var fullSrc = Path.GetFullPath(SourceFile);
+            foreach (var d in incdirs)
+            {
+                foreach (var f in ( from x in incfiles where x.StartsWith(d, StringComparison.CurrentCultureIgnoreCase) select x ) )
+                {
+                    if (f != fullSrc)
+                    {
+                        var incpath = f.Substring(d.Length);
+                        includelines.Add(incpath.TrimStart('\\'));
+                    }
+                }
+            }
+
+            HashSet<string> tmp = new HashSet<string>( includelines );
+            foreach (var y in tmp)
+            {
+                foreach (var x in incdirs)
+                {
+                    var p = Path.Combine( x, y );
+                    if (!File.Exists(p))
+                    {
+                        possibles.Add(p);
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
+
+            return possibles;
+        }
+
+        public int GetUsedIncludeFiles(IEnumerable<string> args, List<string> files, List<string>incdirs)
+        {
+            var xargs = new List<string>(args);
+            xargs.Add("/E");
+            var hashlines = new List<string>(200);
+            var tmplist = new List<string>(1000);
+            var iinc = Environment.GetEnvironmentVariable("INCLUDE");
+            if (iinc != null)
+            {
+                incs.Clear();
+                incs.AddRange(cliincs);
+                foreach (var i in iinc.Split(';'))
+                {
+                    incs.Add(i);
+                }
+                incdirs.AddRange(incs);
+            }
+            incdirs.Add(Path.GetFullPath( Path.GetDirectoryName(SourceFile)));
+
+            var rv = InvokeCompiler(xargs, null, x => hashlines.Add(x), true);
+            if (rv == 0)
+            {
+                foreach (var l in hashlines)
+                {
+                    var tmp = l.Substring(1+l.IndexOf('"'));
+                    if (tmp != null)
+                    {
+                        tmplist.Add(Path.GetFullPath(tmp.TrimEnd('"')));
+                    }
+                }
+                files.AddRange(tmplist.Distinct());
+            }
+            return rv;
+        }
+
+        public int InvokeCompiler(IEnumerable<string> args, Action<string> onStdErr, Action<string> onStdOut, bool onlyCaptureLineDirectives)
         {
             var envs = Environment.GetEnvironmentVariables();
             var cla = JoinAguments(args);
             var psi = new ProcessStartInfo(CompilerExe, cla)
             {
                 UseShellExecute = false,
-                //RedirectStandardError = true,
-                //RedirectStandardOutput = true, 
+                RedirectStandardError = !onlyCaptureLineDirectives,
+                RedirectStandardOutput = true, 
                 WorkingDirectory = Environment.CurrentDirectory,
-                WindowStyle = ProcessWindowStyle.Normal,
-                CreateNoWindow = false,
-                ErrorDialog = true,
             };
 
-            foreach (System.Collections.DictionaryEntry de in envs)
-            {
-                psi.EnvironmentVariables[(string)de.Key] = (string)de.Value;
-            }
             psi.EnvironmentVariables["PATH"] = Path.GetDirectoryName(CompilerExe) + ";" + psi.EnvironmentVariables["PATH"];
             psi.ErrorDialog = true;
             var p = Process.Start(psi);
+
+            p.OutputDataReceived += (o, a) =>
+            {
+
+                if ( a.Data != null &&( !onlyCaptureLineDirectives || a.Data.StartsWith("#line")))
+                    onStdOut(a.Data);
+            };
+
+            if (!onlyCaptureLineDirectives)
+            {
+                p.ErrorDataReceived += (o, a) =>
+                {
+                    if ( a.Data != null ) onStdErr(a.Data);
+                };
+
+                p.BeginErrorReadLine();
+            }
+
+            p.BeginOutputReadLine();
+
             p.WaitForExit();
-            //stdout.Append(p.StandardOutput.ReadToEnd());
-            //stderr.Append(p.StandardError.ReadToEnd());
-            
+                        
             return p.ExitCode;
         }
              
