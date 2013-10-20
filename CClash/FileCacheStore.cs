@@ -34,17 +34,23 @@ namespace CClash
             FolderPath = Path.GetFullPath(folderPath);
             mtx = new Mutex(false, "cclash_mtx_" + FolderPath.ToLower().GetHashCode());
             WaitOne();
-            if (!Directory.Exists(FolderPath))
+            try
             {
-                Directory.CreateDirectory(FolderPath);
+                if (!Directory.Exists(FolderPath))
+                {
+                    Directory.CreateDirectory(FolderPath);
+                }
+                // make the top level folders
+                for (int i = 0; i < 256; i++)
+                {
+                    var fp = Path.Combine(FolderPath, string.Format("{0:x2}", i));
+                    if (!Directory.Exists(fp)) Directory.CreateDirectory(fp);
+                }
             }
-            // make the top level folders
-            for (int i = 0; i < 256; i++)
+            finally
             {
-                var fp = Path.Combine(FolderPath, string.Format("{0:x2}", i));
-                if (!Directory.Exists(fp)) Directory.CreateDirectory(fp);
+                ReleaseMutex();
             }
-            ReleaseMutex();
             
         }
 
@@ -73,13 +79,18 @@ namespace CClash
 
         public bool ContainsEntry(string key, string filename)
         {
-            return Directory.Exists(MakePath(key)) && File.Exists(filename);
+            return File.Exists(MakePath(key,filename));
+        }
+
+        public void AddEntry(string key)
+        {
+            EnsureKey(key);
         }
 
         public void AddFile(string key, string filePath, string contentName)
         {
             EnsureKey(key);
-            File.Copy(filePath, MakePath(key, contentName));
+            File.Copy(filePath, MakePath(key, contentName), true);
             if (Added != null)
             {
                 Added(this, new FileCacheStoreAddedEventArgs() { SizeKB = (int)(new FileInfo(filePath).Length / 1024) });

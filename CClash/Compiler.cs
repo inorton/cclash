@@ -279,6 +279,9 @@ namespace CClash
 
         public int InvokeCompiler(IEnumerable<string> args, Action<string> onStdErr, Action<string> onStdOut, bool onlyCaptureLineDirectives)
         {
+            if (!File.Exists(CompilerExe))
+                throw new FileNotFoundException("cant find cl.exe");
+
             var envs = Environment.GetEnvironmentVariables();
             var cla = JoinAguments(args);
             var psi = new ProcessStartInfo(CompilerExe, cla)

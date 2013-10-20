@@ -13,9 +13,9 @@ namespace CClash.Tests
     [TestFixture]
     public class CompilerTest
     {
-        const string CompilerPath = "C:\\Program Files (x86)\\Microsoft Visual Studio 11.0\\VC\\bin\\cl.exe";
+        public const string CompilerPath = "C:\\Program Files (x86)\\Microsoft Visual Studio 11.0\\VC\\bin\\cl.exe";
 
-        static CompilerTest()
+        public static void SetEnvs()
         {
             Environment.SetEnvironmentVariable("PATH", 
                 @"C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin;"
@@ -25,6 +25,12 @@ namespace CClash.Tests
                 + Environment.GetEnvironmentVariable("PATH"));
             Environment.SetEnvironmentVariable("INCLUDE", 
                 @"C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\INCLUDE;C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\ATLMFC\INCLUDE;C:\Program Files (x86)\Windows Kits\8.0\include\shared;C:\Program Files (x86)\Windows Kits\8.0\include\um;C:\Program Files (x86)\Windows Kits\8.0\include\winrt;c:\stuff\nonsense\;c:\comp\1;c:\comp2;c:\comp3;c:\foo");
+
+        }
+
+        static CompilerTest()
+        {
+            SetEnvs();    
         }
 
         void EnsureDeleted(string file)
@@ -100,7 +106,7 @@ namespace CClash.Tests
         [TestCase("/c", "test-sources\\hello.c")]
         public void PreProcessorTest(params string[] argv)
         {
-            var c = new Compiler();
+            var c = new Compiler() { CompilerExe = CompilerPath };
             var hv = new List<string>();
 
             Assert.IsTrue(c.ProcessArguments(argv));
@@ -116,7 +122,7 @@ namespace CClash.Tests
         [TestCase("/c", "test-sources\\hello.c")]
         public void CompileObjectTest(params string[] argv)
         {
-            var c = new Compiler();
+            var c = new Compiler() { CompilerExe = CompilerPath };
             
             Assert.IsTrue(c.ProcessArguments(argv));
             var stderr = new StringBuilder();
