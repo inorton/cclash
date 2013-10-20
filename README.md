@@ -17,15 +17,14 @@ Those who know ccache will recognise this as quite similar to the ccache 'direct
 
 On my (not very good) windows 8 machine, I have a simple test by building openssl under nmake. These tests were all done _after_ running the Configure step.
 
-
-	seconds
-no cache, first run	303
-no cache, second run	297
-cclash, but disabled	283
-cclash disabled second run	289
-cclash enabled first run	718
-
-cclash enabled second run	195
+OpenSSL windows build                 | Duration
+--------------------------------------|----------
+no cache, first run                   | 303s
+no cache, second run                  | 297s
+cclash, but disabled                  | 283s
+cclash disabled second run            | 289s
+cclash enabled first run              | 718s
+cclash enabled second run             | **195s**
 
 Caching is quite expensive in the openssl case, first build was 2.5 times slower than with just cl.exe.
 
