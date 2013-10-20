@@ -49,61 +49,61 @@ namespace CClash
             File.WriteAllText( cache.MakePath(K_Stats, statfile), value.ToString());
         }
 
-        long CacheHits
+        public long CacheHits
         {
             get
             {
                 return ReadStat(F_StatHits);
             }
-            set
+            private set
             {
                 WriteStat(F_StatHits, value);
             }
         }
 
-        long CacheSize
+        public long CacheSize
         {
             get
             {
                 return ReadStat(F_StatDiskUsage);
             }
-            set
+            private set
             {
                 WriteStat(F_StatDiskUsage, value);
             }
         }
 
-        long CacheMisses
+        public long CacheMisses
         {
             get
             {
                 return ReadStat(F_StatMiss);
             }
-            set
+            private set
             {
                 WriteStat(F_StatMiss, value);
             }
         }
 
-        long CacheUnsupported
+        public long CacheUnsupported
         {
             get
             {
                 return ReadStat(F_StatUnsupported);
             }
-            set
+            private set
             {
                 WriteStat(F_StatUnsupported, value);
             }
         }
 
-        long CacheObjects
+        public long CacheObjects
         {
             get
             {
                 return ReadStat(F_StatObjects);
             }
-            set
+            private set
             {
                 WriteStat(F_StatObjects, value);
             }

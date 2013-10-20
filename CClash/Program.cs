@@ -38,7 +38,6 @@ namespace CClash
 
             var cachedir = Environment.GetEnvironmentVariable("CCLASH_DIR");
 
-            
             if (string.IsNullOrEmpty(cachedir))
             {
                 var appdata = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
@@ -50,16 +49,26 @@ namespace CClash
 
             if (args.Contains("--cclash"))
             {
-                Console.Error.WriteLine("compiler = {0}", compiler);
-                Console.Error.WriteLine("cachedir = {0}", cachedir);
+                Console.WriteLine("compiler: {0}", compiler);
+                Console.WriteLine("cachedir: {0}", cachedir);
                 if (string.IsNullOrEmpty(disable))
                 {
-                    Console.Error.WriteLine("disabled = yes");
+                    Console.WriteLine("disabled: no");
                 }
                 else
                 {
-                    Console.Error.WriteLine("disabled = no");
+                    Console.WriteLine("disabled: yes");
                 }
+                if (compiler != null)
+                {
+                    var cache = new CompilerCache(cachedir, compiler);
+                    Console.WriteLine("cache usage: {0} kb", (int)(cache.CacheSize / 1024));
+                    Console.WriteLine("cached files: {0}", cache.CacheObjects);
+                    Console.WriteLine("hits: {0}", cache.CacheHits);
+                    Console.WriteLine("misses: {0}", cache.CacheMisses);
+                    Console.WriteLine("unsupported: {0}", cache.CacheUnsupported);
+                }
+                return 0;
             }
 
 
