@@ -34,6 +34,16 @@ A rebuild however was 33% faster than without cclash.
 
 So.. For cclash to make a difference to you, you would want to be in a situation where you will compile most of your files more than 7 times. In my case, I wanted cclash for a continuous integration build so it _should_ pay off after a day or so
 
+## How do I make it work?
+
+There are two ways.
+
+   * Add the folder that contains cclash's cl.exe to %PATH% before the visual studio compiler
+
+or
+
+   * Rename the real cl.exe (and cl.exe.config), place cclash's cl.exe in the same visual studio folder, then set *CLCACHE_CL* to be the full path to your renamed compiler.
+
 ## GPL v3.0 License
 
 This program (cclash) is free software: you can redistribute it and/or modify
