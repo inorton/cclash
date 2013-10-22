@@ -242,11 +242,9 @@ namespace CClash
             return possibles;
         }
 
-        public int GetUsedIncludeFiles(IEnumerable<string> args, List<string> files, List<string>incdirs)
+        public List<string> GetUsedIncludeDirs(List<string> files)
         {
-            var xargs = new List<string>(args);
-            xargs.Add("/E");
-            var hashlines = new List<string>(200);
+            var incdirs = new List<string>();
             var tmplist = new List<string>(1000);
             var iinc = Environment.GetEnvironmentVariable("INCLUDE");
             if (iinc != null)
@@ -260,34 +258,21 @@ namespace CClash
                 incdirs.AddRange(incs);
             }
             incdirs.Add(Path.GetFullPath( Path.GetDirectoryName(SourceFile)));
-
-            var rv = InvokeCompiler(xargs, null, x => hashlines.Add(x), true);
-            if (rv == 0)
-            {
-                foreach (var l in hashlines)
-                {
-                    var tmp = l.Substring(1+l.IndexOf('"'));
-                    if (tmp != null)
-                    {
-                        tmplist.Add(Path.GetFullPath(tmp.TrimEnd('"')));
-                    }
-                }
-                files.AddRange(tmplist.Distinct());
-            }
-            return rv;
+            return incdirs;
         }
 
-        public int InvokeCompiler(IEnumerable<string> args, Action<string> onStdErr, Action<string> onStdOut, bool onlyCaptureLineDirectives)
+        public int InvokeCompiler(IEnumerable<string> args, Action<string> onStdErr, Action<string> onStdOut, bool showIncludes, List<string> foundIncludes)
         {
             if (!File.Exists(CompilerExe))
                 throw new FileNotFoundException("cant find cl.exe");
 
             var envs = Environment.GetEnvironmentVariables();
             var cla = JoinAguments(args);
+            if (showIncludes) cla += " /showIncludes";
             var psi = new ProcessStartInfo(CompilerExe, cla)
             {
                 UseShellExecute = false,
-                RedirectStandardError = !onlyCaptureLineDirectives,
+                RedirectStandardError = true,
                 RedirectStandardOutput = true, 
                 WorkingDirectory = Environment.CurrentDirectory,
             };
@@ -298,21 +283,34 @@ namespace CClash
 
             p.OutputDataReceived += (o, a) =>
             {
-
-                if ( a.Data != null &&( !onlyCaptureLineDirectives || a.Data.StartsWith("#line")))
-                    onStdOut(a.Data);
+                if ( a.Data != null ) {
+                    if (showIncludes)
+                    {
+                        if (a.Data.StartsWith("Note: including file:"))
+                        {
+                            var inc = a.Data.Substring("Note: including file:".Length+1);
+                            foundIncludes.Add( inc.TrimStart(' ') );
+                        }
+                        else
+                        {
+                            onStdOut(a.Data);
+                        }
+                    }
+                    else
+                    {
+                        onStdOut(a.Data);
+                    }
+                }
+                    
             };
 
-            if (!onlyCaptureLineDirectives)
+            p.ErrorDataReceived += (o, a) =>
             {
-                p.ErrorDataReceived += (o, a) =>
-                {
-                    if ( a.Data != null ) onStdErr(a.Data);
-                };
+                  if (a.Data != null) onStdErr(a.Data);
+            };
 
-                p.BeginErrorReadLine();
-            }
-
+            p.BeginErrorReadLine();
+            
             p.BeginOutputReadLine();
 
             p.WaitForExit();

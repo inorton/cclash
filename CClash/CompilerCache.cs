@@ -209,6 +209,7 @@ namespace CClash
                             Console.Error.WriteLine("cache miss");
                             using (var stderrfs = new StreamWriter(stderrfile))
                             {
+                                var ifiles = new List<string>();
                                 using (var stdoutfs = new StreamWriter(stdoutfile))
                                 {
                                     var rv = comp.InvokeCompiler(args,
@@ -220,15 +221,14 @@ namespace CClash
                                         {
                                             Console.Out.WriteLine(y);
                                             stdoutfs.WriteLine(y);
-                                        }, false);
+                                        }, true, ifiles);
 
                                     if (rv == 0)
                                     {
                                         // run preprocessor
-                                        var ifiles = new List<string>();
-                                        var idirs = new List<string>();
-                                        var irv = comp.GetUsedIncludeFiles(args, ifiles, idirs);
-                                        if (irv == 0)
+                                        
+                                        var idirs =comp.GetUsedIncludeDirs(ifiles);
+                                        if (idirs.Count > 0)
                                         {
                                             // save manifest and other things to cache
                                             var others = comp.GetPotentialIncludeFiles(idirs, ifiles);
@@ -293,7 +293,7 @@ namespace CClash
             try
             {
                 CacheUnsupported++;
-                return comp.InvokeCompiler(args, Console.Error.WriteLine, Console.Out.WriteLine, false);
+                return comp.InvokeCompiler(args, Console.Error.WriteLine, Console.Out.WriteLine, false, null);
             }
             finally
             {

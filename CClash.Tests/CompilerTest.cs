@@ -62,7 +62,7 @@ namespace CClash.Tests
 
             var ec = c.InvokeCompiler(
                 c.CommandLine,
-                Console.Error.WriteLine, Console.Error.WriteLine, false);
+                Console.Error.WriteLine, Console.Error.WriteLine, false, null);
 
             Assert.AreEqual(0, ec);
 
@@ -87,7 +87,7 @@ namespace CClash.Tests
             var stdout = new StringBuilder();
             var ec = c.InvokeCompiler(c.CommandLine,
                 x => stderr.AppendLine(x),
-                x => stdout.AppendLine(x), false);
+                x => stdout.AppendLine(x), false, null);
             Assert.AreEqual(0, ec);
             Assert.IsTrue(File.Exists(c.ObjectTarget));
             Assert.IsTrue(File.Exists(c.PdbFile));
@@ -104,16 +104,16 @@ namespace CClash.Tests
 
         [Test]
         [TestCase("/c", "test-sources\\hello.c")]
-        public void PreProcessorTest(params string[] argv)
+        public void IncludeFileTest(params string[] argv)
         {
             var c = new Compiler() { CompilerExe = CompilerPath };
             var hv = new List<string>();
 
             Assert.IsTrue(c.ProcessArguments(argv));
             hv.Add(Path.GetFullPath(c.SourceFile));
-            List<string> incdirs = new List<string>();
-            var rv = c.GetUsedIncludeFiles(c.CommandLine, hv, incdirs);
-            var couldinclude = c.GetPotentialIncludeFiles(incdirs, hv);
+            List<string> incfiles = new List<string>();
+            var rv = c.InvokeCompiler(argv, x => { }, y => { }, true, incfiles);
+            hv.AddRange(incfiles);
             Assert.AreEqual(0, rv);
             Assert.IsTrue(hv.Count > 0);
         }
@@ -127,7 +127,7 @@ namespace CClash.Tests
             Assert.IsTrue(c.ProcessArguments(argv));
             var stderr = new StringBuilder();
             var stdout = new StringBuilder();
-            var rv = c.InvokeCompiler(c.CommandLine, x => stderr.AppendLine(x), x => stdout.AppendLine(x), false);
+            var rv = c.InvokeCompiler(c.CommandLine, x => stderr.AppendLine(x), x => stdout.AppendLine(x), false, null);
 
             Assert.AreEqual(0, rv);
         }
