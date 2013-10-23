@@ -13,6 +13,7 @@ namespace CClash.Tests
     public class HashingTest
     {
         [Test]
+        [Repeat(2)]
         public void HashIncludeFiles()
         {
             var ht = new HashUtil();
@@ -23,6 +24,17 @@ namespace CClash.Tests
                 var hr = ht.DigestFile(f);
                 Assert.IsNotNull(hr.Hash);
             }
+        }
+
+        [Test]
+        [Repeat(2)]
+        public void ThreadyHashIncludeFiles()
+        {
+            var ht = new HashUtil();
+
+            var incdir = "C:\\Program Files (x86)\\Microsoft Visual Studio 11.0\\VC\\include";
+            var hashes = ht.ThreadyDigestFiles( Directory.GetFiles(incdir), true );
+            Assert.IsTrue(hashes.Count > 0);
         }
     }
 }

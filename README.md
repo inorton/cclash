@@ -3,11 +3,11 @@
 
 CClash is a (.net based) compiler cache for the Microsoft 'cl' compiler.
 
-It is aimed at fairly simple use ( eg, cl /c file.c ) and will cache object and pdb files rather like ccache does.
+It is aimed at fairly simple use ( eg, cl /c file.c /Fofile.o ) and will cache object and pdb files rather like ccache does.
 
 ## How does it work?
 
-CClash inspects command line arguments to see if it can understand what will be built. This command line input (and the value of %INCLUDE%) are used to generate a hash key. If cclash can support caching this invocation then it runs cl in '/E' mode to get a list of files included by the pre-processor. It md5s each file and attempts to build a map of files to watch out for on later builds. This 'manifest' of files is saved under the key we generated from the input arguments. We then invoke the compiler for real this time and cache any object, stderr, stout or pdb that gets produced.
+CClash inspects command line arguments to see if it can understand what will be built. This command line input (and the value of %INCLUDE%) are used to generate a hash key. If cclash can support caching this invocation then it runs cl in with the /showIncludes option to get a list of files included by the pre-processor during the build. It md5s each file and attempts to build a map of files to watch out for on later builds. This 'manifest' of files is saved under the key we generated from the input arguments. We then invoke the compiler for real this time and cache any object, stderr, stout or pdb that gets produced.
 
 On subsequent builds, the key will match, giving us a the manifest file, we check to see that no new #include files have been added and then check the md5 of each include file. If these have not changed we return the cached file and stderr/stdout rather than invoking the compiler.
 
@@ -19,18 +19,16 @@ On my (not very good) windows 8 machine, I have a simple test by building openss
 
 OpenSSL windows build                 | Duration
 --------------------------------------|----------
-no cache, first run                   | 303s
-no cache, second run                  | 297s
-cclash, but disabled                  | 283s
-cclash disabled second run            | 289s
-cclash enabled first run              | 718s
-cclash enabled second run             | **195s**
+average build time without cclash     | 294s
+cclash enabled first run              | 477s
+cclash enabled second run             | **169s**
 
-Caching is quite expensive in the openssl case, first build was 2.5 times slower than with just cl.exe.
+The first build with a clean cache costs about an extra 62% in build time for each file.
+Subsequent builds (with no source changes) give a 43% reduction in build time.
 
-A rebuild however was 33% faster than without cclash.
+So.. For cclash to make a difference to you, you would want to be in a situation where you will compile most of your files more than 2 or 3 times. In my case, I wanted cclash for a continuous integration build so it _should_ pay off quite quickly day or so
 
-So.. For cclash to make a difference to you, you would want to be in a situation where you will compile most of your files more than 7 times. In my case, I wanted cclash for a continuous integration build so it _should_ pay off after a day or so
+Compared to good old ccache this isn't too bad (ccache with gcc costs about 25% on a clean cache). Your milage may of course vary greatly!
 
 ## GPL v3.0 License
 

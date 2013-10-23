@@ -156,23 +156,28 @@ namespace CClash
                 foreach ( var f in m.PotentialNewIncludes ) {
                     if (File.Exists(f)) return false;
                 }
-                foreach (var ent in m.IncludeFiles)
+                var hashes = hasher.DigestFiles(m.IncludeFiles.Keys);
+
+                foreach (var h in hashes)
                 {
-                    var h = hasher.DigestFile(ent.Key);
-                    if (h.Result == DataHashResult.Ok)
+                    if (h.Value.Result == DataHashResult.Ok)
                     {
-                        if (h.Hash != ent.Value) return false;
-                    } else
+                        if (m.IncludeFiles[h.Key] != h.Value.Hash) return false;
+                    }
+                    else
                     {
                         return false;
                     }
                 }
+
                 foreach (var f in new string[] { F_Manifest, F_Object, F_Stderr, F_Stdout })
+                {
                     if (!File.Exists(cache.MakePath(commonkey.Hash, f)))
                     {
                         cache.Remove(commonkey.Hash);
                         return false;
                     }
+                }
 
                 return true; // cache hit, all includes match and no new files added
             }
@@ -206,7 +211,6 @@ namespace CClash
                         else
                         {   // miss, try build
                             CacheMisses++;
-                            Console.Error.WriteLine("cache miss");
                             using (var stderrfs = new StreamWriter(stderrfile))
                             {
                                 var ifiles = new List<string>();
@@ -240,11 +244,13 @@ namespace CClash
 
                                             bool good = true;
 
-                                            foreach ( var f in ifiles ) {
-                                                var h = hasher.DigestFile(f);
-                                                if (h.Result == DataHashResult.Ok)
+                                            var hashes = hasher.DigestFiles(ifiles);
+
+                                            foreach (var x in hashes)
+                                            {
+                                                if (x.Value.Result == DataHashResult.Ok)
                                                 {
-                                                    m.IncludeFiles[f] = h.Hash;
+                                                    m.IncludeFiles[x.Key] = x.Value.Hash;
                                                 }
                                                 else
                                                 {
