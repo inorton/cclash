@@ -1,5 +1,7 @@
 ﻿using System;
 using System.IO;
+using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 using System.Web.Script.Serialization;
 
@@ -79,7 +81,7 @@ namespace CClash
 
         public bool ContainsEntry(string key, string filename)
         {
-            return File.Exists(MakePath(key,filename));
+            return FileUtils.Exists(MakePath(key,filename));
         }
 
         public void AddEntry(string key)

@@ -49,6 +49,7 @@
     <Compile Include="Compiler.cs" />
     <Compile Include="CompilerCache.cs" />
     <Compile Include="FileCacheStore.cs" />
+    <Compile Include="FileUtils.cs" />
     <Compile Include="HashUtil.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

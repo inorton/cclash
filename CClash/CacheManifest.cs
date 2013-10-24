@@ -33,7 +33,7 @@ namespace CClash
             IncludeFiles = new Dictionary<string, string>();
             foreach (var f in files.Distinct())
             {
-                var dg = hh.DigestFile(f);
+                var dg = hh.DigestSourceFile(f);
                 if (dg.Result == DataHashResult.Ok)
                 {
                     IncludeFiles.Add(f, dg.Hash);
@@ -45,14 +45,14 @@ namespace CClash
         {
             foreach (var f in IncludeFiles.Keys)
             {
-                if (!File.Exists(f))
+                if (!FileUtils.Exists(f))
                 {
                     return false;
 
                 }
                 else
                 {
-                    var dg = hh.DigestFile(f);
+                    var dg = hh.DigestSourceFile(f);
                     
                     if (dg.Result != DataHashResult.Ok || (dg.Hash != IncludeFiles[f])) return false;
                 }

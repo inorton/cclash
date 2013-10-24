@@ -11,9 +11,10 @@ namespace CClash
     public class CompilerCache
     {
         JavaScriptSerializer jss = new JavaScriptSerializer();
-        FileCacheStore cache;
+        FileCacheStore outputCache;
+        FileCacheStore includeCache;
         String compilerPath;
-        HashUtil hasher = new HashUtil();
+        HashUtil hasher;
         Compiler comp;
 
         const string F_Manifest = "manifest.json";
@@ -34,7 +35,7 @@ namespace CClash
         {
             try
             {
-                var x = File.ReadAllText(cache.MakePath(K_Stats, statfile));
+                var x = File.ReadAllText(outputCache.MakePath(K_Stats, statfile));
                 return Int64.Parse(x);
             }
             catch
@@ -45,8 +46,8 @@ namespace CClash
 
         void WriteStat(string statfile, long value)
         {
-            cache.AddEntry(K_Stats);
-            File.WriteAllText( cache.MakePath(K_Stats, statfile), value.ToString());
+            outputCache.AddEntry(K_Stats);
+            File.WriteAllText( outputCache.MakePath(K_Stats, statfile), value.ToString());
         }
 
         public long CacheHits
@@ -113,7 +114,9 @@ namespace CClash
         {
             if (string.IsNullOrEmpty(cacheFolder)) throw new ArgumentNullException("cacheFolder");
             if (string.IsNullOrEmpty(compiler)) throw new ArgumentNullException("compiler");
-            cache = FileCacheStore.Load(cacheFolder);
+            outputCache = FileCacheStore.Load( Path.Combine(cacheFolder, "outputs" ) );
+            includeCache = FileCacheStore.Load(Path.Combine(cacheFolder, "includes"));
+            hasher = new HashUtil(includeCache);
             compilerPath = System.IO.Path.GetFullPath(compiler);
             comp = new Compiler() {
                 CompilerExe = compilerPath 
@@ -122,7 +125,7 @@ namespace CClash
 
         public bool IsSupported(IEnumerable<string> args)
         {
-            if (File.Exists(compilerPath))
+            if (FileUtils.Exists(compilerPath))
             {
                 return comp.ProcessArguments(args.ToArray());
             }
@@ -131,7 +134,7 @@ namespace CClash
 
         public DataHash DeriveHashKey( IEnumerable<string> args )
         {
-            var comphash = hasher.DigestFile(compilerPath);
+            var comphash = hasher.DigestBinaryFile(compilerPath);
             if (comphash.Result == DataHashResult.Ok)
             {
                 var buf = new StringBuilder();
@@ -148,13 +151,13 @@ namespace CClash
 
         public bool CheckCache(DataHash commonkey)
         {
-            if (cache.ContainsEntry(commonkey.Hash, F_Manifest))
+            if (outputCache.ContainsEntry(commonkey.Hash, F_Manifest))
             {
-                var mn = cache.MakePath(commonkey.Hash, F_Manifest);
+                var mn = outputCache.MakePath(commonkey.Hash, F_Manifest);
                 
                 var m = jss.Deserialize<CacheManifest>(File.ReadAllText(mn));
                 foreach ( var f in m.PotentialNewIncludes ) {
-                    if (File.Exists(f)) return false;
+                    if (FileUtils.Exists(f)) return false;
                 }
                 var hashes = hasher.DigestFiles(m.IncludeFiles.Keys);
 
@@ -172,9 +175,9 @@ namespace CClash
 
                 foreach (var f in new string[] { F_Manifest, F_Object, F_Stderr, F_Stdout })
                 {
-                    if (!File.Exists(cache.MakePath(commonkey.Hash, f)))
+                    if (!FileUtils.Exists(outputCache.MakePath(commonkey.Hash, f)))
                     {
-                        cache.Remove(commonkey.Hash);
+                        outputCache.Remove(commonkey.Hash);
                         return false;
                     }
                 }
@@ -191,21 +194,21 @@ namespace CClash
                 var hc = DeriveHashKey(args);
                 if (hc.Result == DataHashResult.Ok)
                 {
-                    cache.WaitOne();
+                    outputCache.WaitOne();
                     try
                     {
-                        cache.AddEntry(hc.Hash);
-                        var stderrfile = cache.MakePath(hc.Hash, F_Stderr);
-                        var stdoutfile = cache.MakePath(hc.Hash, F_Stdout);
+                        outputCache.AddEntry(hc.Hash);
+                        var stderrfile = outputCache.MakePath(hc.Hash, F_Stderr);
+                        var stdoutfile = outputCache.MakePath(hc.Hash, F_Stdout);
                         if (CheckCache(hc))
                         {
                             CacheHits++;
                             // cache hit
                             Console.Out.Write(File.ReadAllText(stdoutfile));
                             Console.Error.Write(File.ReadAllText(stderrfile));
-                            File.Copy(cache.MakePath(hc.Hash, F_Object), comp.ObjectTarget, true);
+                            File.Copy(outputCache.MakePath(hc.Hash, F_Object), comp.ObjectTarget, true);
                             if (comp.GeneratePdb)
-                                File.Copy(cache.MakePath(hc.Hash, F_Pdb), comp.PdbFile, true);
+                                File.Copy(outputCache.MakePath(hc.Hash, F_Pdb), comp.PdbFile, true);
                             return 0;
                         }
                         else
@@ -261,17 +264,17 @@ namespace CClash
 
                                             if (good)
                                             {
-                                                cache.AddFile(hc.Hash, comp.ObjectTarget, F_Object);
+                                                outputCache.AddFile(hc.Hash, comp.ObjectTarget, F_Object);
                                                 CacheObjects++;
                                                 CacheSize += new FileInfo(comp.ObjectTarget).Length;
                                                 if (comp.GeneratePdb)
                                                 {
-                                                    cache.AddFile(hc.Hash, comp.PdbFile, F_Pdb);
+                                                    outputCache.AddFile(hc.Hash, comp.PdbFile, F_Pdb);
                                                     CacheSize += new FileInfo(comp.PdbFile).Length;
                                                 }
                                                 // write manifest
                                                 var mt = jss.Serialize(m);
-                                                cache.AddTextFileContent( hc.Hash, F_Manifest, mt );
+                                                outputCache.AddTextFileContent( hc.Hash, F_Manifest, mt );
                                                 CacheSize += mt.Length;
                                             }
                                         }
@@ -285,7 +288,7 @@ namespace CClash
                     }
                     finally
                     {
-                        cache.ReleaseMutex();
+                        outputCache.ReleaseMutex();
                     }
                 }
             }
@@ -295,7 +298,7 @@ namespace CClash
 
         public int CompileOnly(IEnumerable<string> args)
         {
-            cache.WaitOne();
+            outputCache.WaitOne();
             try
             {
                 CacheUnsupported++;
@@ -303,7 +306,7 @@ namespace CClash
             }
             finally
             {
-                cache.ReleaseMutex();
+                outputCache.ReleaseMutex();
             }
         }
     }

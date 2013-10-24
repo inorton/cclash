@@ -35,7 +35,7 @@ namespace CClash.Tests
 
         void EnsureDeleted(string file)
         {
-            if (File.Exists(file)) 
+            if ( !string.IsNullOrEmpty(file) && FileUtils.Exists(file)) 
                 File.Delete(file);
         }
 

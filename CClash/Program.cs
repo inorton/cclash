@@ -17,7 +17,7 @@ namespace CClash
             foreach (var p in paths)
             {
                 var f = Path.Combine(p, "cl.exe");
-                if (File.Exists(f))
+                if (FileUtils.Exists(f))
                 {
                     if (f.Equals(self, StringComparison.CurrentCultureIgnoreCase))
                     {
@@ -62,7 +62,7 @@ namespace CClash
                 if (compiler != null)
                 {
                     var cache = new CompilerCache(cachedir, compiler);
-                    Console.WriteLine("cache usage: {0} kb", (int)(cache.CacheSize / 1024));
+                    Console.WriteLine("outputCache usage: {0} kb", (int)(cache.CacheSize / 1024));
                     Console.WriteLine("cached files: {0}", cache.CacheObjects);
                     Console.WriteLine("hits: {0}", cache.CacheHits);
                     Console.WriteLine("misses: {0}", cache.CacheMisses);

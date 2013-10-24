@@ -9,6 +9,8 @@ namespace CClast.Tests
     [TestFixture]
     public class FileCacheTest
     {
+        string thistestdll = typeof(FileCacheTest).Assembly.Location;
+
         [Test]
         public void TestCacheSetup()
         {

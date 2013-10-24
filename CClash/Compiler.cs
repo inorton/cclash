@@ -78,7 +78,7 @@ namespace CClash
                     SingleSource &&
                     !String.IsNullOrWhiteSpace(SourceFile) &&
                     !String.IsNullOrWhiteSpace(ObjectTarget) &&
-                    File.Exists(SourceFile)
+                    FileUtils.Exists(SourceFile)
                     );
             }
         }
@@ -140,7 +140,7 @@ namespace CClash
                         case "/Tp":
                         case "/Tc":
                             var srcfile = full.Substring(3);
-                            if (File.Exists(srcfile))
+                            if (FileUtils.Exists(srcfile))
                             {
                                 srcs.Add(srcfile);
                             }
@@ -159,7 +159,7 @@ namespace CClash
 
                             if (!full.StartsWith("/"))
                             {
-                                if (File.Exists(full))
+                                if (FileUtils.Exists(full))
                                 {
                                     srcs.Add(full);
                                 }
@@ -255,7 +255,7 @@ namespace CClash
                 foreach (var x in incdirs)
                 {
                     var p = Path.Combine( x, y );
-                    if (!File.Exists(p))
+                    if (!FileUtils.Exists(p))
                     {
                         possibles.Add(p);
                     }
@@ -290,7 +290,7 @@ namespace CClash
 
         public int InvokeCompiler(IEnumerable<string> args, Action<string> onStdErr, Action<string> onStdOut, bool showIncludes, List<string> foundIncludes)
         {
-            if (!File.Exists(CompilerExe))
+            if (!FileUtils.Exists(CompilerExe))
                 throw new FileNotFoundException("cant find cl.exe");
 
             var envs = Environment.GetEnvironmentVariables();
