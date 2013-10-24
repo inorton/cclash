@@ -31,7 +31,6 @@ namespace CClash
     {
         const string FindDateTimePattern = "__(TIM|DAT)E__";
         static Regex FindDateTime = new Regex(FindDateTimePattern);
-        static MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider();
 
         private int hashingThreadCount = Environment.ProcessorCount;
 
@@ -43,6 +42,8 @@ namespace CClash
 
         public DataHash DigestString(string input)
         {
+            MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider();
+
             var rv = new DataHash()
             {
                 InputName = "string",
@@ -141,6 +142,7 @@ namespace CClash
 
         public DataHash DigestFile(string filepath)
         {
+            MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider();
             return DigestFile(md5, filepath, FindDateTime);
         }
 
