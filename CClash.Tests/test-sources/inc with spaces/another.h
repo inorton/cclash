@@ -1,0 +1,1 @@
+#define FROMSPACE "from space"

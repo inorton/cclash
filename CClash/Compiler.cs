@@ -214,12 +214,12 @@ namespace CClash
             return IsSupported;
         }
 
-        public string JoinAguments(IEnumerable<string> args)
+        public static string JoinAguments(IEnumerable<string> args)
         {
             var sb = new System.Text.StringBuilder();
             foreach (var a in args)
             {
-                if (a.Contains(' '))
+                if (a.Contains(' ') || a.Contains('\t'))
                 {
                     sb.AppendFormat("\"{0}\"", a);
                 }

@@ -18,7 +18,7 @@ namespace CClash.Tests
             Environment.SetEnvironmentVariable("CCLASH_DISABLED", null);
             Environment.SetEnvironmentVariable("PATH", System.IO.Path.GetDirectoryName( comp ) + ";" + Environment.GetEnvironmentVariable("PATH"));
 
-            var rv = Program.Main( new string[] { "/c", @"test-sources\hello.c" });
+            var rv = Program.Main(new string[] { "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
             Assert.AreEqual(0, rv);
         }
 
@@ -35,7 +35,7 @@ namespace CClash.Tests
                 Environment.SetEnvironmentVariable("CCLASH_DISABLED", null);
                 Environment.SetEnvironmentVariable("PATH", System.IO.Path.GetDirectoryName(comp) + ";" + Environment.GetEnvironmentVariable("PATH"));
 
-                var rv = Program.Main(new string[] { "/c", @"test-sources\hello.c" });
+                var rv = Program.Main(new string[] { "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
                 Assert.AreEqual(0, rv);
             }
             finally
@@ -50,7 +50,7 @@ namespace CClash.Tests
             CompilerTest.SetEnvs();
             Environment.SetEnvironmentVariable("CCLASH_DISABLED", "1");
 
-            var rv = Program.Main(new string[] { "/c", @"test-sources\hello.c" });
+            var rv = Program.Main(new string[] { "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
             Assert.AreEqual(0, rv);
         }
     }

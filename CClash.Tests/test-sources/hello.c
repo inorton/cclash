@@ -10,6 +10,8 @@
 
 #include "exists.c"
 
+#include "another.h"
+
 int main( int argc, char** argv )
 {
 	return HELLO_TEST;

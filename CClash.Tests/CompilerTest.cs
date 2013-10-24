@@ -103,7 +103,7 @@ namespace CClash.Tests
         }
 
         [Test]
-        [TestCase("/c", "test-sources\\hello.c")]
+        [TestCase("/c", "test-sources\\hello.c", "/Itest-sources\\inc with spaces")]
         public void IncludeFileTest(params string[] argv)
         {
             var c = new Compiler() { CompilerExe = CompilerPath };
@@ -119,7 +119,7 @@ namespace CClash.Tests
         }
 
         [Test]
-        [TestCase("/c", "test-sources\\hello.c")]
+        [TestCase("/c", "test-sources\\hello.c", "/Itest-sources\\inc with spaces")]
         public void CompileObjectTest(params string[] argv)
         {
             var c = new Compiler() { CompilerExe = CompilerPath };

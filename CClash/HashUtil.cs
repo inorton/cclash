@@ -180,13 +180,12 @@ namespace CClash
             {
                 rv.Hash = new SoapHexBinary(provider.ComputeHash(bs)).ToString();
                 rv.Result = DataHashResult.Ok;
-                return rv;
+                
                 if (findDateTime != null) {
-                    // chech include cache for this file
+                    // check include cache for this file
                     
                     if (includeCache.ContainsEntry(rv.Hash, F_NotDateTime)) 
                     {
-                        rv.Result = DataHashResult.Ok;
                         return rv;
                     }
                     if (includeCache.ContainsEntry(rv.Hash, F_HasDateTime)) 

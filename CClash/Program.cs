@@ -9,6 +9,7 @@ namespace CClash
 {
     public class Program
     {
+
         public static string FindCompiler()
         {
             var self = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
@@ -30,7 +31,6 @@ namespace CClash
                     }
                     return f;
                 }
-                
             }
 
             return null;
@@ -41,6 +41,13 @@ namespace CClash
             var disable = Environment.GetEnvironmentVariable("CCLASH_DISABLE");
             var compiler = Environment.GetEnvironmentVariable("CCLASH_CL");
 
+            var dbg = Environment.GetEnvironmentVariable("CCLASH_DEBUG");
+            if (dbg != null)
+            {
+                Settings.DebugFile = dbg;
+                Settings.DebugEnabled = true;
+            }
+
             var cachedir = Environment.GetEnvironmentVariable("CCLASH_DIR");
 
             if (string.IsNullOrEmpty(cachedir))
@@ -49,8 +56,21 @@ namespace CClash
                 cachedir = Path.Combine(appdata, "clcache-data");
             }
 
+            Logging.Emit("cache folder: {0}", cachedir);
+
             if (compiler == null) compiler = FindCompiler();
             if (compiler == null) throw new System.IO.FileNotFoundException("cant find real cl compiler");
+
+            Logging.Emit("compiler: {0}", compiler);
+
+            if (Settings.DebugEnabled)
+            {
+                Logging.Emit("command line args:");
+                foreach (var a in args)
+                {
+                    Logging.Emit("arg: {0}", a);
+                }
+            }
 
             if (args.Contains("--cclash"))
             {
