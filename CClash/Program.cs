@@ -14,6 +14,11 @@ namespace CClash
             var self = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
             var path = Environment.GetEnvironmentVariable("PATH");
             var paths = path.Split(';');
+
+            var selfdir = Path.GetDirectoryName(self);
+            var realcl = Path.Combine(selfdir, "cl_real.exe");
+            if (File.Exists(realcl)) return realcl;
+
             foreach (var p in paths)
             {
                 var f = Path.Combine(p, "cl.exe");
