@@ -6,6 +6,8 @@ using System.Runtime.Remoting.Metadata.W3cXsd2001;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Threading;
+using System.Text;
+using System.Threading.Tasks;
 
 
 namespace CClash
@@ -149,21 +151,48 @@ namespace CClash
                 InputName = filepath,
             };
 
+            if (!File.Exists(filepath)) return rv;
+            provider.Initialize();
             using (var fs = new FileStream(filepath, FileMode.Open, FileAccess.Read))
             {
-                var txt = File.ReadAllText(filepath);
-                if (findDateTime.IsMatch(txt))
+                using (var ms = new MemoryStream())
                 {
-                    rv.Result = DataHashResult.ContainsTimeOrDate;
-                }
-                else
-                {
-                    rv.Hash = new SoapHexBinary(provider.ComputeHash(System.Text.Encoding.Unicode.GetBytes(txt))).ToString();
-                    rv.Result = DataHashResult.Ok;
-                }
+                    var buf = new byte[4096];
+                    int count = 0;
+                    do
+                    {
+                        count = fs.Read(buf, 0, buf.Length);
+                        if (count > 0)
+                        {
+                            ms.Write(buf, 0, count);
+                            provider.TransformBlock(buf, 0, count, buf, 0);
+                        } 
 
+                    } while (count == buf.Length);
+
+                    rv.Hash = new SoapHexBinary(provider.TransformFinalBlock( new byte[0], 0, 0 )).ToString();
+
+                    ms.Seek(0, SeekOrigin.Begin);
+                    using (var ts = new StreamReader(ms))
+                    {
+                        string line = null;
+                        do
+                        {
+                            line = ts.ReadLine();
+                            if (line == null) break;
+
+                            if (findDateTime.IsMatch(line))
+                            {
+                                rv.Result = DataHashResult.ContainsTimeOrDate;
+                                break;
+                            }
+
+                        } while (true);
+                    }
+                }
             }
-
+            rv.Result = DataHashResult.Ok;
+            
             return rv;
         }
     }

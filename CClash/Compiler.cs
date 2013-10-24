@@ -6,6 +6,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace CClash
 {
@@ -13,12 +14,33 @@ namespace CClash
     {
         static Regex findLineInclude = new Regex("#line\\s+\\d+\\s+\"([^\"]+)\"");
 
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
+        static extern int GetLongPathName(
+            string path,
+            StringBuilder longPath,
+            int longPathLength
+            );
+
         public Compiler()
         {
             CompilerExe = "cl";
         }
 
-        public string CompilerExe { get; set; }
+        private string compilerExe;
+
+        public string CompilerExe
+        {
+            get { return compilerExe; }
+            set { 
+                compilerExe = value;
+                if (Path.IsPathRooted(compilerExe) && compilerExe.Contains("~"))
+                {
+                    var sb = new StringBuilder();
+                    GetLongPathName(compilerExe, sb, sb.Capacity);
+                    compilerExe = sb.ToString();
+                }
+            }
+        }
 
         public string[] CommandLine { get; set; }
 
@@ -73,6 +95,7 @@ namespace CClash
 
         string getFullOption(string arg)
         {
+            arg = arg.Trim('"', '\'');
             if (arg.StartsWith("-") || arg.StartsWith("/"))
             {
                 return "/" + arg.Substring(1);
@@ -128,7 +151,11 @@ namespace CClash
                             break;
 
                         default:
-                            if (full == "/link") Linking = true;
+                            if (full == "/link")
+                            {
+                                Linking = true;
+                                return false;
+                            }
 
                             if (!full.StartsWith("/"))
                             {
