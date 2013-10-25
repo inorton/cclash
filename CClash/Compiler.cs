@@ -413,7 +413,6 @@ namespace CClash
             if (!FileUtils.Exists(CompilerExe))
                 throw new FileNotFoundException("cant find cl.exe");
 
-            var envs = Environment.GetEnvironmentVariables();
             var cla = JoinAguments(args);
             if (showIncludes) cla += " /showIncludes";
             var psi = new ProcessStartInfo(CompilerExe, cla)
