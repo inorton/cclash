@@ -10,6 +10,9 @@ using System.Runtime.InteropServices;
 
 namespace CClash
 {
+    /// <summary>
+    /// Class for processing compiler inputs, running the compiler and deducing outputs.
+    /// </summary>
     public sealed class Compiler
     {
         static Regex findLineInclude = new Regex("#line\\s+\\d+\\s+\"([^\"]+)\"");
@@ -21,6 +24,9 @@ namespace CClash
             int longPathLength
             );
 
+        /// <summary>
+        /// Create a new instance of the Compiler class.
+        /// </summary>
         public Compiler()
         {
             CompilerExe = "cl";
@@ -28,6 +34,9 @@ namespace CClash
 
         private string compilerExe;
 
+        /// <summary>
+        /// The real compiler we've been told to use.
+        /// </summary>
         public string CompilerExe
         {
             get { return compilerExe; }
@@ -42,24 +51,53 @@ namespace CClash
             }
         }
 
+        /// <summary>
+        /// The command line supplied to us.
+        /// </summary>
         public string[] CommandLine { get; set; }
 
-        public string SourceFile { 
+        /// <summary>
+        /// The first source file.
+        /// </summary>
+        public string SingleSourceFile { 
             get {
                 return srcs.FirstOrDefault();
             }
         }
+
+        /// <summary>
+        /// The full list of source files.
+        /// </summary>
+        /// <remarks>
+        /// CClash does not currently support caching multiple source file invocations.
+        /// </remarks>
+        public string[] SourceFiles
+        {
+            get
+            {
+                return srcs.ToArray();
+            }
+        }
+
         public string ObjectTarget { get; set; }
         public string PdbFile { get; set; }
 
         public bool Linking { get; set; }
         public bool PrecompiledHeaders { get; set; }
         public bool GeneratePdb { get; set; }
-        public bool ResponseFile { get; set; }
+        public string ResponseFile { get; set; }
 
         List<string> srcs = new List<string>();
         List<string> incs = new List<string>();
         List<string> cliincs = new List<string>();
+
+        public List<string> CliIncludePaths
+        {
+            get
+            {
+                return new List<string>(cliincs);
+            }
+        }
 
         public bool SingleSource
         {
@@ -69,16 +107,16 @@ namespace CClash
             }
         }
 
-        public bool IsSupported
+        bool IsSupported
         {
             get
             {
                 return (!Linking &&
                     !PrecompiledHeaders &&
                     SingleSource &&
-                    !String.IsNullOrWhiteSpace(SourceFile) &&
+                    !String.IsNullOrWhiteSpace(SingleSourceFile) &&
                     !String.IsNullOrWhiteSpace(ObjectTarget) &&
-                    FileUtils.Exists(SourceFile)
+                    FileUtils.Exists(SingleSourceFile)
                     );
             }
         }
@@ -103,6 +141,26 @@ namespace CClash
             return arg;
         }
 
+        [DllImport("shell32.dll", SetLastError = true)]
+        private static extern IntPtr CommandLineToArgvW([MarshalAs(UnmanagedType.LPWStr)] string lpCmdLine, out int pNumArgs);
+
+        public static List<string> CommandLineToArgs(string commandLine)
+        {
+            int argc;
+            var argv = CommandLineToArgvW("cl.exe " + commandLine, out argc);
+            if (argv == IntPtr.Zero)
+                throw new InvalidProgramException("could not split command line args");
+
+            var args = new List<string>();
+            for (var i = 0; i < argc; i++)
+            {
+                var pstr = Marshal.ReadIntPtr(argv, i * IntPtr.Size);
+                args.Add(Marshal.PtrToStringUni(pstr));
+            }
+            Marshal.FreeHGlobal(argv);
+            return args;
+        }
+
         public bool ProcessArguments(string[] args)
         {
             try
@@ -110,11 +168,34 @@ namespace CClash
                 CommandLine = args;
                 for (int i = 0; i < args.Length; i++)
                 {
+                    Logging.Emit("process arg '{0}'", args[i]);
                     var opt = getOption(args[i]);
                     var full = getFullOption(args[i]);
                     
                     switch (opt)
                     {
+                        case "/D":
+                            if (opt == full)
+                            {
+                                // define value is next argument...
+                                i++;
+                            }
+                            break;
+                        case "/I":
+                            if (opt == full)
+                            {
+                                // include path is next argument..
+                                // microsoft really dont know how to do command line!
+                                i++;
+                                if (i > args.Length)
+                                {
+                                    return false;
+                                }
+                                full = "/I" + args[i];
+                                goto default;
+                            }
+                            break;
+
                         case "/Yu":
                             PrecompiledHeaders = true;
                             return false;
@@ -157,25 +238,51 @@ namespace CClash
                                 return false;
                             }
 
+                            if (opt.StartsWith("@"))
+                            {
+                                ResponseFile = full.Substring(1);
+                                var rsptxt = File.ReadAllText(opt.Substring(1));
+                                if (rsptxt.Length < 2047)
+                                // windows max command line, this is why they invented response files
+                                {
+                                    Logging.Emit("response data [{0}]", rsptxt);
+                                    if (args.Length == 1)
+                                    {
+                                        // this only works if it is the one and only arg!
+                                        args = CommandLineToArgs(rsptxt).ToArray();
+                                        i = 0;
+
+                                        // replace the command line with the response file content 
+                                        // and restart parsing. This does go wrong if the response text is huge
+                                        continue;
+                                    }
+                                }
+                                else
+                                {
+                                    Logging.Emit("response file too large");
+                                }
+
+                                return false;
+                            }
+
                             if (!full.StartsWith("/"))
                             {
                                 if (FileUtils.Exists(full))
                                 {
                                     srcs.Add(full);
+                                    continue;
                                 }
                             }
-                            if (!full.StartsWith("/I"))
+                            if (full.StartsWith("/I"))
                             {
                                 var d = full.Substring(2);
                                 if (Directory.Exists(d))
+                                {
                                     cliincs.Add(d);
+                                    continue;
+                                }
                             }
 
-                            if (opt.StartsWith("@"))
-                            {
-                                ResponseFile = true;
-                                return false;
-                            }
                             break;
                     }
                 }
@@ -183,8 +290,7 @@ namespace CClash
                 {
                     if (ObjectTarget == null)
                     {
-
-                        var f = Path.GetFileNameWithoutExtension(SourceFile) + ".obj";
+                        var f = Path.GetFileNameWithoutExtension(SingleSourceFile) + ".obj";
                         ObjectTarget = Path.Combine(Environment.CurrentDirectory, f);
                     }
                     if (GeneratePdb && PdbFile == null)
@@ -199,7 +305,8 @@ namespace CClash
                             }
                         }
                         if ( PdbFile == null ) {
-                            throw new InvalidProgramException("could not work out compiler version for auto generated pdb");
+                            Logging.Emit("could not work out compiler version for auto generated pdb");
+                            return false;
                         }
                     }
                 }   
@@ -236,7 +343,7 @@ namespace CClash
         {
             List<string> possibles = new List<string>();
             List<string> includelines = new List<string>();
-            var fullSrc = Path.GetFullPath(SourceFile);
+            var fullSrc = Path.GetFullPath(SingleSourceFile);
             foreach (var d in incdirs)
             {
                 foreach (var f in ( from x in incfiles where x.StartsWith(d, StringComparison.CurrentCultureIgnoreCase) select x ) )
@@ -284,7 +391,7 @@ namespace CClash
                 }
                 incdirs.AddRange(incs);
             }
-            incdirs.Add(Path.GetFullPath( Path.GetDirectoryName(SourceFile)));
+            incdirs.Add(Path.GetFullPath( Path.GetDirectoryName(SingleSourceFile)));
             return incdirs;
         }
 

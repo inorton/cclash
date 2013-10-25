@@ -1,0 +1,1 @@
+﻿/c test-sources\hello.c /I"test-sources\inc with spaces" / a_hash_define

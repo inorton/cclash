@@ -53,7 +53,7 @@ namespace CClash.Tests
             Assert.IsTrue(c.SingleSource);
             Assert.IsNotNullOrEmpty(c.ObjectTarget);
             Assert.IsFalse(c.PrecompiledHeaders);
-            Assert.AreNotEqual(c.SourceFile, c.ObjectTarget);
+            Assert.AreNotEqual(c.SingleSourceFile, c.ObjectTarget);
 
             EnsureDeleted(c.ObjectTarget);
             EnsureDeleted(c.PdbFile);
@@ -110,7 +110,7 @@ namespace CClash.Tests
             var hv = new List<string>();
 
             Assert.IsTrue(c.ProcessArguments(argv));
-            hv.Add(Path.GetFullPath(c.SourceFile));
+            hv.Add(Path.GetFullPath(c.SingleSourceFile));
             List<string> incfiles = new List<string>();
             var rv = c.InvokeCompiler(argv, x => { }, y => { }, true, incfiles);
             hv.AddRange(incfiles);
@@ -120,11 +120,17 @@ namespace CClash.Tests
 
         [Test]
         [TestCase("/c", "test-sources\\hello.c", "/Itest-sources\\inc with spaces")]
+        [TestCase("/c", "test-sources\\hello.c", "/I","test-sources\\inc with spaces","/D","a_hash_define")]
+        [TestCase("@test-sources\\compiler1.resp")]
+        [TestCase("@test-sources\\compiler2.resp")]
         public void CompileObjectTest(params string[] argv)
         {
             var c = new Compiler() { CompilerExe = CompilerPath };
             
             Assert.IsTrue(c.ProcessArguments(argv));
+            Assert.AreEqual(1, c.CliIncludePaths.Count);
+            Assert.AreEqual("test-sources\\inc with spaces", c.CliIncludePaths[0]);
+            Assert.AreEqual("test-sources\\hello.c", c.SingleSourceFile);
             var stderr = new StringBuilder();
             var stdout = new StringBuilder();
             var rv = c.InvokeCompiler(c.CommandLine, x => stderr.AppendLine(x), x => stdout.AppendLine(x), false, null);

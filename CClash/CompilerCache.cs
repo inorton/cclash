@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using System.Web.Script.Serialization;
+using System.Diagnostics;
 
 namespace CClash
 {
@@ -292,7 +293,15 @@ namespace CClash
                     }
                 }
             }
-            
+            if (comp.ResponseFile != null)
+            {
+                if (File.Exists(comp.ResponseFile))
+                {
+                    var resp = File.ReadAllText(comp.ResponseFile);
+
+                }
+            }
+
             return CompileOnly(args);
         }
 

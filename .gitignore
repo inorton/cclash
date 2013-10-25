@@ -10,3 +10,4 @@ cclash/bin/*
 UnitTests/*
 packages/*
 TestResults/*
+CClash.Tests\dummy\dummy\Debug*/
