@@ -11,3 +11,4 @@ UnitTests/*
 packages/*
 TestResults/*
 CClash.Tests\dummy\dummy\Debug*/
+CClash.Tests\dummy\dummy*/
