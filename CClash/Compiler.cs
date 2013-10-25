@@ -47,6 +47,7 @@ namespace CClash
                     var sb = new StringBuilder();
                     GetLongPathName(compilerExe, sb, sb.Capacity);
                     compilerExe = sb.ToString();
+                    Logging.Emit("real compiler is: {0}", compilerExe);
                 }
             }
         }
@@ -174,6 +175,9 @@ namespace CClash
                     
                     switch (opt)
                     {
+                        case "/o":
+                            return false;
+
                         case "/D":
                             if (opt == full)
                             {
@@ -194,6 +198,10 @@ namespace CClash
                                 full = "/I" + args[i];
                                 goto default;
                             }
+                            break;
+
+                        case "/Z7":
+                            GeneratePdb = false;
                             break;
 
                         case "/Yu":
@@ -388,10 +396,15 @@ namespace CClash
                 foreach (var i in iinc.Split(';'))
                 {
                     incs.Add(i);
+                    Logging.Emit("notice include folder: {0}", i);
                 }
                 incdirs.AddRange(incs);
             }
-            incdirs.Add(Path.GetFullPath( Path.GetDirectoryName(SingleSourceFile)));
+            var srcfolder = Path.GetDirectoryName(SingleSourceFile);
+            if (string.IsNullOrEmpty(srcfolder))
+                srcfolder = Environment.CurrentDirectory;
+            Logging.Emit("notice source folder: {0}", srcfolder);
+            incdirs.Add(Path.GetFullPath(srcfolder));
             return incdirs;
         }
 

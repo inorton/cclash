@@ -137,5 +137,16 @@ namespace CClash.Tests
 
             Assert.AreEqual(0, rv);
         }
+
+        [Test]
+        [TestCase("/o","foo.exe")]
+        [TestCase("/c","test-sources\\exists.c","test-sources\\hello.c")]
+        [TestCase("/link")]
+        public void DetectNotSupported(params string[] argv)
+        {
+            var c = new Compiler() { CompilerExe = CompilerPath };
+
+            Assert.IsFalse(c.ProcessArguments(argv));
+        }
     }
 }
