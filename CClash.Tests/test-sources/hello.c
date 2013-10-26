@@ -14,5 +14,9 @@
 
 int main( int argc, char** argv )
 {
+#ifdef FOO
+	printf(FOO);
+#endif
+
 	return HELLO_TEST;
 }

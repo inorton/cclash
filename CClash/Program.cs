@@ -29,6 +29,11 @@ namespace CClash
                     {
                         continue;
                     }
+                    if (Path.IsPathRooted(f))
+                    {
+                        
+                    }
+
                     return f;
                 }
             }
@@ -98,8 +103,14 @@ namespace CClash
 
 
             var clc = new CompilerCache(cachedir, compiler);
-            if (string.IsNullOrEmpty(disable)) 
+            if (string.IsNullOrEmpty(disable))
+            {
                 return clc.CompileOrCache(args);
+            }
+            else
+            {
+                Logging.Emit("cclash disabled");
+            }
             return clc.CompileOnly(args);
 
         }

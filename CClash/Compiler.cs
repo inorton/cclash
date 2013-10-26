@@ -24,12 +24,65 @@ namespace CClash
             int longPathLength
             );
 
+        [DllImport("kernel32.dll",  CharSet = CharSet.Auto)]
+        static unsafe extern IntPtr GetEnvironmentStringsA();
+        
+        static void cygwinEnvFixup()
+        {
+            var ost = Environment.GetEnvironmentVariable("OSTYPE");
+            if (Environment.GetEnvironmentVariable("CCLASH_CYGWIN_FIX") != null)
+                ost = "cygwin";
+
+            Logging.Emit("OSTYPE={0}", ost);
+
+            if (ost == "cygwin")
+            {
+                Logging.Emit("doing ghastly cygwin environment repair");
+                List<string> lines = new List<string>();
+                unsafe
+                {
+                    var ppenvs = GetEnvironmentStringsA();
+                    List<byte> buf = new List<byte>();
+                    
+                    byte* envs = (byte*)ppenvs.ToPointer();
+                    
+                    for (int i = 0; true; i++)
+                    {
+                        if (envs[i] == (byte)0)
+                        {
+                            lines.Add(System.Text.Encoding.ASCII.GetString(buf.ToArray()));
+                            buf.Clear();
+                            if (envs[i + 1] == (byte)0)
+                            {
+                                break; // end of buffer. yuk..
+                            }
+                        }
+                        else
+                        {
+                            buf.Add(envs[i]);
+                        }
+                    }
+                    Marshal.FreeHGlobal(ppenvs);
+                }
+
+                foreach (var e in lines)
+                {
+                    var pair = e.Split(new char[] { '=' }, 2);
+                    Logging.Emit("cwfix {0}={1}", pair[0], pair[1]);
+                    Environment.SetEnvironmentVariable(pair[0], null);
+                    Environment.SetEnvironmentVariable(pair[0].ToUpper(), pair[1]);
+                }
+            }
+        }
+
+
         /// <summary>
         /// Create a new instance of the Compiler class.
         /// </summary>
         public Compiler()
         {
-            CompilerExe = "cl";
+            compilerExe = "cl";
+            cygwinEnvFixup();
         }
 
         private string compilerExe;
@@ -162,6 +215,38 @@ namespace CClash
             return args;
         }
 
+        public IEnumerable<string> FixupArgs(IEnumerable<string>args)
+        {
+            var rv = new List<string>();
+            var aa = args.ToArray();
+            for( int i =0; i < aa.Length; i++ )
+            {
+                var a = aa[i];
+                if (a.StartsWith("/D") || a.StartsWith("-D"))
+                {
+                    string val;
+                    if (a.Length == 2 && (i + 1 < aa.Length))
+                    {
+                        val = aa[++i];
+                    }
+                    else
+                    {
+                        val = a.Substring(2);
+                    }
+                    if (val.Contains("=\""))
+                    {
+                        val = Regex.Replace(val, "\"", "\"\"\""); 
+                    }
+                    rv.Add("/D" + val);
+                } else {
+                    rv.Add(a);
+                }
+            }
+
+            return rv;
+        }
+
+
         public bool ProcessArguments(string[] args)
         {
             try
@@ -240,6 +325,12 @@ namespace CClash
                             break;
 
                         default:
+
+                            if (full.StartsWith("/E"))
+                            {
+                                return false;
+                            }
+
                             if (full == "/link")
                             {
                                 Linking = true;
@@ -284,8 +375,14 @@ namespace CClash
                             if (full.StartsWith("/I"))
                             {
                                 var d = full.Substring(2);
+                                if (d == ".")
+                                    d = Environment.CurrentDirectory;
+                                if (d == "..")
+                                    d = Path.GetDirectoryName(Environment.CurrentDirectory);
+
                                 if (Directory.Exists(d))
                                 {
+                                    Logging.Emit("cli include '{0}' => {1}", full, d);
                                     cliincs.Add(d);
                                     continue;
                                 }
@@ -389,6 +486,7 @@ namespace CClash
             var incdirs = new List<string>();
             var tmplist = new List<string>(1000);
             var iinc = Environment.GetEnvironmentVariable("INCLUDE");
+            Logging.Emit("INCLUDE={0}", iinc);
             if (iinc != null)
             {
                 incs.Clear();
@@ -410,10 +508,12 @@ namespace CClash
 
         public int InvokeCompiler(IEnumerable<string> args, Action<string> onStdErr, Action<string> onStdOut, bool showIncludes, List<string> foundIncludes)
         {
+            Logging.Emit("invoking real compiler: [{0}]", string.Join( " ", args.ToArray() ));
+            
             if (!FileUtils.Exists(CompilerExe))
                 throw new FileNotFoundException("cant find cl.exe");
 
-            var cla = JoinAguments(args);
+            var cla = JoinAguments( FixupArgs( args) );
             if (showIncludes) cla += " /showIncludes";
             var psi = new ProcessStartInfo(CompilerExe, cla)
             {
