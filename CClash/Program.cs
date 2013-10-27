@@ -94,17 +94,22 @@ namespace CClash
                 return 0;
             }
 
-            var clc = new CompilerCache(cachedir, compiler);
             if (!Settings.Disabled)
             {
-                return clc.CompileOrCache(args);
+                return new CompilerCache(cachedir, compiler).CompileOrCache(args);
             }
             else
             {
                 Logging.Emit("cclash disabled");
             }
-            return clc.CompileOnly(args);
 
+            var c = new Compiler()
+            {
+                CompilerExe = compiler,
+            };
+
+            return c.InvokeCompiler(args,
+                Console.Error.WriteLine, Console.Out.WriteLine, false, null);
         }
     }
 }

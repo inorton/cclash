@@ -35,8 +35,8 @@ namespace CClash
         {
             get
             {
-                var dis = !string.IsNullOrEmpty( Environment.GetEnvironmentVariable("CCLASH_DISABLED"));
-                return ( dis || DisabledByConditions() );
+                var dis = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CCLASH_DISABLED"));
+                return (dis || DisabledByConditions());
             }
         }
 

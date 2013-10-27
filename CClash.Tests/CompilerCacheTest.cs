@@ -11,6 +11,7 @@ namespace CClash.Tests
     public class CompilerCacheTest
     {
         [Test]
+        [Repeat(10)]
         public void RunEnabled()
         {
             var comp = CompilerTest.CompilerPath;
@@ -23,6 +24,7 @@ namespace CClash.Tests
         }
 
         [Test]
+        [Repeat(10)]
         public void RunDisabled()
         {
             CompilerTest.SetEnvs();
@@ -33,14 +35,15 @@ namespace CClash.Tests
         }
 
         [Test]
-        [TestCase("RED,GREEN")]
-        public void RunDisabledByCondition(string value)
+        [Repeat(10)]
+        public void RunDisabledByCondition()
         {
             CompilerTest.SetEnvs();
             Environment.SetEnvironmentVariable("CCLASH_DISABLED", null);
+            Environment.SetEnvironmentVariable("CCLASH_DISABLE_WHEN_VAR", null);
             Assert.IsFalse(Settings.Disabled);
             Environment.SetEnvironmentVariable("CCLASH_DISABLE_WHEN_VAR", "TESTTEST");
-            Environment.SetEnvironmentVariable("CCLASH_DISABLE_WHEN_VALUES", value);
+            Environment.SetEnvironmentVariable("CCLASH_DISABLE_WHEN_VALUES", "X,RED,GREEN");
             Environment.SetEnvironmentVariable("TESTTEST", "RED");
             Assert.IsTrue(Settings.Disabled);
             var rv = Program.Main(new string[] { "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
