@@ -43,7 +43,6 @@ namespace CClash
 
         public static int Main(string[] args)
         {
-            var disable = Environment.GetEnvironmentVariable("CCLASH_DISABLE");
             var compiler = Environment.GetEnvironmentVariable("CCLASH_CL");
 
             var dbg = Environment.GetEnvironmentVariable("CCLASH_DEBUG");
@@ -53,13 +52,7 @@ namespace CClash
                 Settings.DebugEnabled = true;
             }
 
-            var cachedir = Environment.GetEnvironmentVariable("CCLASH_DIR");
-
-            if (string.IsNullOrEmpty(cachedir))
-            {
-                var appdata = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-                cachedir = Path.Combine(appdata, "clcache-data");
-            }
+            var cachedir = Settings.CacheDirectory;
 
             Logging.Emit("cache folder: {0}", cachedir);
 
@@ -81,13 +74,13 @@ namespace CClash
             {
                 Console.WriteLine("compiler: {0}", compiler);
                 Console.WriteLine("cachedir: {0}", cachedir);
-                if (string.IsNullOrEmpty(disable))
+                if (Settings.Disabled)
                 {
-                    Console.WriteLine("disabled: no");
+                    Console.WriteLine("disabled: yes");
                 }
                 else
                 {
-                    Console.WriteLine("disabled: yes");
+                    Console.WriteLine("disabled: no");
                 }
                 if (compiler != null)
                 {
@@ -101,9 +94,8 @@ namespace CClash
                 return 0;
             }
 
-
             var clc = new CompilerCache(cachedir, compiler);
-            if (string.IsNullOrEmpty(disable))
+            if (!Settings.Disabled)
             {
                 return clc.CompileOrCache(args);
             }

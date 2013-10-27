@@ -27,7 +27,22 @@ namespace CClash.Tests
         {
             CompilerTest.SetEnvs();
             Environment.SetEnvironmentVariable("CCLASH_DISABLED", "1");
+            Assert.IsTrue(Settings.Disabled);
+            var rv = Program.Main(new string[] { "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
+            Assert.AreEqual(0, rv);
+        }
 
+        [Test]
+        [TestCase("RED,GREEN")]
+        public void RunDisabledByCondition(string value)
+        {
+            CompilerTest.SetEnvs();
+            Environment.SetEnvironmentVariable("CCLASH_DISABLED", null);
+            Assert.IsFalse(Settings.Disabled);
+            Environment.SetEnvironmentVariable("CCLASH_DISABLE_WHEN_VAR", "TESTTEST");
+            Environment.SetEnvironmentVariable("CCLASH_DISABLE_WHEN_VALUES", value);
+            Environment.SetEnvironmentVariable("TESTTEST", "RED");
+            Assert.IsTrue(Settings.Disabled);
             var rv = Program.Main(new string[] { "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
             Assert.AreEqual(0, rv);
         }
