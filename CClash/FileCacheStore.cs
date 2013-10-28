@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -36,18 +37,15 @@ namespace CClash
             FolderPath = Path.GetFullPath(folderPath);
             mtx = new Mutex(false, "cclash_mtx_" + FolderPath.ToLower().GetHashCode());
             WaitOne();
+            var tlist = new List<Thread>();
             try
             {
+
                 if (!Directory.Exists(FolderPath))
                 {
-                    Directory.CreateDirectory(FolderPath);
+                     Directory.CreateDirectory(FolderPath);
                 }
-                // make the top level folders
-                for (int i = 0; i < 256; i++)
-                {
-                    var fp = Path.Combine(FolderPath, string.Format("{0:x2}", i));
-                    if (!Directory.Exists(fp)) Directory.CreateDirectory(fp);
-                }
+
             }
             finally
             {
@@ -70,9 +68,13 @@ namespace CClash
 
         public event FileCacheStoreAddedHandler Added;
 
-        void EnsureKey(string key)
+        public void EnsureKey(string key)
         {
             var kp = MakePath(key);
+            if (!Directory.Exists(kp.Substring(0,2))) 
+            {
+                Directory.CreateDirectory(kp.Substring(0,2));
+            }
             if (!Directory.Exists(kp))
             {
                 Directory.CreateDirectory(kp);

@@ -16,14 +16,7 @@ namespace CClash
     public sealed class Compiler
     {
         static Regex findLineInclude = new Regex("#line\\s+\\d+\\s+\"([^\"]+)\"");
-
-        [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
-        static extern int GetLongPathName(
-            string path,
-            StringBuilder longPath,
-            int longPathLength
-            );
-
+        
         [DllImport("kernel32.dll",  CharSet = CharSet.Auto)]
         static unsafe extern IntPtr GetEnvironmentStringsA();
         
@@ -65,14 +58,62 @@ namespace CClash
                     Marshal.FreeHGlobal(ppenvs);
                 }
 
+                
                 foreach (var e in lines)
                 {
                     var pair = e.Split(new char[] { '=' }, 2);
-                    Logging.Emit("cwfix {0}={1}", pair[0], pair[1]);
-                    Environment.SetEnvironmentVariable(pair[0], null);
-                    Environment.SetEnvironmentVariable(pair[0].ToUpper(), pair[1]);
+                    var haslow = false;
+                    foreach (var c in pair[0])
+                    {
+                        if (char.IsLower(c))
+                        {
+                            haslow = true;
+                            break;
+                        }
+                    }
+
+                    if (haslow)
+                    {
+                        Logging.Emit("cwfix {0}={1}", pair[0], pair[1]);
+                        Environment.SetEnvironmentVariable(pair[0], null);
+                        Environment.SetEnvironmentVariable(pair[0].ToUpper(), pair[1]);
+                    }
                 }
             }
+        }
+
+        public static string Find()
+        {
+            var compiler = Environment.GetEnvironmentVariable("CCLASH_CL");
+            if ((compiler != null) && File.Exists(compiler)) return compiler;
+
+            var self = System.Diagnostics.Process.GetCurrentProcess().MainModule.FileName;
+            var path = Environment.GetEnvironmentVariable("PATH");
+            var paths = path.Split(';');
+
+            var selfdir = Path.GetDirectoryName(self);
+            var realcl = Path.Combine(selfdir, "cl_real.exe");
+            if (File.Exists(realcl)) return realcl;
+
+            foreach (var p in paths)
+            {
+                var f = Path.Combine(p, "cl.exe");
+                if (FileUtils.Exists(f))
+                {
+                    if (f.Equals(self, StringComparison.CurrentCultureIgnoreCase))
+                    {
+                        continue;
+                    }
+                    if (Path.IsPathRooted(f))
+                    {
+
+                    }
+
+                    return f;
+                }
+            }
+
+            return null;
         }
 
 
@@ -93,15 +134,9 @@ namespace CClash
         public string CompilerExe
         {
             get { return compilerExe; }
-            set { 
-                compilerExe = value;
-                if (Path.IsPathRooted(compilerExe) && compilerExe.Contains("~"))
-                {
-                    var sb = new StringBuilder();
-                    GetLongPathName(compilerExe, sb, sb.Capacity);
-                    compilerExe = sb.ToString();
-                    Logging.Emit("real compiler is: {0}", compilerExe);
-                }
+            set {
+                compilerExe = FileUtils.ToLongPathName(value);        
+                Logging.Emit("real compiler is: {0}", compilerExe);
             }
         }
 

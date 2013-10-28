@@ -51,7 +51,7 @@ namespace CClash
                     if (string.IsNullOrEmpty(cachedir))
                     {
                         var appdata = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-                        cachedir = System.IO.Path.Combine(appdata, "clcache-data");
+                        cachedir = System.IO.Path.Combine(appdata, "cclash");
                     }
                 }
                 return cachedir;

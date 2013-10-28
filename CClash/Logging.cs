@@ -13,7 +13,15 @@ namespace CClash
         {
             if (Settings.DebugEnabled)
             {
-                File.AppendAllLines(Settings.DebugFile, new string[] { string.Format(fmt, args) });
+                for (int i = 0; i < 4; i++)
+                {
+                    try
+                    {
+                        File.AppendAllLines(Settings.DebugFile, new string[] { string.Format(fmt, args) });
+                        return;
+                    }
+                    catch {}
+                }
             }
         }
     }

@@ -14,23 +14,29 @@ namespace CClash.Tests
     public class CompilerTest
     {
         public const string CompilerPath = "C:\\Program Files (x86)\\Microsoft Visual Studio 11.0\\VC\\bin\\cl.exe";
-
+        static bool setpaths = false;
         public static void SetEnvs()
         {
-            Environment.SetEnvironmentVariable("PATH", 
-                @"C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin;"
-                + Environment.GetEnvironmentVariable("PATH"));
-            Environment.SetEnvironmentVariable("PATH", 
-                @"C:\Program Files (x86)\Microsoft Visual Studio 11.0\Common7\IDE;"
-                + Environment.GetEnvironmentVariable("PATH"));
-            Environment.SetEnvironmentVariable("INCLUDE", 
-                @"C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\INCLUDE;C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\ATLMFC\INCLUDE;C:\Program Files (x86)\Windows Kits\8.0\include\shared;C:\Program Files (x86)\Windows Kits\8.0\include\um;C:\Program Files (x86)\Windows Kits\8.0\include\winrt;c:\stuff\nonsense\;c:\comp\1;c:\comp2;c:\comp3;c:\foo");
-
+            Environment.SetEnvironmentVariable("CCLASH_DISABLED", null);
+            Environment.SetEnvironmentVariable("CCLASH_DISABLE_WHEN_VAR", null);
+            if (!setpaths)
+            {
+                Environment.SetEnvironmentVariable("PATH",
+                    @"C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin;"
+                    + Environment.GetEnvironmentVariable("PATH"));
+                Environment.SetEnvironmentVariable("PATH",
+                    @"C:\Program Files (x86)\Microsoft Visual Studio 11.0\Common7\IDE;"
+                    + Environment.GetEnvironmentVariable("PATH"));
+                Environment.SetEnvironmentVariable("INCLUDE",
+                    @"C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\INCLUDE;C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\ATLMFC\INCLUDE;C:\Program Files (x86)\Windows Kits\8.0\include\shared;C:\Program Files (x86)\Windows Kits\8.0\include\um;C:\Program Files (x86)\Windows Kits\8.0\include\winrt;c:\stuff\nonsense\;c:\comp\1;c:\comp2;c:\comp3;c:\foo");
+                setpaths = true;
+            }
         }
 
-        static CompilerTest()
+        [SetUp]
+        public void Init()
         {
-            SetEnvs();    
+            SetEnvs();
         }
 
         void EnsureDeleted(string file)

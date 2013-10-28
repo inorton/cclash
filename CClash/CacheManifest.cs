@@ -13,6 +13,12 @@ namespace CClash
         /// When this manifest was created.
         /// </summary>
         public string TimeStamp { get; set; }
+
+        /// <summary>
+        /// How long the original build took.
+        /// </summary>
+        public int Duration { get; set; }
+
         /// <summary>
         /// Hash of the compiler file, cl args and source file
         /// </summary>

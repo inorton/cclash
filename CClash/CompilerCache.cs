@@ -11,6 +11,8 @@ namespace CClash
 {
     public class CompilerCache
     {
+        static DateTime cacheStart = DateTime.Now;
+
         JavaScriptSerializer jss = new JavaScriptSerializer();
         FileCacheStore outputCache;
         FileCacheStore includeCache;
@@ -32,6 +34,10 @@ namespace CClash
         const string F_StatMiss = "misses.txt";
         const string F_StatUnsupported = "unsupported.txt";
 
+        const string F_StatSlowHits = "slow_hits.txt";
+        const string F_StatTimeWasted = "time_wasted.txt";
+        const string F_StatTimeSaved = "time_saved.txt";
+
         long ReadStat(string statfile)
         {
             try
@@ -49,6 +55,42 @@ namespace CClash
         {
             outputCache.AddEntry(K_Stats);
             File.WriteAllText( outputCache.MakePath(K_Stats, statfile), value.ToString());
+        }
+
+        public long SecondsWasted
+        {
+            get
+            {
+                return ReadStat(F_StatTimeWasted);
+            }
+            set
+            {
+                WriteStat(F_StatTimeWasted, value);
+            }
+        }
+
+        public long SecondsSaved
+        {
+            get
+            {
+                return ReadStat(F_StatTimeSaved);
+            }
+            set
+            {
+                WriteStat(F_StatTimeSaved, value);
+            }
+        }
+
+        public long SlowHitCount
+        {
+            get
+            {
+                return ReadStat(F_StatSlowHits);
+            }
+            set
+            {
+                WriteStat(F_StatSlowHits, value);
+            }
         }
 
         public long CacheHits
@@ -150,13 +192,15 @@ namespace CClash
             return comphash;
         }
 
-        public bool CheckCache(DataHash commonkey)
+        public bool CheckCache(DataHash commonkey, out CacheManifest manifest )
         {
+            manifest = null;
             if (outputCache.ContainsEntry(commonkey.Hash, F_Manifest))
             {
                 var mn = outputCache.MakePath(commonkey.Hash, F_Manifest);
                 
                 var m = jss.Deserialize<CacheManifest>(File.ReadAllText(mn));
+                manifest = m;
                 foreach ( var f in m.PotentialNewIncludes ) {
                     if (FileUtils.Exists(f)) return false;
                 }
@@ -201,7 +245,8 @@ namespace CClash
                         outputCache.AddEntry(hc.Hash);
                         var stderrfile = outputCache.MakePath(hc.Hash, F_Stderr);
                         var stdoutfile = outputCache.MakePath(hc.Hash, F_Stdout);
-                        if (CheckCache(hc))
+                        CacheManifest hm;
+                        if (CheckCache(hc, out hm))
                         {
                             CacheHits++;
                             // cache hit
@@ -210,6 +255,20 @@ namespace CClash
                             File.Copy(outputCache.MakePath(hc.Hash, F_Object), comp.ObjectTarget, true);
                             if (comp.GeneratePdb)
                                 File.Copy(outputCache.MakePath(hc.Hash, F_Pdb), comp.PdbFile, true);
+                            
+                            var duration = DateTime.Now.Subtract(cacheStart);
+
+                            if (hm.Duration < duration.TotalSeconds)
+                            {
+                                // this cached result was slow. record a stat.
+                                SlowHitCount++;
+                                SecondsWasted += (int)(duration.TotalSeconds - hm.Duration);
+                            }
+                            else
+                            {
+                                SecondsSaved += (int)(duration.TotalSeconds - hm.Duration);
+                            }
+
                             return 0;
                         }
                         else
@@ -231,6 +290,8 @@ namespace CClash
                                             stdoutfs.WriteLine(y);
                                         }, true, ifiles);
 
+                                    var duration = DateTime.Now.Subtract(cacheStart);
+
                                     if (rv == 0)
                                     {
                                         // run preprocessor
@@ -244,23 +305,31 @@ namespace CClash
                                             m.PotentialNewIncludes = others;
                                             m.IncludeFiles = new Dictionary<string, string>();
                                             m.TimeStamp = DateTime.Now.ToString("s");
+                                            m.Duration = (int)duration.TotalSeconds;
                                             m.CommonHash = hc.Hash;
 
                                             bool good = true;
-
-                                            var hashes = hasher.DigestFiles(ifiles);
-
-                                            foreach (var x in hashes)
+                                            try
                                             {
-                                                if (x.Value.Result == DataHashResult.Ok)
+                                                outputCache.ReleaseMutex();
+                                                var hashes = hasher.DigestFiles(ifiles);
+
+                                                foreach (var x in hashes)
                                                 {
-                                                    m.IncludeFiles[x.Key] = x.Value.Hash;
+                                                    if (x.Value.Result == DataHashResult.Ok)
+                                                    {
+                                                        m.IncludeFiles[x.Key] = x.Value.Hash;
+                                                    }
+                                                    else
+                                                    {
+                                                        good = false;
+                                                        break;
+                                                    }
                                                 }
-                                                else
-                                                {
-                                                    good = false;
-                                                    break;
-                                                }
+                                            }
+                                            finally
+                                            {
+                                                outputCache.WaitOne();
                                             }
 
                                             if (good)

@@ -10,13 +10,25 @@ namespace CClash.Tests
     [TestFixture]
     public class CompilerCacheTest
     {
+        [SetUp]
+        public void Init()
+        {
+            CompilerTest.SetEnvs();
+        }
+
         [Test]
-        [Repeat(10)]
+        public void Run0GetOverhead()
+        {
+            Assert.IsFalse(Settings.Disabled);
+        }
+
+
+        [Test]
+        [Repeat(2)]
         public void RunEnabled()
         {
+            Assert.IsFalse(Settings.Disabled);
             var comp = CompilerTest.CompilerPath;
-            CompilerTest.SetEnvs();
-            Environment.SetEnvironmentVariable("CCLASH_DISABLED", null);
             Environment.SetEnvironmentVariable("PATH", System.IO.Path.GetDirectoryName( comp ) + ";" + Environment.GetEnvironmentVariable("PATH"));
 
             var rv = Program.Main(new string[] { "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
@@ -24,10 +36,10 @@ namespace CClash.Tests
         }
 
         [Test]
-        [Repeat(10)]
+        [Repeat(2)]
         public void RunDisabled()
         {
-            CompilerTest.SetEnvs();
+            Assert.IsFalse(Settings.Disabled);
             Environment.SetEnvironmentVariable("CCLASH_DISABLED", "1");
             Assert.IsTrue(Settings.Disabled);
             var rv = Program.Main(new string[] { "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
@@ -35,12 +47,9 @@ namespace CClash.Tests
         }
 
         [Test]
-        [Repeat(10)]
+        [Repeat(2)]
         public void RunDisabledByCondition()
         {
-            CompilerTest.SetEnvs();
-            Environment.SetEnvironmentVariable("CCLASH_DISABLED", null);
-            Environment.SetEnvironmentVariable("CCLASH_DISABLE_WHEN_VAR", null);
             Assert.IsFalse(Settings.Disabled);
             Environment.SetEnvironmentVariable("CCLASH_DISABLE_WHEN_VAR", "TESTTEST");
             Environment.SetEnvironmentVariable("CCLASH_DISABLE_WHEN_VALUES", "X,RED,GREEN");

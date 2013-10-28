@@ -12,15 +12,20 @@ namespace CClast.Tests
         string thistestdll = typeof(FileCacheTest).Assembly.Location;
 
         [Test]
-        public void TestCacheSetup()
+        public void Test0DeleteCache()
         {
-            if ( Directory.Exists("clcachetest_init") ) Directory.Delete("clcachetest_init", true);
-            using (var fc = FileCacheStore.Load("clcachetest_init"))
+            if (Directory.Exists("clcachetest_init")) 
+                Directory.Delete("clcachetest_init", true);
+        }
+
+
+        [Test]
+        [TestCase("clcachetest_init")]
+        public void Test1CacheSetup(string folder)
+        {
+            using (var fc = FileCacheStore.Load(folder))
             {
                 Assert.IsTrue(Directory.Exists(fc.FolderPath));
-                var folders = Directory.GetDirectories(fc.FolderPath);
-                Assert.IsTrue(folders.Length == 256);
-                Directory.Delete(fc.FolderPath,true);
             }
         }
 
