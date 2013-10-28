@@ -7,7 +7,7 @@ using System.IO;
 
 namespace CClash
 {
-    public class Program
+    public sealed class Program
     {
         public static int Main(string[] args)
         {
@@ -54,8 +54,8 @@ namespace CClash
                     Console.WriteLine("misses: {0}", cache.CacheMisses);
                     Console.WriteLine("unsupported: {0}", cache.CacheUnsupported);
                     Console.WriteLine("slow hits: {0}", cache.SlowHitCount);
-                    Console.WriteLine("time lost: {0} mins", Math.Round( cache.SecondsWasted / 60.0 ));
-                    Console.WriteLine("time saved: {0} mins", Math.Round( cache.SecondsSaved / 60.0 ));
+                    Console.WriteLine("time lost: {0} mins", Math.Round( cache.MSecLost / 60000.0 ));
+                    Console.WriteLine("time saved: {0} mins", Math.Round( cache.MSecSaved / 60000.0 ));
                 }
                 return 0;
             }

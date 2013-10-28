@@ -10,12 +10,17 @@ namespace CClash
     public class CacheManifest
     {
         /// <summary>
+        /// Next time this job appears, just run the compiler.
+        /// </summary>
+        public bool Disable { get; set; }
+
+        /// <summary>
         /// When this manifest was created.
         /// </summary>
         public string TimeStamp { get; set; }
 
         /// <summary>
-        /// How long the original build took.
+        /// How long the original build took (msec).
         /// </summary>
         public int Duration { get; set; }
 
@@ -33,37 +38,5 @@ namespace CClash
         /// A list of files that did not exist but will require a rebuild if they are added.
         /// </summary>
         public List<string> PotentialNewIncludes { get; set; }
-
-        public void ProcessIncludes( HashUtil hh, IEnumerable<string> files)
-        {
-            IncludeFiles = new Dictionary<string, string>();
-            foreach (var f in files.Distinct())
-            {
-                var dg = hh.DigestSourceFile(f);
-                if (dg.Result == DataHashResult.Ok)
-                {
-                    IncludeFiles.Add(f, dg.Hash);
-                }
-            }
-        }
-
-        public bool CheckIncludes(HashUtil hh)
-        {
-            foreach (var f in IncludeFiles.Keys)
-            {
-                if (!FileUtils.Exists(f))
-                {
-                    return false;
-
-                }
-                else
-                {
-                    var dg = hh.DigestSourceFile(f);
-                    
-                    if (dg.Result != DataHashResult.Ok || (dg.Hash != IncludeFiles[f])) return false;
-                }
-            }
-            return true;
-        }
     }
 }

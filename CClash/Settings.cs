@@ -6,17 +6,19 @@ using System.Threading.Tasks;
 
 namespace CClash
 {
-    public class Settings
+    public sealed class Settings
     {
         public static bool DebugEnabled { get; set; }
         public static string DebugFile { get; set; }
 
-        static bool DisabledByConditions()
+
+
+        static bool ConditionVarsAreTrue(string prefix)
         {
-            var var = Environment.GetEnvironmentVariable("CCLASH_DISABLE_WHEN_VAR");
+            var var = Environment.GetEnvironmentVariable(prefix + "_VAR");
             if (!string.IsNullOrEmpty(var))
             {
-                var values = Environment.GetEnvironmentVariable("CCLASH_DISABLE_WHEN_VALUES");
+                var values = Environment.GetEnvironmentVariable(prefix + "_VALUES");
                 if (!string.IsNullOrEmpty(values))
                 {
                     var check = Environment.GetEnvironmentVariable(var);
@@ -26,9 +28,18 @@ namespace CClash
                         if (v == check) return true;
                     }
                 }
-
             }
             return false;
+        }
+
+        static bool EnabledByConditions()
+        {
+            return ConditionVarsAreTrue("CCLASH_ENABLE_WHEN");
+        }
+
+        static bool DisabledByConditions()
+        {
+            return ConditionVarsAreTrue("CCLASH_DISABLE_WHEN");
         }
 
         public static bool Disabled
@@ -36,7 +47,7 @@ namespace CClash
             get
             {
                 var dis = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CCLASH_DISABLED"));
-                return (dis || DisabledByConditions());
+                return (dis || DisabledByConditions()) && (!EnabledByConditions());
             }
         }
 

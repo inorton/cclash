@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace CClash
 {
-    public class CacheInfo
+    public sealed class CacheInfo
     {
         public const string StatHits = "Hits";
         public const string StatMisses = "Misses";

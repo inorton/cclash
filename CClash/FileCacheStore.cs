@@ -8,7 +8,7 @@ using System.Web.Script.Serialization;
 
 namespace CClash
 {
-    public class FileCacheStore : IDisposable
+    public sealed class FileCacheStore : IDisposable
     {
         public delegate void FileCacheStoreAddedHandler(FileCacheStore cache, FileCacheStoreAddedEventArgs args);
         public delegate void FileCacheStoreRemovedHandler(FileCacheStore cache, FileCacheStoreRemovedEventArgs args);

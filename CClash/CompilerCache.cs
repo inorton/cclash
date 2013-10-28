@@ -6,10 +6,11 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Web.Script.Serialization;
 using System.Diagnostics;
+using System.Threading;
 
 namespace CClash
 {
-    public class CompilerCache
+    public sealed class CompilerCache
     {
         static DateTime cacheStart = DateTime.Now;
 
@@ -38,6 +39,19 @@ namespace CClash
         const string F_StatTimeWasted = "time_wasted.txt";
         const string F_StatTimeSaved = "time_saved.txt";
 
+        Mutex statMtx = null;
+
+        void LockStatsCall(Action x)
+        {
+            if (statMtx == null)
+            {
+                statMtx = new Mutex(false, "cclash_stat_" + outputCache.FolderPath.ToLower().GetHashCode());
+            }
+            statMtx.WaitOne();
+            x.Invoke();
+            statMtx.ReleaseMutex();
+        }
+
         long ReadStat(string statfile)
         {
             try
@@ -57,25 +71,25 @@ namespace CClash
             File.WriteAllText( outputCache.MakePath(K_Stats, statfile), value.ToString());
         }
 
-        public long SecondsWasted
+        public long MSecLost
         {
             get
             {
                 return ReadStat(F_StatTimeWasted);
             }
-            set
+            private set
             {
                 WriteStat(F_StatTimeWasted, value);
             }
         }
 
-        public long SecondsSaved
+        public long MSecSaved
         {
             get
             {
                 return ReadStat(F_StatTimeSaved);
             }
-            set
+            private set
             {
                 WriteStat(F_StatTimeSaved, value);
             }
@@ -87,7 +101,7 @@ namespace CClash
             {
                 return ReadStat(F_StatSlowHits);
             }
-            set
+            private set
             {
                 WriteStat(F_StatSlowHits, value);
             }
@@ -192,15 +206,23 @@ namespace CClash
             return comphash;
         }
 
+        /// <summary>
+        /// When this returns, we will hold the output cache mutex.
+        /// </summary>
+        /// <param name="commonkey"></param>
+        /// <param name="manifest"></param>
+        /// <returns></returns>
         public bool CheckCache(DataHash commonkey, out CacheManifest manifest )
         {
             manifest = null;
+            outputCache.WaitOne();
             if (outputCache.ContainsEntry(commonkey.Hash, F_Manifest))
             {
                 var mn = outputCache.MakePath(commonkey.Hash, F_Manifest);
                 
                 var m = jss.Deserialize<CacheManifest>(File.ReadAllText(mn));
                 manifest = m;
+                if (m.Disable) return false;
                 foreach ( var f in m.PotentialNewIncludes ) {
                     if (FileUtils.Exists(f)) return false;
                 }
@@ -232,6 +254,149 @@ namespace CClash
             return false;
         }
 
+        public int DoCacheHit(DataHash hc, CacheManifest hm)
+        {
+            // we dont need the lock now, it is highly unlikley someone else will
+            // modify these files
+            outputCache.ReleaseMutex();
+
+            var stderrfile = outputCache.MakePath(hc.Hash, F_Stderr);
+            var stdoutfile = outputCache.MakePath(hc.Hash, F_Stdout);
+
+            LockStatsCall( () => CacheHits++ );
+
+            // cache hit
+            Console.Out.Write(File.ReadAllText(stdoutfile));
+            Console.Error.Write(File.ReadAllText(stderrfile));
+            File.Copy(outputCache.MakePath(hc.Hash, F_Object), comp.ObjectTarget, true);
+            if (comp.GeneratePdb)
+                File.Copy(outputCache.MakePath(hc.Hash, F_Pdb), comp.PdbFile, true);
+
+            var duration = DateTime.Now.Subtract(cacheStart);
+
+            if (hm.Duration < duration.TotalMilliseconds)
+            {
+                // this cached result was slow. record a stat.
+                LockStatsCall(() => SlowHitCount++);
+                LockStatsCall( () => MSecLost += (int)(duration.TotalMilliseconds - hm.Duration) );
+                Logging.Emit("slow cache hit {0}ms", (int)duration.TotalMilliseconds);
+            }
+            else
+            {
+                LockStatsCall( () => MSecSaved += (int)(hm.Duration - duration.TotalMilliseconds) );
+                Logging.Emit("fast cache hit {0}ms", (int)duration.TotalMilliseconds);
+            }
+
+            return 0;
+        }
+
+        int CompileWithStreams(IEnumerable<string> args, StreamWriter stderr, StreamWriter stdout, List<string> includes)
+        {
+            var rv = comp.InvokeCompiler(args,
+                        x =>
+                        {
+                            Console.Error.WriteLine(x);
+                            stderr.WriteLine(x);
+                        }, y =>
+                        {
+                            Console.Out.WriteLine(y);
+                            stdout.WriteLine(y);
+                        }, true, includes);
+
+            return rv;
+        }
+
+        public int DoCacheMiss(DataHash hc, IEnumerable<string> args)
+        {
+            outputCache.EnsureKey(hc.Hash);
+            var stderrfile = outputCache.MakePath(hc.Hash, F_Stderr);
+            var stdoutfile = outputCache.MakePath(hc.Hash, F_Stdout);
+            int rv = -1;
+            LockStatsCall( () => CacheMisses++);
+            var ifiles = new List<string>();
+            using (var stderrfs = new StreamWriter(stderrfile))
+            {
+                using (var stdoutfs = new StreamWriter(stdoutfile))
+                {
+                    rv = CompileWithStreams(args, stderrfs, stdoutfs, ifiles);
+                }
+            }
+
+            // we still hold the cache lock, create the manifest asap or give up now!
+
+            if (rv != 0)
+            {
+                outputCache.ReleaseMutex();
+            }
+            else
+            {
+                var idirs = comp.GetUsedIncludeDirs(ifiles);
+                if (idirs.Count > 0)
+                {
+                    // save manifest and other things to cache
+                    var others = comp.GetPotentialIncludeFiles(idirs, ifiles);
+                    var m = new CacheManifest();
+                    m.PotentialNewIncludes = others;
+                    m.IncludeFiles = new Dictionary<string, string>();
+                    m.TimeStamp = DateTime.Now.ToString("s");
+                    m.CommonHash = hc.Hash;
+
+                    bool good = true;
+
+                    var hashes = hasher.DigestFiles(ifiles);
+
+                    foreach (var x in hashes)
+                    {
+                        if (x.Value.Result == DataHashResult.Ok)
+                        {
+                            m.IncludeFiles[x.Key] = x.Value.Hash;
+                        }
+                        else
+                        {
+                            good = false;
+                            m.Disable = true;
+                            break;
+                        }
+                    }
+
+                    if (!good)
+                    {
+                        outputCache.ReleaseMutex();
+                        LockStatsCall(() => CacheUnsupported++);
+                    }
+                    else
+                    {
+                        outputCache.AddFile(hc.Hash, comp.ObjectTarget, F_Object);
+                        if (comp.GeneratePdb)
+                        {
+                            outputCache.AddFile(hc.Hash, comp.PdbFile, F_Pdb);
+                            LockStatsCall(() => CacheSize += new FileInfo(comp.PdbFile).Length);
+                        }
+                        outputCache.ReleaseMutex();
+
+                        LockStatsCall(() => CacheObjects++);
+                        LockStatsCall(() => CacheSize += new FileInfo(comp.ObjectTarget).Length);
+
+                        // write manifest
+                        var duration = DateTime.Now.Subtract(cacheStart);
+                        m.Duration = (int)duration.TotalMilliseconds;
+
+                        Logging.Emit("cache miss took {0}ms", (int)duration.TotalMilliseconds);
+
+                        var mt = jss.Serialize(m);
+                        outputCache.AddTextFileContent(hc.Hash, F_Manifest, mt);
+
+                        outputCache.ReleaseMutex();
+
+
+                        LockStatsCall(() => CacheSize += mt.Length);
+                    }
+                }
+
+            }
+            return rv;
+        }
+
         public int CompileOrCache(IEnumerable<string> args)
         {
             if (IsSupported(args))
@@ -240,134 +405,24 @@ namespace CClash
                 if (hc.Result == DataHashResult.Ok)
                 {
                     outputCache.WaitOne();
-                    try
+
+                    CacheManifest hm;
+                    if (CheckCache(hc, out hm))
                     {
-                        outputCache.AddEntry(hc.Hash);
-                        var stderrfile = outputCache.MakePath(hc.Hash, F_Stderr);
-                        var stdoutfile = outputCache.MakePath(hc.Hash, F_Stdout);
-                        CacheManifest hm;
-                        if (CheckCache(hc, out hm))
-                        {
-                            CacheHits++;
-                            // cache hit
-                            Console.Out.Write(File.ReadAllText(stdoutfile));
-                            Console.Error.Write(File.ReadAllText(stderrfile));
-                            File.Copy(outputCache.MakePath(hc.Hash, F_Object), comp.ObjectTarget, true);
-                            if (comp.GeneratePdb)
-                                File.Copy(outputCache.MakePath(hc.Hash, F_Pdb), comp.PdbFile, true);
-                            
-                            var duration = DateTime.Now.Subtract(cacheStart);
-
-                            if (hm.Duration < duration.TotalSeconds)
-                            {
-                                // this cached result was slow. record a stat.
-                                SlowHitCount++;
-                                SecondsWasted += (int)(duration.TotalSeconds - hm.Duration);
-                            }
-                            else
-                            {
-                                SecondsSaved += (int)(duration.TotalSeconds - hm.Duration);
-                            }
-
-                            return 0;
-                        }
-                        else
-                        {   // miss, try build
-                            CacheMisses++;
-                            using (var stderrfs = new StreamWriter(stderrfile))
-                            {
-                                var ifiles = new List<string>();
-                                using (var stdoutfs = new StreamWriter(stdoutfile))
-                                {
-                                    var rv = comp.InvokeCompiler(args,
-                                        x =>
-                                        {
-                                            Console.Error.WriteLine(x);
-                                            stderrfs.WriteLine(x);
-                                        }, y =>
-                                        {
-                                            Console.Out.WriteLine(y);
-                                            stdoutfs.WriteLine(y);
-                                        }, true, ifiles);
-
-                                    var duration = DateTime.Now.Subtract(cacheStart);
-
-                                    if (rv == 0)
-                                    {
-                                        // run preprocessor
-                                        
-                                        var idirs =comp.GetUsedIncludeDirs(ifiles);
-                                        if (idirs.Count > 0)
-                                        {
-                                            // save manifest and other things to cache
-                                            var others = comp.GetPotentialIncludeFiles(idirs, ifiles);
-                                            var m = new CacheManifest();
-                                            m.PotentialNewIncludes = others;
-                                            m.IncludeFiles = new Dictionary<string, string>();
-                                            m.TimeStamp = DateTime.Now.ToString("s");
-                                            m.Duration = (int)duration.TotalSeconds;
-                                            m.CommonHash = hc.Hash;
-
-                                            bool good = true;
-                                            try
-                                            {
-                                                outputCache.ReleaseMutex();
-                                                var hashes = hasher.DigestFiles(ifiles);
-
-                                                foreach (var x in hashes)
-                                                {
-                                                    if (x.Value.Result == DataHashResult.Ok)
-                                                    {
-                                                        m.IncludeFiles[x.Key] = x.Value.Hash;
-                                                    }
-                                                    else
-                                                    {
-                                                        good = false;
-                                                        break;
-                                                    }
-                                                }
-                                            }
-                                            finally
-                                            {
-                                                outputCache.WaitOne();
-                                            }
-
-                                            if (good)
-                                            {
-                                                outputCache.AddFile(hc.Hash, comp.ObjectTarget, F_Object);
-                                                CacheObjects++;
-                                                CacheSize += new FileInfo(comp.ObjectTarget).Length;
-                                                if (comp.GeneratePdb)
-                                                {
-                                                    outputCache.AddFile(hc.Hash, comp.PdbFile, F_Pdb);
-                                                    CacheSize += new FileInfo(comp.PdbFile).Length;
-                                                }
-                                                // write manifest
-                                                var mt = jss.Serialize(m);
-                                                outputCache.AddTextFileContent( hc.Hash, F_Manifest, mt );
-                                                CacheSize += mt.Length;
-                                            }
-                                        }
-                                    }
-
-                                    return rv;
-                                }
-                            }
-                        }
-                        
+                        return DoCacheHit(hc, hm);
                     }
-                    finally
-                    {
-                        outputCache.ReleaseMutex();
+                    else
+                    {   // miss, try build
+                        return DoCacheMiss(hc, args);
                     }
                 }
             }
+
             if (comp.ResponseFile != null)
             {
                 if (File.Exists(comp.ResponseFile))
                 {
-                    var resp = File.ReadAllText(comp.ResponseFile);
-
+                    //var resp = File.ReadAllText(comp.ResponseFile);
                 }
             }
 

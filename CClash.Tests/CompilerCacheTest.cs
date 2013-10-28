@@ -58,5 +58,19 @@ namespace CClash.Tests
             var rv = Program.Main(new string[] { "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
             Assert.AreEqual(0, rv);
         }
+
+
+        [Test]
+        [Repeat(2)]
+        public void RunEnabledByCondition()
+        {
+            Assert.IsFalse(Settings.Disabled);
+            Environment.SetEnvironmentVariable("CCLASH_ENABLE_WHEN_VAR", "TESTTEST");
+            Environment.SetEnvironmentVariable("CCLASH_ENABLE_WHEN_VALUES", "X,RED,GREEN");
+            Environment.SetEnvironmentVariable("TESTTEST", "RED");
+            Assert.IsFalse(Settings.Disabled);
+            var rv = Program.Main(new string[] { "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
+            Assert.AreEqual(0, rv);
+        }
     }
 }

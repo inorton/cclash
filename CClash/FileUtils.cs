@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace CClash {
-    public class FileUtils 
+    public sealed class FileUtils 
     {
 
         public static bool Exists(string path)

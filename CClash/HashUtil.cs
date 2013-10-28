@@ -20,14 +20,14 @@ namespace CClash
         AccessDenied,
     }
 
-    public class DataHash
+    public sealed class DataHash
     {
         public string InputName { get; set; }
         public DataHashResult Result { get; set; }
         public string Hash { get; set; }
     }
 
-    public class HashUtil
+    public sealed class HashUtil
     {
         const string FindDateTimePattern = "__(TIM|DAT)E__";
         const string F_HasDateTime = "hasdatetime";

@@ -19,6 +19,7 @@ namespace CClash.Tests
         {
             Environment.SetEnvironmentVariable("CCLASH_DISABLED", null);
             Environment.SetEnvironmentVariable("CCLASH_DISABLE_WHEN_VAR", null);
+            Environment.SetEnvironmentVariable("CCLASH_ENABLE_WHEN_VAR", null);
             if (!setpaths)
             {
                 Environment.SetEnvironmentVariable("PATH",

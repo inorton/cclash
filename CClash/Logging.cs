@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace CClash
 {
-    public class Logging
+    public sealed class Logging
     {
         public static void Emit(string fmt, params object[] args)
         {
