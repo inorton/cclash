@@ -372,7 +372,6 @@ namespace CClash
                             outputCache.AddFile(hc.Hash, comp.PdbFile, F_Pdb);
                             LockStatsCall(() => CacheSize += new FileInfo(comp.PdbFile).Length);
                         }
-                        outputCache.ReleaseMutex();
 
                         LockStatsCall(() => CacheObjects++);
                         LockStatsCall(() => CacheSize += new FileInfo(comp.ObjectTarget).Length);
@@ -387,7 +386,6 @@ namespace CClash
                         outputCache.AddTextFileContent(hc.Hash, F_Manifest, mt);
 
                         outputCache.ReleaseMutex();
-
 
                         LockStatsCall(() => CacheSize += mt.Length);
                     }
