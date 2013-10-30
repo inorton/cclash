@@ -3,6 +3,7 @@
 *.pdb
 *.exe
 *.mdf
+*.vsp*
 CClash.Tests/bin/*
 CClash.Tests/obj/*
 cclash/obj/*
@@ -11,3 +12,5 @@ UnitTests/*
 packages/*
 TestResults/*
 CClash.Tests/dummy/*
+testprogram/bin/Debug/*
+testprogram/obj/*
