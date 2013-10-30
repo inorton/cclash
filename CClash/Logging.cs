@@ -9,6 +9,8 @@ namespace CClash
 {
     public sealed class Logging
     {
+        static int pid = System.Diagnostics.Process.GetCurrentProcess().Id;
+
         public static void Emit(string fmt, params object[] args)
         {
             if (Settings.DebugEnabled)
@@ -17,7 +19,7 @@ namespace CClash
                 {
                     try
                     {
-                        File.AppendAllLines(Settings.DebugFile, new string[] { string.Format(fmt, args) });
+                        File.AppendAllLines(Settings.DebugFile, new string[] { pid + ":" + string.Format(fmt, args) });
                         return;
                     }
                     catch {}

@@ -569,8 +569,8 @@ namespace CClash
                     {
                         if (a.Data.StartsWith("Note: including file:"))
                         {
-                            var inc = a.Data.Substring("Note: including file:".Length+1);
-                            foundIncludes.Add( inc.TrimStart(' ') );
+                            var inc = a.Data.Substring("Note: including file:".Length+1).TrimStart(' ');
+                            foundIncludes.Add(inc);
                         }
                         else
                         {

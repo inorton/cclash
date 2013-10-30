@@ -10,7 +10,7 @@ using System.Threading;
 
 namespace CClash
 {
-    public sealed class CompilerCache
+    public sealed class CompilerCache : IDisposable
     {
         static DateTime cacheStart = DateTime.Now;
 
@@ -38,7 +38,7 @@ namespace CClash
         const string F_StatSlowHits = "slow_hits.txt";
         const string F_StatTimeWasted = "time_wasted.txt";
         const string F_StatTimeSaved = "time_saved.txt";
-
+        
         Mutex statMtx = null;
 
         void LockStatsCall(Action x)
@@ -171,12 +171,14 @@ namespace CClash
         {
             if (string.IsNullOrEmpty(cacheFolder)) throw new ArgumentNullException("cacheFolder");
             if (string.IsNullOrEmpty(compiler)) throw new ArgumentNullException("compiler");
-            outputCache = FileCacheStore.Load( Path.Combine(cacheFolder, "outputs" ) );
+            outputCache = FileCacheStore.Load(Path.Combine(cacheFolder, "outputs"));
             includeCache = FileCacheStore.Load(Path.Combine(cacheFolder, "includes"));
+
             hasher = new HashUtil(includeCache);
             compilerPath = System.IO.Path.GetFullPath(compiler);
-            comp = new Compiler() {
-                CompilerExe = compilerPath 
+            comp = new Compiler()
+            {
+                CompilerExe = compilerPath
             };
         }
 
@@ -240,8 +242,12 @@ namespace CClash
                 {
                     if (h.Value.Result == DataHashResult.Ok)
                     {
-                        Logging.Emit("include file hash changed {0}", h.Key);
-                        if (m.IncludeFiles[h.Key] != h.Value.Hash) return false;
+
+                        if (m.IncludeFiles[h.Key] != h.Value.Hash)
+                        {
+                            Logging.Emit("include file hash changed {0}", h.Key);
+                            return false;
+                        }
                     }
                     else
                     {
@@ -432,8 +438,6 @@ namespace CClash
                 var hc = DeriveHashKey(args);
                 if (hc.Result == DataHashResult.Ok)
                 {
-                    outputCache.WaitOne();
-
                     CacheManifest hm;
                     if (CheckCache(hc, out hm))
                     {
@@ -464,9 +468,15 @@ namespace CClash
         public int CompileOnly(IEnumerable<string> args)
         {
             {
-                
                 return comp.InvokeCompiler(args, Console.Error.WriteLine, Console.Out.WriteLine, false, null);
             }
+        }
+
+        public void Dispose()
+        {
+            if (statMtx != null) statMtx.Dispose();
+            if (includeCache != null) includeCache.Dispose();
+            if (outputCache != null) outputCache.Dispose();
         }
     }
 }

@@ -27,13 +27,15 @@ namespace CClash.Tests
         [Repeat(2)]
         public void HashIncludeFiles()
         {
-            var ic = FileCacheStore.Load("testincs");
-            var ht = new HashUtil(ic);
-            var files = Directory.GetFiles(IncludeDir);
-            foreach (var f in files)
+            using (var ic = FileCacheStore.Load("testincs"))
             {
-                var hr = ht.DigestSourceFile(f);
-                Assert.IsNotNull(hr.Hash);
+                var ht = new HashUtil(ic);
+                var files = Directory.GetFiles(IncludeDir);
+                foreach (var f in files)
+                {
+                    var hr = ht.DigestSourceFile(f);
+                    Assert.IsNotNull(hr.Hash);
+                }
             }
         }
 
@@ -41,11 +43,13 @@ namespace CClash.Tests
         [Repeat(2)]
         public void ThreadyHashIncludeFiles()
         {
-            var ic = FileCacheStore.Load("testincs");
-            var ht = new HashUtil(ic);
+            using (var ic = FileCacheStore.Load("testincs"))
+            {
+                var ht = new HashUtil(ic);
 
-            var hashes = ht.ThreadyDigestFiles(Directory.GetFiles(IncludeDir), true);
-            Assert.IsTrue(hashes.Count > 0);
+                var hashes = ht.ThreadyDigestFiles(Directory.GetFiles(IncludeDir), true);
+                Assert.IsTrue(hashes.Count > 0);
+            }
         }
 
         [Test]
@@ -53,20 +57,22 @@ namespace CClash.Tests
         public void HashesMatch()
         {
             var files = Directory.GetFiles(IncludeDir);
-            var ic = FileCacheStore.Load("testincs");
-            var ht = new HashUtil(ic);
-            var hashes = ht.ThreadyDigestFiles(files, true);
-            foreach (var f in files)
+            using (var ic = FileCacheStore.Load("testincs"))
             {
-                var hash = ht.DigestSourceFile(f);
+                var ht = new HashUtil(ic);
+                var hashes = ht.ThreadyDigestFiles(files, true);
+                foreach (var f in files)
+                {
+                    var hash = ht.DigestSourceFile(f);
 
-                if ( hash.Result ==  DataHashResult.Ok ){
-                    Assert.AreEqual(hash.Hash, hashes[f].Hash);    
+                    if (hash.Result == DataHashResult.Ok)
+                    {
+                        Assert.AreEqual(hash.Hash, hashes[f].Hash);
+                    }
                 }
+
+                Assert.AreEqual(files.Length, hashes.Count);
             }
-
-            Assert.AreEqual(files.Length, hashes.Count);
-
         }
     }
 }

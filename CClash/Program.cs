@@ -11,70 +11,88 @@ namespace CClash
     {
         public static int Main(string[] args)
         {
-            var dbg = Environment.GetEnvironmentVariable("CCLASH_DEBUG");
-            if (!string.IsNullOrEmpty(dbg))
+            var start = DateTime.Now;
+            try
             {
-                Settings.DebugFile = dbg;
-                Settings.DebugEnabled = true;
-            }
-
-
-            if (Settings.DebugEnabled)
-            {
-                Logging.Emit("command line args:");
-                foreach (var a in args)
+                
+                var dbg = Environment.GetEnvironmentVariable("CCLASH_DEBUG");
+                if (!string.IsNullOrEmpty(dbg))
                 {
-                    Logging.Emit("arg: {0}", a);
+                    Settings.DebugFile = dbg;
+                    Settings.DebugEnabled = true;
                 }
-            }
 
-            if (args.Contains("--cclash"))
-            {
-                var compiler = Compiler.Find();
-                Console.WriteLine("compiler: {0}", compiler);
-                Console.WriteLine("cachedir: {0}", Settings.CacheDirectory);
+
                 if (Settings.DebugEnabled)
                 {
-                    Console.WriteLine("debug file: {0}", Settings.DebugFile);
+                    Logging.Emit("command line args:");
+                    foreach (var a in args)
+                    {
+                        Logging.Emit("arg: {0}", a);
+                    }
                 }
-                if (Settings.Disabled)
+
+                if (args.Contains("--cclash"))
                 {
-                    Console.WriteLine("disabled: yes");
+                    var compiler = Compiler.Find();
+                    Console.WriteLine("compiler: {0}", compiler);
+                    Console.WriteLine("cachedir: {0}", Settings.CacheDirectory);
+                    if (Settings.DebugEnabled)
+                    {
+                        Console.WriteLine("debug file: {0}", Settings.DebugFile);
+                    }
+                    if (Settings.Disabled)
+                    {
+                        Console.WriteLine("disabled: yes");
+                    }
+                    else
+                    {
+                        Console.WriteLine("disabled: no");
+                    }
+                    if (compiler != null)
+                    {
+                        using (var cache = new CompilerCache(Settings.CacheDirectory, compiler))
+                        {
+                            Console.WriteLine("outputCache usage: {0} kb", (int)(cache.CacheSize / 1024));
+                            Console.WriteLine("cached files: {0}", cache.CacheObjects);
+                            Console.WriteLine("hits: {0}", cache.CacheHits);
+                            Console.WriteLine("misses: {0}", cache.CacheMisses);
+                            Console.WriteLine("unsupported: {0}", cache.CacheUnsupported);
+                            Console.WriteLine("slow hits: {0}", cache.SlowHitCount);
+                            Console.WriteLine("time lost: {0} mins", Math.Round(cache.MSecLost / 60000.0));
+                            Console.WriteLine("time saved: {0} mins", Math.Round(cache.MSecSaved / 60000.0));
+                        }
+                    }
+                    return 0;
                 }
-                else
+
+                if (!Settings.Disabled)
                 {
-                    Console.WriteLine("disabled: no");
+                    string compiler = Compiler.Find();
+                    if (compiler == null)
+                        throw new System.IO.FileNotFoundException("cant find real cl compiler");
+
+                    var cachedir = Settings.CacheDirectory;
+                    Logging.Emit("compiler: {0}", compiler);
+                    using (var cc = new CompilerCache(cachedir, compiler))
+                    {
+                        return cc.CompileOrCache(args);
+                    }
                 }
-                if (compiler != null)
+
+                var rv = new Compiler()
                 {
-                    var cache = new CompilerCache(Settings.CacheDirectory, compiler);
-                    Console.WriteLine("outputCache usage: {0} kb", (int)(cache.CacheSize / 1024));
-                    Console.WriteLine("cached files: {0}", cache.CacheObjects);
-                    Console.WriteLine("hits: {0}", cache.CacheHits);
-                    Console.WriteLine("misses: {0}", cache.CacheMisses);
-                    Console.WriteLine("unsupported: {0}", cache.CacheUnsupported);
-                    Console.WriteLine("slow hits: {0}", cache.SlowHitCount);
-                    Console.WriteLine("time lost: {0} mins", Math.Round( cache.MSecLost / 60000.0 ));
-                    Console.WriteLine("time saved: {0} mins", Math.Round( cache.MSecSaved / 60000.0 ));
-                }
-                return 0;
+                    CompilerExe = Compiler.Find(),
+                }.InvokeCompiler(args, Console.Error.WriteLine, Console.Out.WriteLine, false, null);
+                Logging.Emit("exit {0} after {1} ms", rv, DateTime.Now.Subtract(start).TotalMilliseconds);
+                return rv;
             }
-
-            if (!Settings.Disabled)
+            catch (Exception e)
             {
-                string compiler = Compiler.Find();
-                if (compiler == null)
-                    throw new System.IO.FileNotFoundException("cant find real cl compiler");
-
-                var cachedir = Settings.CacheDirectory;
-                Logging.Emit("compiler: {0}", compiler);
-                return new CompilerCache(cachedir, compiler).CompileOrCache(args);
+                Logging.Emit("{0} after {1} ms", e.GetType().Name, DateTime.Now.Subtract(start).TotalMilliseconds);
+                Logging.Emit("{0} {1}",e.GetType().Name + " message: " + e.Message);
+                return -1;
             }
-
-            return new Compiler()
-            {
-                CompilerExe = Compiler.Find(),
-            }.InvokeCompiler(args, Console.Error.WriteLine, Console.Out.WriteLine, false, null);
         }
     }
 }

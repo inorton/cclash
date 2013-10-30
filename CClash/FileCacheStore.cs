@@ -24,11 +24,13 @@ namespace CClash
 
         public void WaitOne()
         {
-            if (!mtx.WaitOne()) throw new InvalidProgramException("mutex lock failed " + mtx.ToString() );
+            Logging.Emit("WaitOne {0}", FolderPath);
+            if (!mtx.WaitOne()) throw new InvalidProgramException("mutex lock failed " + mtx.ToString());
         }
 
         public void ReleaseMutex()
         {
+            Logging.Emit("ReleaseMutex {0}", FolderPath);
             mtx.ReleaseMutex();
         }
 
@@ -36,30 +38,21 @@ namespace CClash
         {
             FolderPath = Path.GetFullPath(folderPath);
             mtx = new Mutex(false, "cclash_mtx_" + FolderPath.ToLower().GetHashCode());
-            try
-            {
-                WaitOne();
-            }
-            catch (AbandonedMutexException)
-            {
-                Logging.Emit("another instance abandoned a mutex {0}", FolderPath);
-            }
+
+            WaitOne();
+            
             var tlist = new List<Thread>();
             try
             {
-
                 if (!Directory.Exists(FolderPath))
                 {
                      Directory.CreateDirectory(FolderPath);
                 }
-
             }
             finally
             {
                 ReleaseMutex();
             }
-
-            
         }
 
         public string MakePath(string key )
@@ -142,7 +135,12 @@ namespace CClash
 
         public void Dispose()
         {
-            if (mtx != null) mtx.Dispose();
+            if (mtx != null)
+            {
+                Logging.Emit("disposed FileCacheStore while holding lock!");
+                ReleaseMutex();
+                mtx.Dispose();
+            }
         }
     }
 
