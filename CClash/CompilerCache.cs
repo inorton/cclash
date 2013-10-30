@@ -186,7 +186,12 @@ namespace CClash
         {
             if (FileUtils.Exists(compilerPath))
             {
-                return comp.ProcessArguments(args.ToArray());
+                var rv = comp.ProcessArguments(args.ToArray());
+                if (rv)
+                {
+                    Logging.Emit("args not supported");
+                }
+                return rv;
             }
             throw new FileNotFoundException(compilerPath);
         }
@@ -324,6 +329,7 @@ namespace CClash
 
         public int DoCacheMiss(DataHash hc, IEnumerable<string> args)
         {
+            Logging.Emit("cache miss");
             outputCache.EnsureKey(hc.Hash);
             var stderrfile = outputCache.MakePath(hc.Hash, F_Stderr);
             var stdoutfile = outputCache.MakePath(hc.Hash, F_Stdout);

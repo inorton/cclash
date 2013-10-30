@@ -79,6 +79,10 @@ namespace CClash
                         return cc.CompileOrCache(args);
                     }
                 }
+                else
+                {
+                    Logging.Emit("disabled by environment");
+                }
 
                 var rv = new Compiler()
                 {
