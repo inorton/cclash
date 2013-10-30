@@ -45,5 +45,13 @@ namespace CClash
         public List<string> PotentialNewIncludes { get; set; }
 
         public int ExitCode { get; set; }
+
+        public bool PPMode
+        {
+            get
+            {
+                return !String.IsNullOrEmpty(PreprocessedSourceHash);
+            }
+        }
     }
 }

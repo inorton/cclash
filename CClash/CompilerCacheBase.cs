@@ -81,6 +81,7 @@ namespace CClash
             if (comphash.Result == DataHashResult.Ok)
             {
                 var buf = new StringBuilder();
+                buf.AppendLine(this.GetType().FullName.ToString());
                 var incs = Environment.GetEnvironmentVariable("INCLUDE");
                 if (incs != null)
                     buf.AppendLine(incs);
