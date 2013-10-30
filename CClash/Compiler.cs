@@ -573,21 +573,14 @@ namespace CClash
             p.OutputDataReceived += (o, a) =>
             {
                 if ( a.Data != null ) {
-                    if (showIncludes)
+                    if (showIncludes && a.Data.StartsWith("Note: including file:"))
                     {
-                        if (a.Data.StartsWith("Note: including file:"))
-                        {
-                            var inc = a.Data.Substring("Note: including file:".Length+1).TrimStart(' ');
-                            foundIncludes.Add(inc);
-                        }
-                        else
-                        {
-                            onStdOut(a.Data);
-                        }
+                        var inc = a.Data.Substring("Note: including file:".Length+1).TrimStart(' ');
+                        foundIncludes.Add(inc);
                     }
                     else
                     {
-                        onStdOut(a.Data);
+                        if (onStdOut != null) onStdOut(a.Data);
                     }
                 }
                     
@@ -595,7 +588,9 @@ namespace CClash
 
             p.ErrorDataReceived += (o, a) =>
             {
-                  if (a.Data != null) onStdErr(a.Data);
+                if ( onStdErr != null )
+                    if (a.Data != null) 
+                        onStdErr(a.Data);
             };
 
             p.BeginErrorReadLine();
