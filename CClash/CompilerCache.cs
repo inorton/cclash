@@ -222,9 +222,17 @@ namespace CClash
                 
                 var m = jss.Deserialize<CacheManifest>(File.ReadAllText(mn));
                 manifest = m;
-                if (m.Disable) return false;
+                if (m.Disable)
+                {
+                    Logging.Emit("disabled by manifest");
+                    return false;
+                }
                 foreach ( var f in m.PotentialNewIncludes ) {
-                    if (FileUtils.Exists(f)) return false;
+                    if (FileUtils.Exists(f))
+                    {
+                        Logging.Emit("detected added include file {0}", f);
+                        return false;
+                    }
                 }
                 var hashes = hasher.DigestFiles(m.IncludeFiles.Keys);
 
@@ -232,10 +240,12 @@ namespace CClash
                 {
                     if (h.Value.Result == DataHashResult.Ok)
                     {
+                        Logging.Emit("include file hash changed {0}", h.Key);
                         if (m.IncludeFiles[h.Key] != h.Value.Hash) return false;
                     }
                     else
                     {
+                        Logging.Emit("include file hash error {0} {1}", h.Key, h.Value.Result);
                         return false;
                     }
                 }
@@ -312,8 +322,11 @@ namespace CClash
             var stderrfile = outputCache.MakePath(hc.Hash, F_Stderr);
             var stdoutfile = outputCache.MakePath(hc.Hash, F_Stdout);
             int rv = -1;
-            LockStatsCall( () => CacheMisses++);
             var ifiles = new List<string>();
+
+            LockStatsCall( () => CacheMisses++);
+            
+            #region compile
             using (var stderrfs = new StreamWriter(stderrfile))
             {
                 using (var stdoutfs = new StreamWriter(stdoutfile))
@@ -321,6 +334,7 @@ namespace CClash
                     rv = CompileWithStreams(args, stderrfs, stdoutfs, ifiles);
                 }
             }
+            #endregion
 
             // we still hold the cache lock, create the manifest asap or give up now!
 
@@ -330,9 +344,17 @@ namespace CClash
             }
             else
             {
+                #region compile succeeded
                 var idirs = comp.GetUsedIncludeDirs(ifiles);
-                if (idirs.Count > 0)
+                if (idirs.Count < 1)
                 {
+                    outputCache.ReleaseMutex();
+                    throw new InvalidDataException(
+                        string.Format("could not find any include folders?! [{0}]",
+                        string.Join(" ",args)));
+                } else
+                {
+                    #region process includes folders
                     // save manifest and other things to cache
                     var others = comp.GetPotentialIncludeFiles(idirs, ifiles);
                     var m = new CacheManifest();
@@ -345,6 +367,8 @@ namespace CClash
 
                     var hashes = hasher.DigestFiles(ifiles);
 
+                    #region check include files
+
                     foreach (var x in hashes)
                     {
                         if (x.Value.Result == DataHashResult.Ok)
@@ -353,11 +377,14 @@ namespace CClash
                         }
                         else
                         {
+                            Logging.Emit("input hash error {0} {1}", x.Key, x.Value.Result);
                             good = false;
                             m.Disable = true;
                             break;
                         }
                     }
+
+                    #endregion
 
                     if (!good)
                     {
@@ -366,6 +393,7 @@ namespace CClash
                     }
                     else
                     {
+                        #region save to cache
                         outputCache.AddFile(hc.Hash, comp.ObjectTarget, F_Object);
                         if (comp.GeneratePdb)
                         {
@@ -388,9 +416,11 @@ namespace CClash
                         outputCache.ReleaseMutex();
 
                         LockStatsCall(() => CacheSize += mt.Length);
+                        #endregion
                     }
+                    #endregion
                 }
-
+                #endregion
             }
             return rv;
         }
@@ -415,6 +445,10 @@ namespace CClash
                     }
                 }
             }
+            else
+            {
+                LockStatsCall(() => CacheUnsupported++);
+            }
 
             if (comp.ResponseFile != null)
             {
@@ -429,15 +463,9 @@ namespace CClash
 
         public int CompileOnly(IEnumerable<string> args)
         {
-            outputCache.WaitOne();
-            try
             {
-                CacheUnsupported++;
+                
                 return comp.InvokeCompiler(args, Console.Error.WriteLine, Console.Out.WriteLine, false, null);
-            }
-            finally
-            {
-                outputCache.ReleaseMutex();
             }
         }
     }

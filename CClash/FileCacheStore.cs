@@ -36,7 +36,14 @@ namespace CClash
         {
             FolderPath = Path.GetFullPath(folderPath);
             mtx = new Mutex(false, "cclash_mtx_" + FolderPath.ToLower().GetHashCode());
-            WaitOne();
+            try
+            {
+                WaitOne();
+            }
+            catch (AbandonedMutexException)
+            {
+                Logging.Emit("another instance abandoned a mutex {0}", FolderPath);
+            }
             var tlist = new List<Thread>();
             try
             {
@@ -51,6 +58,7 @@ namespace CClash
             {
                 ReleaseMutex();
             }
+
             
         }
 

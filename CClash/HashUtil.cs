@@ -204,8 +204,14 @@ namespace CClash
                             if (line == null) 
                             {
                                 includeCache.WaitOne();
-                                includeCache.AddTextFileContent(rv.Hash, F_NotDateTime, "");
-                                includeCache.ReleaseMutex();
+                                try
+                                {
+                                    includeCache.AddTextFileContent(rv.Hash, F_NotDateTime, "");
+                                }
+                                finally
+                                {
+                                    includeCache.ReleaseMutex();
+                                }
                                 break;
                             }
 
@@ -214,8 +220,14 @@ namespace CClash
                                 rv.Result = DataHashResult.ContainsTimeOrDate;
 
                                 includeCache.WaitOne();
-                                includeCache.AddTextFileContent(rv.Hash, F_HasDateTime, "");
-                                includeCache.ReleaseMutex();
+                                try
+                                {
+                                    includeCache.AddTextFileContent(rv.Hash, F_HasDateTime, "");
+                                }
+                                finally
+                                {
+                                    includeCache.ReleaseMutex();
+                                }
                                 
                                 break;
                             }
