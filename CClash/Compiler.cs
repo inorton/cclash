@@ -383,7 +383,7 @@ namespace CClash
                                     if (args.Length == 1)
                                     {
                                         // this only works if it is the one and only arg!
-                                        args = CommandLineToArgs(rsptxt).ToArray();
+                                        args = CommandLineToArgs(rsptxt).Skip(1).ToArray();
                                         i = 0;
 
                                         // replace the command line with the response file content 
@@ -539,6 +539,14 @@ namespace CClash
             Logging.Emit("notice source folder: {0}", srcfolder);
             incdirs.Add(Path.GetFullPath(srcfolder));
             return incdirs;
+        }
+
+        public int InvokePreprocessor(StreamWriter stdout )
+        {
+            var xargs = new List<string>();
+            xargs.Add("/EP");
+            xargs.AddRange( from x in CommandLine where (x != "/c" || x != "-c") select x );
+            return InvokeCompiler(xargs, (x) => { }, stdout.WriteLine, false, null);
         }
 
         public int InvokeCompiler(IEnumerable<string> args, Action<string> onStdErr, Action<string> onStdOut, bool showIncludes, List<string> foundIncludes)

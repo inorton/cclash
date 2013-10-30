@@ -15,9 +15,11 @@ namespace CClash.Tests
     {
         public const string CompilerPath = "C:\\Program Files (x86)\\Microsoft Visual Studio 11.0\\VC\\bin\\cl.exe";
         static bool setpaths = false;
+
         public static void SetEnvs()
         {
             Environment.SetEnvironmentVariable("CCLASH_DISABLED", null);
+            Environment.SetEnvironmentVariable("CCLASH_PPMODE", null);
             Environment.SetEnvironmentVariable("CCLASH_DISABLE_WHEN_VAR", null);
             Environment.SetEnvironmentVariable("CCLASH_ENABLE_WHEN_VAR", null);
             if (!setpaths)
@@ -36,6 +38,12 @@ namespace CClash.Tests
 
         [SetUp]
         public void Init()
+        {
+            SetEnvs();
+        }
+
+        [TearDown]
+        public void Down()
         {
             SetEnvs();
         }
@@ -123,6 +131,28 @@ namespace CClash.Tests
             hv.AddRange(incfiles);
             Assert.AreEqual(0, rv);
             Assert.IsTrue(hv.Count > 0);
+        }
+
+        [Test]
+        [TestCase("/c", "test-sources\\hello.c", "/Itest-sources\\inc with spaces")]
+        [TestCase("/c", "test-sources\\hello.c", "/I", "test-sources\\inc with spaces", "/D", "a_hash_define")]
+        [TestCase("@test-sources\\compiler1.resp")]
+        [TestCase("@test-sources\\compiler2.resp")]
+        public void PreprocessorTest(params string[] argv)
+        {
+            var c = new Compiler() { CompilerExe = CompilerPath };
+            var supported = c.ProcessArguments(argv);
+
+            Assert.IsTrue(supported);
+            Assert.AreEqual(1, c.CliIncludePaths.Count);
+            Assert.AreEqual("test-sources\\inc with spaces", c.CliIncludePaths[0]);
+            Assert.AreEqual("test-sources\\hello.c", c.SingleSourceFile);
+            using (var ms = new MemoryStream())
+            using (var sw = new StreamWriter(ms))
+            {
+                var rv = c.InvokePreprocessor(sw);
+                Assert.AreEqual(0, rv);
+            }
         }
 
         [Test]

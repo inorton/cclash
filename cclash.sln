@@ -6,9 +6,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CClashTests", "CClash.Tests\CClashTests.csproj", "{B4A548CB-16A3-4FE9-A0D9-76A66182E0B1}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{88D43731-8971-4CCE-999F-B8FE7060AA8E}"
-	ProjectSection(SolutionItems) = preProject
-		Performance1.psess = Performance1.psess
-	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "testprogram", "testprogram\testprogram.csproj", "{C8411FE4-F9E4-476D-B11C-2C28AEDBC839}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -24,8 +23,15 @@ Global
 		{B4A548CB-16A3-4FE9-A0D9-76A66182E0B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B4A548CB-16A3-4FE9-A0D9-76A66182E0B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B4A548CB-16A3-4FE9-A0D9-76A66182E0B1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C8411FE4-F9E4-476D-B11C-2C28AEDBC839}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C8411FE4-F9E4-476D-B11C-2C28AEDBC839}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C8411FE4-F9E4-476D-B11C-2C28AEDBC839}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C8411FE4-F9E4-476D-B11C-2C28AEDBC839}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
 	EndGlobalSection
 EndGlobal

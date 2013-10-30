@@ -51,16 +51,15 @@ namespace CClash
                     }
                     if (compiler != null)
                     {
-                        using (var cache = new CompilerCache(Settings.CacheDirectory, compiler))
+                        using (var cache = new DirectCompilerCache(Settings.CacheDirectory, compiler))
                         {
-                            Console.WriteLine("outputCache usage: {0} kb", (int)(cache.CacheSize / 1024));
-                            Console.WriteLine("cached files: {0}", cache.CacheObjects);
-                            Console.WriteLine("hits: {0}", cache.CacheHits);
-                            Console.WriteLine("misses: {0}", cache.CacheMisses);
-                            Console.WriteLine("unsupported: {0}", cache.CacheUnsupported);
-                            Console.WriteLine("slow hits: {0}", cache.SlowHitCount);
-                            Console.WriteLine("time lost: {0} mins", Math.Round(cache.MSecLost / 60000.0));
-                            Console.WriteLine("time saved: {0} mins", Math.Round(cache.MSecSaved / 60000.0));
+                            Console.WriteLine("outputCache usage: {0} kb", (int)(cache.Stats.CacheSize / 1024));
+                            Console.WriteLine("cached files: {0}", cache.Stats.CacheObjects);
+                            Console.WriteLine("hits: {0}", cache.Stats.CacheHits);
+                            Console.WriteLine("misses: {0}", cache.Stats.CacheMisses);
+                            Console.WriteLine("unsupported: {0}", cache.Stats.CacheUnsupported);
+                            Console.WriteLine("slow hits: {0}", cache.Stats.SlowHitCount);
+                            Console.WriteLine("time lost: {0} mins", Math.Round(cache.Stats.MSecLost / 60000.0));
                         }
                     }
                     return 0;
@@ -74,7 +73,8 @@ namespace CClash
 
                     var cachedir = Settings.CacheDirectory;
                     Logging.Emit("compiler: {0}", compiler);
-                    using (var cc = new CompilerCache(cachedir, compiler))
+
+                    using ( ICompilerCache cc = CompilerCacheFactory.Get( Settings.DirectMode, cachedir, compiler ) )
                     {
                         return cc.CompileOrCache(args);
                     }
@@ -95,7 +95,11 @@ namespace CClash
             {
                 Logging.Emit("{0} after {1} ms", e.GetType().Name, DateTime.Now.Subtract(start).TotalMilliseconds);
                 Logging.Emit("{0} {1}",e.GetType().Name + " message: " + e.Message);
+#if DEBUG
+                throw;
+#else
                 return -1;
+#endif
             }
         }
     }

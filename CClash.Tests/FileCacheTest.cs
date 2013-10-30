@@ -4,7 +4,7 @@ using System.IO;
 using NUnit.Framework;
 using CClash;
 
-namespace CClast.Tests
+namespace CClash.Tests
 {
     [TestFixture]
     public class FileCacheTest
@@ -34,11 +34,19 @@ namespace CClast.Tests
         {
             using (var fc = FileCacheStore.Load("clcachetest_text"))
             {
-                fc.AddTextFileContent("aa12345", "test.txt", "hello");
-                Assert.IsTrue(File.Exists(fc.MakePath("aa12345", "test.txt")));
-                fc.Remove("aa12345");
-                Assert.IsFalse(File.Exists(fc.MakePath("aa12345", "test.txt")));
-                Assert.IsTrue(Directory.Exists(Path.Combine(fc.FolderPath, "aa")));
+                fc.WaitOne();
+                try
+                {
+                    fc.AddTextFileContent("aa12345", "test.txt", "hello");
+                    Assert.IsTrue(File.Exists(fc.MakePath("aa12345", "test.txt")));
+                    fc.Remove("aa12345");
+                    Assert.IsFalse(File.Exists(fc.MakePath("aa12345", "test.txt")));
+                    Assert.IsTrue(Directory.Exists(Path.Combine(fc.FolderPath, "aa")));
+                }
+                finally
+                {
+                    fc.ReleaseMutex();
+                }
             }
         }
     }

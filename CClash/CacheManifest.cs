@@ -28,7 +28,12 @@ namespace CClash
         /// Hash of the compiler file, cl args and source file
         /// </summary>
         public string CommonHash { get; set; }
-        
+
+        /// <summary>
+        /// non-null if this entry was made by preprocessing the source
+        /// </summary>
+        public string PreprocessedSourceHash { get; set; }
+
         /// <summary>
         /// Hashes and names of each #included file
         /// </summary>
@@ -38,5 +43,7 @@ namespace CClash
         /// A list of files that did not exist but will require a rebuild if they are added.
         /// </summary>
         public List<string> PotentialNewIncludes { get; set; }
+
+        public int ExitCode { get; set; }
     }
 }

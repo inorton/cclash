@@ -63,6 +63,18 @@ namespace CClash
             return rv;
         }
 
+        public DataHash DigestStream(Stream s)
+        {
+            MD5CryptoServiceProvider md5 = new MD5CryptoServiceProvider();
+            var rv = new DataHash()
+            {
+                InputName = "stream",
+                Result = DataHashResult.Ok,
+                Hash = new SoapHexBinary( md5.ComputeHash(s) ).ToString()
+            };
+            return rv;
+        }
+
         public Dictionary<string,DataHash> DigestFiles(IEnumerable<string> files)
         {
             return ThreadyDigestFiles(files, true);

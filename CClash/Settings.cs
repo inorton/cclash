@@ -11,8 +11,6 @@ namespace CClash
         public static bool DebugEnabled { get; set; }
         public static string DebugFile { get; set; }
 
-
-
         static bool ConditionVarsAreTrue(string prefix)
         {
             var var = Environment.GetEnvironmentVariable(prefix + "_VAR");
@@ -70,6 +68,27 @@ namespace CClash
             set
             {
                 cachedir = value;
+            }
+        }
+
+        public static bool PreprocessorMode
+        {
+            get
+            {
+                var dm = Environment.GetEnvironmentVariable("CCLASH_PPMODE");
+                if (dm != null)
+                {
+                    return true;
+                }
+                return ConditionVarsAreTrue("CCLASH_PPMODE_WHEN");
+            }
+        }
+
+        public static bool DirectMode
+        {
+            get
+            {
+                return !PreprocessorMode;
             }
         }
     }
