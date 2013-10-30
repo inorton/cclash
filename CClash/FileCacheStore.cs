@@ -137,8 +137,6 @@ namespace CClash
         {
             if (mtx != null)
             {
-                Logging.Emit("disposed FileCacheStore while holding lock!");
-                ReleaseMutex();
                 mtx.Dispose();
             }
         }
