@@ -49,7 +49,7 @@ namespace CClash
             }
 
             // have the preprocessor output, lets run the preprocessor in /E mode
-            using (var ms = new MemoryStream(2 * 1024))
+            using (var ms = new MemoryStream(4 * 1024))
             {
                 var st = DateTime.Now;
                 int rv = -1;

@@ -3,7 +3,7 @@
 
 CClash is a (.net based) compiler cache for the Microsoft 'cl' compiler.
 
-It is aimed at fairly simple use ( eg, cl /c file.c /Fofile.o ) and will cache object and pdb files rather like ccache does.
+It is aimed at fairly simple use ( eg, `cl /c file.c /Fofile.o` ) and will cache object and pdb files rather like ccache does.
 
 CClash has been inspired by clcache (https://github.com/frerich/clcache) and of course ccache (http://ccache.samba.org).
 
@@ -13,7 +13,7 @@ CClash inspects command line arguments to see if it can understand what will be 
 
 On subsequent builds, the key will match, giving us a the manifest file, we check to see that no new #include files have been added and then check the md5 of each include file. If these have not changed we return the cached file and stderr/stdout rather than invoking the compiler.
 
-Those who know ccache will recognise this as quite similar to the ccache 'direct mode'. ( I read the ccache man page before writing this - http://ccache.samba.org/manual.html#_the_direct_mode ).
+Those who know ccache will recognise this as quite similar to the ccache 'direct mode'. ( I read the ccache man page before writing this - http://ccache.samba.org/manual.html#_the_direct_mode ). CClash has a preprocessor mode but it does not work very well and is best avoided at the moment.
 
 ## How well does it work?
 
@@ -22,25 +22,24 @@ On my (not very good) windows 8 machine, I have a simple test by building openss
 OpenSSL windows build                 | Duration
 --------------------------------------|----------
 average build time without cclash     | 294s
-cclash enabled first run              | 477s
-cclash enabled second run             | **169s**
+cclash enabled first run              | 446s
+cclash enabled second run             | **141s**
 
-The first build with a clean cache costs about an extra 62% in build time for each file.
-Subsequent builds (with no source changes) give a 43% reduction in build time.
+The first build with a clean cache costs about an extra 50% in build time for each file. Subsequent builds (with no source changes) give anout a 50% reduction in build time.
 
 So.. For cclash to make a difference to you, you would want to be in a situation where you will compile most of your files more than 2 or 3 times. In my case, I wanted cclash for a continuous integration build so it _should_ pay off quite quickly day or so
 
-Compared to good old ccache this isn't too bad (ccache with gcc costs about 25% on a clean cache). Your milage may of course vary greatly!
+Compared to good old ccache this isn't too bad (ccache with gcc costs about 25% on a clean cache). Your milage may of course vary greatly!  On a multi-core machine with GNU Make things go quite well too.
 
 ## How do I make it work?
 
-There are two ways.
+There are two ways. The first is easier if you can adjust your environment. The latter might be your only choice if you wish to use the Visual Studio IDE.
 
    * Add the folder that contains cclash's cl.exe to %PATH% before the visual studio compiler
 
 or
 
-   * Rename the real cl.exe (and cl.exe.config), place cclash's cl.exe in the same visual studio folder, then set *CLCACHE_CL* to be the full path to your renamed compiler.
+   * Rename the real cl.exe (and cl.exe.config) to cl_real.exe (and cl_real.exe.config), place cclash's cl.exe (and cl.exe.config) in the same visual studio folder.
 
 ## GPL v3.0 License
 
