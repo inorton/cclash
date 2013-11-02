@@ -57,6 +57,7 @@
     <Compile Include="CompilerCacheBase.cs" />
     <Compile Include="DirectCompilerCacheServer.cs" />
     <Compile Include="DirectoryWatcher.cs" />
+    <Compile Include="ExtensionMethods.cs" />
     <Compile Include="FileCacheStore.cs" />
     <Compile Include="FileUtils.cs" />
     <Compile Include="HashUtil.cs" />
@@ -67,6 +68,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="CacheInfo.cs" />
     <Compile Include="Settings.cs" />
+    <Compile Include="StatOutputs.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

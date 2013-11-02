@@ -118,8 +118,8 @@ namespace CClash
                 {
                     foreach (var filename in tmp.Keys)
                     {
-                        hashcache.Add(filename, tmp[filename]);
-                        rv.Add(filename, tmp[filename]);
+                        hashcache[filename] =  tmp[filename];
+                        rv[filename] = tmp[filename];
                         WatchFile(filename);
                     }
                 }

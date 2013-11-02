@@ -32,7 +32,7 @@ namespace CClash
             try
             {
                 Logging.Emit("server listening..");
-                using (var nss = new NamedPipeServerStream(cachedir + ".pipe", PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.WriteThrough | PipeOptions.Asynchronous))
+                using (var nss = new NamedPipeServerStream(MakePipeName(cachedir), PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.WriteThrough | PipeOptions.Asynchronous))
                 {
                     cache = new DirectCompilerCacheServer(cachedir);
                     var jss = new JavaScriptSerializer();
@@ -103,13 +103,22 @@ namespace CClash
             }
         }
 
+        public static string MakePipeName(string cachedir)
+        {
+            var x = cachedir.Replace('\\', ' ');
+            return x.Replace(':', '=') + ".pipe";
+        }
+
         public CClashResponse ProcessRequest(CClashRequest req)
         {
             var rv = new CClashResponse() { supported = false };
 
             switch (req.cmd)
             {
+                // nothing actually sends this yet
                 case Command.GetStats:
+                    rv.exitcode = 0;
+                    rv.stdout = StatOutputs.GetStatsString(req.compiler);
                     break;
 
                 case Command.Run:

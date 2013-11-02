@@ -17,7 +17,7 @@ namespace CClash
         string pipename = null;
         public CClashServerClient(string cachedir)
         {
-            pipename = cachedir +".pipe";
+            pipename = CClashServer.MakePipeName(cachedir);
             
             jss = new JavaScriptSerializer();
         }
@@ -134,7 +134,7 @@ namespace CClash
 
         public void Dispose()
         {
-            ncs.Dispose();
+            if ( ncs != null ) ncs.Dispose();
         }
     }
 }

@@ -9,12 +9,12 @@ namespace CClash
 {
     public sealed class Program
     {
+
         public static int Main(string[] args)
         {
             var start = DateTime.Now;
             try
             {
-                
                 var dbg = Environment.GetEnvironmentVariable("CCLASH_DEBUG");
                 if (!string.IsNullOrEmpty(dbg))
                 {
@@ -41,33 +41,7 @@ namespace CClash
                 if (args.Contains("--cclash"))
                 {
                     var compiler = Compiler.Find();
-                    Console.WriteLine("compiler: {0}", compiler);
-                    Console.WriteLine("cachedir: {0}", Settings.CacheDirectory);
-                    if (Settings.DebugEnabled)
-                    {
-                        Console.WriteLine("debug file: {0}", Settings.DebugFile);
-                    }
-                    if (Settings.Disabled)
-                    {
-                        Console.WriteLine("disabled: yes");
-                    }
-                    else
-                    {
-                        Console.WriteLine("disabled: no");
-                    }
-                    if (compiler != null)
-                    {
-                        using (var cache = new DirectCompilerCache(Settings.CacheDirectory))
-                        {
-                            Console.WriteLine("outputCache usage: {0} kb", (int)(cache.Stats.CacheSize / 1024));
-                            Console.WriteLine("cached files: {0}", cache.Stats.CacheObjects);
-                            Console.WriteLine("hits: {0}", cache.Stats.CacheHits);
-                            Console.WriteLine("misses: {0}", cache.Stats.CacheMisses);
-                            Console.WriteLine("unsupported: {0}", cache.Stats.CacheUnsupported);
-                            Console.WriteLine("slow hits: {0}", cache.Stats.SlowHitCount);
-                            Console.WriteLine("time lost: {0} mins", Math.Round(cache.Stats.MSecLost / 60000.0));
-                        }
-                    }
+                    Console.Out.WriteLine(StatOutputs.GetStatsString(compiler));
                     return 0;
                 }
 
