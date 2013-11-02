@@ -27,7 +27,7 @@ average build time without cclash          | 294s
 cclash enabled first run                   | 446s
 cclash enabled second run                  | **141s**
 cclash enabled first run (CCLASH_SERVER=1) | 428s
-cclash enabled second run (CCLASH_SERVER=1)|
+cclash enabled second run (CCLASH_SERVER=1)|**122s**
 
 The first build with a clean cache costs about an extra 50% in build time for each file. Subsequent builds (with no source changes) give anout a 50% reduction in build time.
 

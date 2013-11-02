@@ -59,6 +59,7 @@ namespace CClash
 
         protected JavaScriptSerializer jss = new JavaScriptSerializer();
 
+
         public CompilerCacheBase(string cacheFolder)
         {
             if (string.IsNullOrEmpty(cacheFolder)) throw new ArgumentNullException("cacheFolder");            
@@ -141,9 +142,9 @@ namespace CClash
         {
             await Task.Run(() =>
             {
-                File.Copy(outputCache.MakePath(hc.Hash, F_Object), comp.ObjectTarget, true);
+                CopyOrHardLink(outputCache.MakePath(hc.Hash, F_Object), comp.ObjectTarget);
                 if (comp.GeneratePdb)
-                    File.Copy(outputCache.MakePath(hc.Hash, F_Pdb), comp.PdbFile, true);
+                    CopyOrHardLink(outputCache.MakePath(hc.Hash, F_Pdb), comp.PdbFile);
             });
         }
 
@@ -157,6 +158,21 @@ namespace CClash
                 OutputWrite(File.ReadAllText(stdoutfile));
                 ErrorWrite(File.ReadAllText(stderrfile));
             });
+        }
+
+        public virtual void CopyOrHardLink(string from, string to)
+        {
+            bool dolink = Settings.UseHardLinks;
+
+            if (dolink)
+            {
+                if (Compiler.MakeHardLink(to, from))
+                {
+                    return;
+                }
+            }
+
+            File.Copy(from, to, true);
         }
 
         protected int OnCacheHitLocked(DataHash hc, CacheManifest hm)

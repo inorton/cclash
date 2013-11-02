@@ -21,17 +21,35 @@ namespace CClash
         public string FolderPath { get; private set; }
         
         Mutex mtx = null;
+        bool ignoreLocks = false;
+        public void KeepLocks()
+        {
+            WaitOne();
+            ignoreLocks = true;
+        }
+
+        public void UnKeepLocks()
+        {
+            ignoreLocks = false;
+            ReleaseMutex();
+        }
 
         public void WaitOne()
         {
-            Logging.Emit("WaitOne {0}", FolderPath);
-            if (!mtx.WaitOne()) throw new InvalidProgramException("mutex lock failed " + mtx.ToString());
+            if (!ignoreLocks)
+            {
+                Logging.Emit("WaitOne {0}", FolderPath);
+                if (!mtx.WaitOne()) throw new InvalidProgramException("mutex lock failed " + mtx.ToString());
+            }
         }
 
         public void ReleaseMutex()
         {
-            Logging.Emit("ReleaseMutex {0}", FolderPath);
-            mtx.ReleaseMutex();
+            if (!ignoreLocks)
+            {
+                Logging.Emit("ReleaseMutex {0}", FolderPath);
+                mtx.ReleaseMutex();
+            }
         }
 
         FileCacheStore( string folderPath )

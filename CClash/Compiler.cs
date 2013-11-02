@@ -19,7 +19,20 @@ namespace CClash
         
         [DllImport("kernel32.dll",  CharSet = CharSet.Auto)]
         static unsafe extern IntPtr GetEnvironmentStringsA();
-        
+
+
+        [DllImport("Kernel32.dll", CharSet = CharSet.Unicode)]
+        static extern bool CreateHardLink(
+        string lpFileName,
+        string lpExistingFileName,
+        IntPtr lpSecurityAttributes
+        );
+
+        public static bool MakeHardLink(string to, string from)
+        {
+            return CreateHardLink(to, from, IntPtr.Zero);
+        }
+
         static void cygwinEnvFixup()
         {
             var ost = Environment.GetEnvironmentVariable("OSTYPE");

@@ -99,5 +99,13 @@ namespace CClash
                 return Environment.GetEnvironmentVariable("CCLASH_SERVER") != null;
             }
         }
+
+        public static bool UseHardLinks
+        {
+            get
+            {
+                return Environment.GetEnvironmentVariable("CCLASH_HARDLINKS") != null;
+            }
+        }
     }
 }

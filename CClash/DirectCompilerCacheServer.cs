@@ -19,6 +19,8 @@ namespace CClash
             StdErrorText = new StringBuilder();
             StdOutText = new StringBuilder();
             Stats.OmitLocks = true;
+            base.includeCache.KeepLocks();
+            base.outputCache.KeepLocks();
         }
 
         public void WatchFile(string path)
@@ -171,7 +173,21 @@ namespace CClash
                 x.Value.Dispose();
             }
             dwatchers.Clear();
+            base.includeCache.UnKeepLocks();
+            base.outputCache.UnKeepLocks();
+
             base.Dispose();
+        }
+
+        public void YieldLocks()
+        {
+            base.includeCache.UnKeepLocks();
+            base.outputCache.UnKeepLocks();
+
+            System.Threading.Thread.Sleep(50);
+
+            base.includeCache.KeepLocks();
+            base.outputCache.KeepLocks();
         }
     }
 }
