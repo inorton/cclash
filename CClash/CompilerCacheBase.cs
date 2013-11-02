@@ -94,9 +94,19 @@ namespace CClash
             throw new FileNotFoundException(compilerPath);
         }
 
+        public virtual DataHash DigestBinaryFile(string path)
+        {
+            return hasher.DigestBinaryFile(path);
+        }
+
+        public virtual DataHash DigestCompiler(string compilerPath)
+        {
+            return DigestBinaryFile(compilerPath);
+        }
+
         public DataHash DeriveHashKey(IEnumerable<string> args)
         {
-            var comphash = hasher.DigestBinaryFile(compilerPath);
+            var comphash = DigestCompiler(compilerPath);
             if (comphash.Result == DataHashResult.Ok)
             {
                 var buf = new StringBuilder();
@@ -144,8 +154,8 @@ namespace CClash
                 var stderrfile = outputCache.MakePath(hc.Hash, F_Stderr);
                 var stdoutfile = outputCache.MakePath(hc.Hash, F_Stdout);
 
-                Console.Out.Write(File.ReadAllText(stdoutfile));
-                Console.Error.Write(File.ReadAllText(stderrfile));
+                OutputWrite(File.ReadAllText(stdoutfile));
+                ErrorWrite(File.ReadAllText(stderrfile));
             });
         }
 
@@ -244,7 +254,7 @@ namespace CClash
         public int CompileOnly(IEnumerable<string> args)
         {
             {
-                return comp.InvokeCompiler(args, Console.Error.WriteLine, Console.Out.WriteLine, false, null);
+                return comp.InvokeCompiler(args, ErrorWriteLine, OutputWriteLine, false, null);
             }
         }
 
@@ -258,7 +268,17 @@ namespace CClash
             Console.Out.WriteLine(str);
         }
 
-        public void Dispose()
+        public virtual void OutputWrite(string str)
+        {
+            Console.Out.Write(str);
+        }
+
+        public virtual void ErrorWrite(string str)
+        {
+            Console.Error.Write(str);
+        }
+
+        public virtual void Dispose()
         {
             if (Stats != null) Stats.Dispose();
             if (includeCache != null) includeCache.Dispose();

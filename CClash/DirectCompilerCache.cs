@@ -17,6 +17,16 @@ namespace CClash
         {
         }
 
+        public virtual Dictionary<string, DataHash> GetHashes( IEnumerable<string> fnames )
+        {
+            return hasher.DigestFiles(fnames);
+        }
+
+        public virtual bool FileExists(string path)
+        {
+            return FileUtils.Exists(path);
+        }
+
         /// <summary>
         /// When this returns, we will hold the output cache mutex.
         /// </summary>
@@ -37,13 +47,13 @@ namespace CClash
                 }
                 foreach (var f in manifest.PotentialNewIncludes)
                 {
-                    if (FileUtils.Exists(f))
+                    if (FileExists(f))
                     {
                         Logging.Emit("detected added include file {0}", f);
                         return false;
                     }
                 }
-                var hashes = hasher.DigestFiles(manifest.IncludeFiles.Keys);
+                var hashes = GetHashes(manifest.IncludeFiles.Keys);
 
                 foreach (var h in hashes)
                 {

@@ -15,7 +15,16 @@ namespace CClash.Tests
             t.Init();
             
             Environment.SetEnvironmentVariable("CCLASH_DEBUG", "test.log");
-            t.RunEnabledDirect(100);
+            var times = 100;
+            var start = DateTime.Now;
+            t.RunEnabledDirect(times);
+            var end = DateTime.Now;
+
+            var duration = end.Subtract(start);
+
+            Console.WriteLine("{0} operations in {1} sec. {2}/ops, {3}ms/op",
+                times, duration.TotalSeconds, times / duration.TotalSeconds, duration.TotalMilliseconds / times);
+            Console.ReadLine();
         }
     }
 }

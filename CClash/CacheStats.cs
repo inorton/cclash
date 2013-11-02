@@ -24,6 +24,12 @@ namespace CClash
         FileCacheStore cache;
         Mutex statMtx = null;
 
+        public bool OmitLocks
+        {
+            get;
+            set;
+        }
+
         public CacheStats(FileCacheStore statCache)
         {
             cache = statCache;
@@ -33,9 +39,9 @@ namespace CClash
 
         public void LockStatsCall(Action x)
         {
-           statMtx.WaitOne();
-           x.Invoke();
-           statMtx.ReleaseMutex(); 
+            if ( !OmitLocks ) statMtx.WaitOne();
+            x.Invoke();
+            if (!OmitLocks) statMtx.ReleaseMutex(); 
         }
 
         public long ReadStat(string statfile)

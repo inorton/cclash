@@ -17,6 +17,16 @@ namespace CClash
         DateTime started = DateTime.Now;
         int connections = 0;
 
+        public int ExitAfterSec { get; set; }
+
+        public int MaxOperations { get; set; }
+
+        public CClashServer()
+        {
+            ExitAfterSec = 300;
+            MaxOperations = 20000;
+        }
+
         public void Listen(string cachedir)
         {
             try
@@ -36,19 +46,18 @@ namespace CClash
                         try
                         {
                             connections++;
-                            if (connections > 500 || (DateTime.Now.Subtract(started).TotalSeconds > 5))
+                            if (connections > MaxOperations || (DateTime.Now.Subtract(started).TotalSeconds > ExitAfterSec))
                                 Stop();
 
                             if (!nss.IsConnected)
                             {
                                 var w = nss.BeginWaitForConnection(null, null);
-                                while (!w.AsyncWaitHandle.WaitOne(500))
+                                while (!w.AsyncWaitHandle.WaitOne(2000))
                                 {
                                     if (quitnow)
                                     {
                                         return;
                                     }
-
                                 }
                                 nss.EndWaitForConnection(w);
                             }
@@ -106,6 +115,7 @@ namespace CClash
                 case Command.Run:
                     cache.SetCompiler(req.compiler);
                     rv.exitcode = cache.CompileOrCacheEnvs(req.envs, req.argv);
+                    rv.supported = true;
                     rv.stderr = cache.StdErrorText.ToString();
                     rv.stdout = cache.StdOutText.ToString();
                     break;

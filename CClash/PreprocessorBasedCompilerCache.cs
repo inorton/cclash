@@ -14,7 +14,7 @@ namespace CClash
             : base(cacheFolder)
         {
             if (Environment.GetEnvironmentVariable("PPMODE_NOWARN") == null)
-                Console.Error.WriteLine("Warning, ppmode is really buggy. set PPMODE_NOWARN to disable this message");
+                ErrorWriteLine("Warning, ppmode is really buggy. set PPMODE_NOWARN to disable this message");
         }
 
         Thread compilerThread = null;
