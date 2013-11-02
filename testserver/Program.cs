@@ -4,18 +4,18 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CClash.Tests
+namespace CClash
 {
     class Program
     {
         static void Main(string[] args)
         {
             Environment.SetEnvironmentVariable("CCLASH_SERVER", "yes");
-            var t = new CompilerCacheTest();
-            t.Init();
-            
             Environment.SetEnvironmentVariable("CCLASH_DEBUG", "test.log");
-            t.RunEnabledDirect(100);
+            Environment.SetEnvironmentVariable("CCLASH_DIR", "compilercache-tests");
+            var serv = new CClashServer();
+            serv.Listen(Settings.CacheDirectory);
+
         }
     }
 }

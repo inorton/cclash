@@ -12,16 +12,24 @@ namespace CClash
     {
         public static ICompilerCache Get(bool direct, string cachedir, string compiler )
         {
+            ICompilerCache rv;
+            if (Settings.ServiceMode)
+            {
+                return new CClashServerClient(cachedir);
+            }
+
             if (direct)
             {
                 Logging.Emit("use direct mode");
-                return new DirectCompilerCache(cachedir, compiler);
+                rv = new DirectCompilerCache(cachedir);
             }
             else
             {
                 Logging.Emit("use pp cache");
-                return new PreprocessorBasedCompilerCache(cachedir, compiler);
+                rv = new PreprocessorBasedCompilerCache(cachedir);
             }
+            rv.SetCompiler(compiler);
+            return rv;
         }
     }
 
@@ -39,20 +47,31 @@ namespace CClash
         protected HashUtil hasher;
         protected Compiler comp;
 
+        public Compiler Compiler
+        {
+            get { return comp; }
+            set { comp = value; }
+        }
+
         CacheStats stats = null;
 
         protected static DateTime cacheStart = DateTime.Now;
 
         protected JavaScriptSerializer jss = new JavaScriptSerializer();
 
-        public CompilerCacheBase(string cacheFolder, string compiler)
+        public CompilerCacheBase(string cacheFolder)
         {
-            if (string.IsNullOrEmpty(cacheFolder)) throw new ArgumentNullException("cacheFolder");
-            if (string.IsNullOrEmpty(compiler)) throw new ArgumentNullException("compiler");
+            if (string.IsNullOrEmpty(cacheFolder)) throw new ArgumentNullException("cacheFolder");            
             outputCache = FileCacheStore.Load(Path.Combine(cacheFolder, "outputs"));
             includeCache = FileCacheStore.Load(Path.Combine(cacheFolder, "includes"));
             stats = new CacheStats(outputCache);
             hasher = new HashUtil(includeCache);
+        }
+
+        public void SetCompiler(string compiler)
+        {
+            if (string.IsNullOrEmpty(compiler)) throw new ArgumentNullException("compiler");
+            
             compilerPath = System.IO.Path.GetFullPath(compiler);
             comp = new Compiler()
             {
@@ -177,18 +196,18 @@ namespace CClash
             var rv = comp.InvokeCompiler(args,
                         x =>
                         {
-                            Console.Error.WriteLine(x);
+                            ErrorWriteLine(x);
                             stderr.WriteLine(x);
                         }, y =>
                         {
-                            Console.Out.WriteLine(y);
+                            OutputWriteLine(y);
                             stdout.WriteLine(y);
                         }, includes != null, includes);
 
             return rv;
         }
 
-        public int CompileOrCache(IEnumerable<string> args)
+        public virtual int CompileOrCache(IEnumerable<string> args)
         {
             if (IsSupported(args))
             {
@@ -227,6 +246,16 @@ namespace CClash
             {
                 return comp.InvokeCompiler(args, Console.Error.WriteLine, Console.Out.WriteLine, false, null);
             }
+        }
+
+        public virtual void ErrorWriteLine(string str)
+        {
+            Console.Error.WriteLine(str);
+        }
+
+        public virtual void OutputWriteLine(string str)
+        {
+            Console.Out.WriteLine(str);
         }
 
         public void Dispose()

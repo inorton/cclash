@@ -14,3 +14,5 @@ TestResults/*
 CClash.Tests/dummy/*
 testprogram/bin/Debug/*
 testprogram/obj/*
+testserver/bin/Debug/*
+testserver/obj/*

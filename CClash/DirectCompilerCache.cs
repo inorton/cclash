@@ -10,10 +10,10 @@ using System.Threading;
 
 namespace CClash
 {
-    public sealed class DirectCompilerCache : CompilerCacheBase, ICompilerCache
+    public class DirectCompilerCache : CompilerCacheBase, ICompilerCache
     {
-        public DirectCompilerCache(string cacheFolder, string compiler)
-            : base(cacheFolder, compiler)
+        public DirectCompilerCache(string cacheFolder)
+            : base(cacheFolder)
         {
         }
 

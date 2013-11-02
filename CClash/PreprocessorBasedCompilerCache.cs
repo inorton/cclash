@@ -10,9 +10,11 @@ namespace CClash
 {
     public sealed class PreprocessorBasedCompilerCache : CompilerCacheBase, ICompilerCache
     {
-        public PreprocessorBasedCompilerCache(string cacheFolder, string compiler)
-            : base(cacheFolder, compiler)
+        public PreprocessorBasedCompilerCache(string cacheFolder)
+            : base(cacheFolder)
         {
+            if (Environment.GetEnvironmentVariable("PPMODE_NOWARN") == null)
+                Console.Error.WriteLine("Warning, ppmode is really buggy. set PPMODE_NOWARN to disable this message");
         }
 
         Thread compilerThread = null;

@@ -91,5 +91,13 @@ namespace CClash
                 return !PreprocessorMode;
             }
         }
+
+        public static bool ServiceMode
+        {
+            get
+            {
+                return Environment.GetEnvironmentVariable("CCLASH_SERVER") != null;
+            }
+        }
     }
 }

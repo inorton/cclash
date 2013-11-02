@@ -22,7 +22,6 @@ namespace CClash
                     Settings.DebugEnabled = true;
                 }
 
-
                 if (Settings.DebugEnabled)
                 {
                     Logging.Emit("command line args:");
@@ -30,6 +29,13 @@ namespace CClash
                     {
                         Logging.Emit("arg: {0}", a);
                     }
+                }
+
+                if (args.Contains("--cclash-server"))
+                {
+                    var server = new CClashServer();
+                    server.Listen(Settings.CacheDirectory);
+                    return 0;
                 }
 
                 if (args.Contains("--cclash"))
@@ -51,7 +57,7 @@ namespace CClash
                     }
                     if (compiler != null)
                     {
-                        using (var cache = new DirectCompilerCache(Settings.CacheDirectory, compiler))
+                        using (var cache = new DirectCompilerCache(Settings.CacheDirectory))
                         {
                             Console.WriteLine("outputCache usage: {0} kb", (int)(cache.Stats.CacheSize / 1024));
                             Console.WriteLine("cached files: {0}", cache.Stats.CacheObjects);
@@ -76,6 +82,7 @@ namespace CClash
 
                     using ( ICompilerCache cc = CompilerCacheFactory.Get( Settings.DirectMode, cachedir, compiler ) )
                     {
+                        cc.SetCompiler(compiler);
                         return cc.CompileOrCache(args);
                     }
                 }
