@@ -41,6 +41,8 @@ namespace CClash
 
                     do
                     {
+                        // don't hog folders
+                        Environment.CurrentDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
                         Logging.Emit("server waiting..");
 
                         try
@@ -126,7 +128,7 @@ namespace CClash
 
                 case Command.Run:
                     cache.SetCompiler(req.compiler);
-                    rv.exitcode = cache.CompileOrCacheEnvs(req.envs, req.argv);
+                    rv.exitcode = cache.CompileOrCacheEnvs(req.workdir, req.envs, req.argv);
                     rv.supported = true;
                     rv.stderr = cache.StdErrorText.ToString();
                     rv.stdout = cache.StdOutText.ToString();

@@ -94,6 +94,7 @@ namespace CClash
                 cmd = Command.Run,
                 compiler = compilerPath,
                 envs = envs,
+                workdir = Environment.CurrentDirectory,
                 argv = new List<string> ( args ),
             };
             var resp = Transact(req);

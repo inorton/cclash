@@ -155,10 +155,11 @@ namespace CClash
             StdErrorText.Append(str);
         }
 
-        public int CompileOrCacheEnvs( IDictionary<string,string> envs, IEnumerable<string> args)
+        public int CompileOrCacheEnvs( string workdir, IDictionary<string,string> envs, IEnumerable<string> args)
         {
             StdErrorText.Clear();
             StdOutText.Clear();
+            Environment.CurrentDirectory = workdir;
             foreach (var e in envs)
             {
                 Environment.SetEnvironmentVariable(e.Key, e.Value);

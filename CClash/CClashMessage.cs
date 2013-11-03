@@ -16,6 +16,7 @@ namespace CClash
     public class CClashRequest
     {
         public Command cmd;
+        public string workdir;
         public IDictionary<string, string> envs;
         public IList<string> argv;
         public string compiler;
