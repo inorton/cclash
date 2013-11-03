@@ -170,21 +170,17 @@ namespace CClash
             return FileUtils.Exists(path);
         }
 
+        public virtual bool FileMissing(string path)
+        {
+            return FileUtils.FileMissing(path);
+        }
+
         public virtual void CopyOrHardLink(string from, string to)
         {
             bool dolink = Settings.UseHardLinks;
 
             if (dolink)
             {
-                try
-                {
-                    if (FileExists(to))
-                    {
-                        File.Delete(to);
-                    }
-                }
-                catch { }
-
                 if (Compiler.MakeHardLink(to, from))
                 {
                     return;

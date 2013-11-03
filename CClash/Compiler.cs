@@ -30,7 +30,7 @@ namespace CClash
 
         public static bool MakeHardLink(string to, string from)
         {
-            return CreateHardLink(to, from, IntPtr.Zero) != 0;
+            return !FileUtils.Exists(to) && (CreateHardLink(to, from, IntPtr.Zero) != 0);
         }
 
         static void cygwinEnvFixup()

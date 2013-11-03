@@ -12,7 +12,6 @@ namespace CClash
         {
             Environment.SetEnvironmentVariable("CCLASH_HARDLINK", "yes");
             Environment.SetEnvironmentVariable("CCLASH_SERVER", "yes");
-            Environment.SetEnvironmentVariable("CCLASH_DEBUG", "test.log");
             Environment.SetEnvironmentVariable("CCLASH_DIR", "compilercache-tests");
             var serv = new CClashServer();
             serv.Listen(Settings.CacheDirectory);

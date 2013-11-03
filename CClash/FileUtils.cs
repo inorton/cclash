@@ -33,5 +33,15 @@ namespace CClash {
             return path;
         }
 
+        // this should be much faster if a file doesn't exist
+        [DllImport("Shlwapi.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        private extern static bool PathFileExists(StringBuilder path);
+
+        public static bool FileMissing(string path)
+        {
+            var sb = new StringBuilder(path);
+            return !PathFileExists(sb);
+        }
+
     }
 }

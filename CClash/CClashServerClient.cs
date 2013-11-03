@@ -84,7 +84,6 @@ namespace CClash
 
         public int CompileOrCache(IEnumerable<string> args)
         {
-            Connect();
             var envs = new Dictionary<string,string>();
             envs["INCLUDE"] = Environment.GetEnvironmentVariable("INCLUDE");
             envs["LIB"] = Environment.GetEnvironmentVariable("LIB");
@@ -97,10 +96,27 @@ namespace CClash
                 envs = envs,
                 argv = new List<string> ( args ),
             };
+            var resp = Transact(req);
+            if (resp != null)
+            {
 
+                Console.Error.Write(resp.stderr);
+                Console.Out.Write(resp.stdout);
+
+                return resp.exitcode;
+            }
+
+            return -1;
+            
+        }
+
+        public CClashResponse Transact(CClashRequest req)
+        {
+            Connect();
+            CClashResponse resp = null;
             var js = jss.Serialize(req);
             var buf = UnicodeEncoding.Unicode.GetBytes(js);
-            
+
             ncs.Write(buf, 0, buf.Length);
             ncs.Flush();
 
@@ -115,21 +131,28 @@ namespace CClash
 
             if (rx.Count > 0)
             {
-                var resp = jss.Deserialize<CClashResponse>(UnicodeEncoding.Unicode.GetString(rx.ToArray()));
-
-                Console.Error.Write(resp.stderr);
-                Console.Out.Write(resp.stdout);
+                resp = jss.Deserialize<CClashResponse>(UnicodeEncoding.Unicode.GetString(rx.ToArray()));
 
                 ncs.Close();
-                return resp.exitcode;
             }
-            return -1;
-            
+            return resp;
         }
 
         public DataHash DeriveHashKey(IEnumerable<string> args)
         {
             throw new NotSupportedException();
+        }
+
+        public string GetStats(string compiler)
+        {
+            var req = new CClashRequest()
+            {
+                cmd = Command.GetStats,
+                compiler = compiler,
+            };
+
+            var resp = Transact(req);
+            return resp.stdout;
         }
 
         public void Dispose()

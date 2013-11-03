@@ -37,11 +37,19 @@ namespace CClash
                     server.Listen(Settings.CacheDirectory);
                     return 0;
                 }
-
+                
                 if (args.Contains("--cclash"))
                 {
                     var compiler = Compiler.Find();
-                    Console.Out.WriteLine(StatOutputs.GetStatsString(compiler));
+                    if (Settings.ServiceMode)
+                    {
+                        var cc = new CClashServerClient(Settings.CacheDirectory);
+                        Console.Out.WriteLine(cc.GetStats(compiler));
+                    }
+                    else
+                    {
+                        Console.Out.WriteLine(StatOutputs.GetStatsString(compiler));
+                    }
                     return 0;
                 }
 

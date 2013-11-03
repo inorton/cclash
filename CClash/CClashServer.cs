@@ -52,7 +52,7 @@ namespace CClash
                             if (!nss.IsConnected)
                             {
                                 var w = nss.BeginWaitForConnection(null, null);
-                                while (!w.AsyncWaitHandle.WaitOne(2000))
+                                while (!w.AsyncWaitHandle.WaitOne(5000))
                                 {
                                     try { 
                                         cache.YieldLocks(); }

@@ -37,7 +37,7 @@ namespace CClash
                 }
                 foreach (var f in manifest.PotentialNewIncludes)
                 {
-                    if (FileExists(f))
+                    if (!FileUtils.FileMissing(f))
                     {
                         Logging.Emit("detected added include file {0}", f);
                         return false;

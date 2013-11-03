@@ -192,6 +192,7 @@ namespace CClash.Tests
             var src = Path.Combine(Environment.CurrentDirectory, "test.old");
             File.WriteAllText(src, "test");
             var target = Path.Combine(Environment.CurrentDirectory, "test.txt");
+            if (File.Exists(target)) File.Delete(target);
             Assert.AreEqual( true, Compiler.MakeHardLink(target, src) );
         }
     }

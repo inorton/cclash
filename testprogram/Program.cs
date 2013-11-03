@@ -10,14 +10,15 @@ namespace CClash.Tests
     {
         static void Main(string[] args)
         {
-            Environment.SetEnvironmentVariable("CCLASH_HARDLINK", "yes");
-            Environment.SetEnvironmentVariable("CCLASH_SERVER", "yes");
+            Environment.SetEnvironmentVariable("CCLASH_DIR", "compilercache-tests");
             var t = new CompilerCacheTest();
             t.Init();
-            
-            Environment.SetEnvironmentVariable("CCLASH_DEBUG", "test.log");
             var times = 100;
             var start = DateTime.Now;
+
+            Environment.SetEnvironmentVariable("CCLASH_HARDLINK", "yes");
+            Environment.SetEnvironmentVariable("CCLASH_SERVER", "yes");
+
             t.RunEnabledDirect(times);
             var end = DateTime.Now;
 

@@ -184,7 +184,7 @@ namespace CClash
             base.includeCache.UnKeepLocks();
             base.outputCache.UnKeepLocks();
 
-            System.Threading.Thread.Sleep(50);
+            System.Threading.Thread.Sleep(100);
 
             base.includeCache.KeepLocks();
             base.outputCache.KeepLocks();

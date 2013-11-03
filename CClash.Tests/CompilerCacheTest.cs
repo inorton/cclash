@@ -28,6 +28,8 @@ namespace CClash.Tests
                 catch { }
             }
             Environment.SetEnvironmentVariable("CCLASH_DEBUG", null);
+            Environment.SetEnvironmentVariable("CCLASH_SERVER", null);
+            Environment.SetEnvironmentVariable("CCLASH_HARDLINK", null);
         }
 
         [TearDown]

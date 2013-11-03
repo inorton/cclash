@@ -30,7 +30,7 @@ cclash enabled first run                                  |   446s
 cclash enabled second run                                 | **141s**
 cclash enabled first run (CCLASH_SERVER)                  |   428s
 cclash enabled second run (CCLASH_SERVER)                 | **122s**
-cclash enabled first run (CCLASH_SERVER,CCLASH_HARDLINK)  |   428s
+cclash enabled first run (CCLASH_SERVER,CCLASH_HARDLINK)  |   438s
 cclash enabled second run (CCLASH_SERVER,CCLASH_HARDLINK) | **122s**
 
 The first build with a clean cache costs about an extra 50% in build time for each file. Subsequent builds (with no source changes) give anout a 50% reduction in build time.
