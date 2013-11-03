@@ -104,7 +104,7 @@ namespace CClash
         {
             get
             {
-                return Environment.GetEnvironmentVariable("CCLASH_HARDLINKS") != null;
+                return Environment.GetEnvironmentVariable("CCLASH_HARDLINK") != null;
             }
         }
     }

@@ -113,7 +113,12 @@ namespace CClash
         public void AddFile(string key, string filePath, string contentName)
         {
             EnsureKey(key);
-            File.Copy(filePath, MakePath(key, contentName), true);
+            var target = MakePath(key, contentName);
+            if ( File.Exists( target ) ) File.Delete(target);
+            
+            if ( !Settings.UseHardLinks || !Compiler.MakeHardLink( filePath, target ) )
+                File.Copy(filePath, target, true);
+
             if (Added != null)
             {
                 Added(this, new FileCacheStoreAddedEventArgs() { SizeKB = (int)(new FileInfo(filePath).Length / 1024) });
@@ -155,6 +160,8 @@ namespace CClash
         {
             if (mtx != null)
             {
+                if (ignoreLocks)
+                    UnKeepLocks();
                 mtx.Dispose();
             }
         }

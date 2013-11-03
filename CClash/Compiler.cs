@@ -22,7 +22,7 @@ namespace CClash
 
 
         [DllImport("Kernel32.dll", CharSet = CharSet.Unicode)]
-        static extern bool CreateHardLink(
+        static extern int CreateHardLink(
         string lpFileName,
         string lpExistingFileName,
         IntPtr lpSecurityAttributes
@@ -30,7 +30,7 @@ namespace CClash
 
         public static bool MakeHardLink(string to, string from)
         {
-            return CreateHardLink(to, from, IntPtr.Zero);
+            return CreateHardLink(to, from, IntPtr.Zero) != 0;
         }
 
         static void cygwinEnvFixup()

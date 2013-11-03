@@ -10,6 +10,7 @@ namespace CClash.Tests
     {
         static void Main(string[] args)
         {
+            Environment.SetEnvironmentVariable("CCLASH_HARDLINK", "yes");
             Environment.SetEnvironmentVariable("CCLASH_SERVER", "yes");
             var t = new CompilerCacheTest();
             t.Init();

@@ -160,12 +160,31 @@ namespace CClash
             });
         }
 
+        public virtual Dictionary<string, DataHash> GetHashes(IEnumerable<string> fnames)
+        {
+            return hasher.DigestFiles(fnames);
+        }
+
+        public virtual bool FileExists(string path)
+        {
+            return FileUtils.Exists(path);
+        }
+
         public virtual void CopyOrHardLink(string from, string to)
         {
             bool dolink = Settings.UseHardLinks;
 
             if (dolink)
             {
+                try
+                {
+                    if (FileExists(to))
+                    {
+                        File.Delete(to);
+                    }
+                }
+                catch { }
+
                 if (Compiler.MakeHardLink(to, from))
                 {
                     return;

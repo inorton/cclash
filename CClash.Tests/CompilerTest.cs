@@ -185,5 +185,14 @@ namespace CClash.Tests
 
             Assert.IsFalse(c.ProcessArguments(argv));
         }
+
+        [Test]
+        public void TestHardLinking()
+        {
+            var src = Path.Combine(Environment.CurrentDirectory, "test.old");
+            File.WriteAllText(src, "test");
+            var target = Path.Combine(Environment.CurrentDirectory, "test.txt");
+            Assert.AreEqual( true, Compiler.MakeHardLink(target, src) );
+        }
     }
 }

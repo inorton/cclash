@@ -15,19 +15,23 @@ On subsequent builds, the key will match, giving us a the manifest file, we chec
 
 Those who know ccache will recognise this as quite similar to the ccache 'direct mode'. ( I read the ccache man page before writing this - http://ccache.samba.org/manual.html#_the_direct_mode ). CClash has a preprocessor mode but it does not work very well and is best avoided at the moment.
 
-CClash has an extra twist to get a little more speed, if you set the `CCLASH_SERVER` environment variable, a short lived ( 5 mins max ) server will be spawned. This server will take over the running of the compiler and the hashing of input data, so common files will only be hashed once! The stats below are from using the server mode.
+CClash has a couple of extra twists to get a little more speed, if you set the `CCLASH_SERVER` environment variable, a short lived ( 5 mins max ) server will be spawned. This server will take over the running of the compiler and the hashing of input data, so common files will only be hashed once! The stats below are from using the server mode.
+Also, you can set `CCLASH_HARDLINK` and cclash will attempt to make NTFS hardlinks rather than copy files which should also be faster. Don't try this if your files are on a different drive or ntfs volume to `CCLASH_DIR`.
+
 
 ## How well does it work?
 
 On my (not very good) windows 8 machine, I have a simple test by building openssl under nmake. These tests were all done _after_ running the Configure step.
 
-OpenSSL windows build                      | Duration
--------------------------------------------|----------
-average build time without cclash          | 294s
-cclash enabled first run                   | 446s
-cclash enabled second run                  | **141s**
-cclash enabled first run (CCLASH_SERVER=1) | 428s
-cclash enabled second run (CCLASH_SERVER=1)|**122s**
+OpenSSL windows build                                     | Duration
+----------------------------------------------------------|----------
+average build time without cclash                         |   294s
+cclash enabled first run                                  |   446s
+cclash enabled second run                                 | **141s**
+cclash enabled first run (CCLASH_SERVER)                  |   428s
+cclash enabled second run (CCLASH_SERVER)                 | **122s**
+cclash enabled first run (CCLASH_SERVER,CCLASH_HARDLINK)  |   428s
+cclash enabled second run (CCLASH_SERVER,CCLASH_HARDLINK) | **122s**
 
 The first build with a clean cache costs about an extra 50% in build time for each file. Subsequent builds (with no source changes) give anout a 50% reduction in build time.
 

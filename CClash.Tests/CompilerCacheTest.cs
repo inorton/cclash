@@ -60,6 +60,23 @@ namespace CClash.Tests
         }
 
         [Test]
+        [TestCase(10)]
+        public void RunEnabledDirectHardLink(int times)
+        {
+            Assert.IsFalse(Settings.Disabled);
+            Assert.IsTrue(Settings.DirectMode);
+            var comp = CompilerTest.CompilerPath;
+            Environment.SetEnvironmentVariable("CCLASH_HARDLINK", "yes");
+            Assert.IsTrue(Settings.UseHardLinks);
+            Environment.SetEnvironmentVariable("PATH", System.IO.Path.GetDirectoryName(comp) + ";" + Environment.GetEnvironmentVariable("PATH"));
+            for (int i = 0; i < times; i++)
+            {
+                var rv = Program.Main(new string[] { "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
+                Assert.AreEqual(0, rv);
+            }
+        }
+
+        [Test]
         [TestCase(10, null)]
         [TestCase(10, "ppmode.log")]
         public void RunEnabledPPMode(int times, string log)

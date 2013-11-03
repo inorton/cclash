@@ -17,16 +17,6 @@ namespace CClash
         {
         }
 
-        public virtual Dictionary<string, DataHash> GetHashes( IEnumerable<string> fnames )
-        {
-            return hasher.DigestFiles(fnames);
-        }
-
-        public virtual bool FileExists(string path)
-        {
-            return FileUtils.Exists(path);
-        }
-
         /// <summary>
         /// When this returns, we will hold the output cache mutex.
         /// </summary>
