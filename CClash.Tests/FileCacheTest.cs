@@ -49,5 +49,26 @@ namespace CClash.Tests
                 }
             }
         }
+
+        [Test]
+        [Repeat(1000)]
+        public void FileMissing_FileDotExists()
+        {
+            File.Exists("c:\\nosuchfile.txt");
+        }
+
+        [Test]
+        [Repeat(1000)]
+        public void FileMissing_FileUtilsExists()
+        {
+            FileUtils.Exists("c:\\nosuchfile.txt");
+        }
+
+        [Test]
+        [Repeat(1000)]
+        public void FileMissing_FileUtilsFileMissing()
+        {
+            FileUtils.FileMissing("c:\\nosuchfile.txt");
+        }
     }
 }
