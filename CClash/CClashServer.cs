@@ -28,6 +28,16 @@ namespace CClash
             Directory.SetCurrentDirectory(mydocs);
         }
 
+        DateTime lastYield = DateTime.Now;
+        void YieldLocks()
+        {
+            if (DateTime.Now.Subtract(lastYield).TotalSeconds > 5)
+            {
+                cache.YieldLocks();
+                lastYield = DateTime.Now;
+            }
+        }
+
         public void Listen(string cachedir)
         {
             
@@ -37,16 +47,16 @@ namespace CClash
                 using (var nss = new NamedPipeServerStream(MakePipeName(cachedir), PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.WriteThrough | PipeOptions.Asynchronous))
                 {
                     cache = new DirectCompilerCacheServer(cachedir);
-                    var jss = new JavaScriptSerializer();
                     var msgbuf = new List<byte>();
                     var rxbuf = new byte[16384];
                     DateTime lastConnection = DateTime.Now;
+                    
                     do
                     {
                         // don't hog folders
                         System.IO.Directory.SetCurrentDirectory(mydocs);
                         Logging.Emit("server waiting..");
-                        
+                        YieldLocks();
                         try
                         {
                             connections++;
@@ -58,8 +68,9 @@ namespace CClash
                                 var w = nss.BeginWaitForConnection(null, null);
                                 while (!w.AsyncWaitHandle.WaitOne(5000))
                                 {
-                                    try { 
-                                        cache.YieldLocks(); }
+                                    try {
+                                        YieldLocks();     
+                                    }
                                     catch { }
                                     if (quitnow)
                                     {
@@ -87,10 +98,9 @@ namespace CClash
                             Logging.Emit("server read  {0} bytes", msgbuf.Count);
 
                             // deserialize message from msgbuf
-                            var req = jss.Deserialize<CClashRequest>(UnicodeEncoding.Unicode.GetString(msgbuf.ToArray()));
+                            var req = CClashMessage.Deserialize<CClashRequest>(msgbuf.ToArray());
                             var resp = ProcessRequest(req);
-                            var jresp = jss.Serialize(resp);
-                            var tx = UnicodeEncoding.Unicode.GetBytes(jresp);
+                            var tx = resp.Serialize();
                             nss.Write(tx, 0, tx.Length);
                             nss.Flush();
 

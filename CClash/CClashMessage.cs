@@ -8,6 +8,7 @@ using System.IO;
 
 namespace CClash
 {
+    [Serializable]
     public enum Command
     {
         Run = 0,
@@ -15,20 +16,21 @@ namespace CClash
         Quit = 2,
     }
 
-    public class CClashMessageBase
+    [Serializable]
+    public class CClashMessage
     {
-        public byte[] Serialize(CClashMessageBase msg)
+        public byte[] Serialize()
         {
             var b = new BinaryFormatter();
             using (var ms = new MemoryStream())
             {
-                b.Serialize(ms, msg);
+                b.Serialize(ms, this);
                 return ms.ToArray();
             }
         }
 
         public static T Deserialize<T>(byte[] bb)
-            where T : CClashMessageBase, new()
+            where T : CClashMessage, new()
         {
             var rv = new T();
             var b = new BinaryFormatter();
@@ -41,20 +43,17 @@ namespace CClash
     }
 
     [Serializable]
-    public class CClashRequest : CClashMessageBase
+    public class CClashRequest : CClashMessage
     {
         public Command cmd;
         public string workdir;
         public IDictionary<string, string> envs;
         public IList<string> argv;
         public string compiler;
-
-
-
     }
 
     [Serializable]
-    public class CClashResponse : CClashMessageBase
+    public class CClashResponse : CClashMessage
     {
         public bool supported;
         public int exitcode;

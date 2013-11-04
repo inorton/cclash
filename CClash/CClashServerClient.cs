@@ -130,10 +130,10 @@ namespace CClash
         {
             Connect();
             CClashResponse resp = null;
-            var js = jss.Serialize(req);
-            var buf = UnicodeEncoding.Unicode.GetBytes(js);
 
-            ncs.Write(buf, 0, buf.Length);
+            var txbuf = req.Serialize();
+
+            ncs.Write(txbuf, 0, txbuf.Length);
             ncs.Flush();
 
             var rx = new List<byte>();
@@ -147,8 +147,7 @@ namespace CClash
 
             if (rx.Count > 0)
             {
-                resp = jss.Deserialize<CClashResponse>(UnicodeEncoding.Unicode.GetString(rx.ToArray()));
-
+                resp = CClashMessage.Deserialize<CClashResponse>(rx.ToArray());
                 ncs.Close();
             }
             return resp;

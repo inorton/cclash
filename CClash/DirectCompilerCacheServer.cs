@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Linq;
 
 namespace CClash
 {
@@ -113,6 +114,7 @@ namespace CClash
 
             if (unknown.Count > 0)
             {
+                Logging.Emit("hash {0}/{1} new/changed files", unknown.Count, fnames.Count());
                 var tmp = base.GetHashes(fnames);
                 lock (hashcache)
                 {
@@ -185,7 +187,7 @@ namespace CClash
             base.includeCache.UnKeepLocks();
             base.outputCache.UnKeepLocks();
 
-            System.Threading.Thread.Sleep(100);
+            System.Threading.Thread.Sleep(0);
 
             base.includeCache.KeepLocks();
             base.outputCache.KeepLocks();
