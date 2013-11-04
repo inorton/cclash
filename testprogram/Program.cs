@@ -10,12 +10,12 @@ namespace CClash.Tests
     {
         static void Main(string[] args)
         {
-            Environment.SetEnvironmentVariable("CCLASH_DIR", "compilercache-tests");
+            
             var t = new CompilerCacheTest();
             t.Init();
             var times = 100;
             var start = DateTime.Now;
-
+            Environment.SetEnvironmentVariable("CCLASH_DIR", "compilercache-tests");
             Environment.SetEnvironmentVariable("CCLASH_HARDLINK", "yes");
             Environment.SetEnvironmentVariable("CCLASH_SERVER", "yes");
 
@@ -27,6 +27,7 @@ namespace CClash.Tests
             Console.WriteLine("{0} operations in {1} sec. {2}/ops, {3}ms/op",
                 times, duration.TotalSeconds, times / duration.TotalSeconds, duration.TotalMilliseconds / times);
             Console.ReadLine();
+            CClash.Program.Main(new string[] { "--cclash", "--stop"});
         }
     }
 }

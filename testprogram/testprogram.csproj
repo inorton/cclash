@@ -52,6 +52,10 @@
       <Project>{b4a548cb-16a3-4fe9-a0d9-76a66182e0b1}</Project>
       <Name>CClashTests</Name>
     </ProjectReference>
+    <ProjectReference Include="..\cclash\CClash.csproj">
+      <Project>{7bcf13a4-c4c9-493d-898b-e89aefc93c1a}</Project>
+      <Name>CClash</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

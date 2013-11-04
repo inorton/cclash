@@ -79,6 +79,11 @@
       <ProjName>testprogram</ProjName>
     </ProjBinary>
   </Binaries>
+  <Reports>
+    <Report>
+      <Path>testprogram131104(1).vspx</Path>
+    </Report>
+  </Reports>
   <Launches>
     <ProjBinary>
       <Path>:PB:{C8411FE4-F9E4-476D-B11C-2C28AEDBC839}|testprogram\testprogram.csproj</Path>

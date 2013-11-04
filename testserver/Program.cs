@@ -15,7 +15,6 @@ namespace CClash
             Environment.SetEnvironmentVariable("CCLASH_DIR", "compilercache-tests");
             var serv = new CClashServer();
             serv.Listen(Settings.CacheDirectory);
-
         }
     }
 }

@@ -25,11 +25,14 @@ namespace CClash.Tests
 
         [Test]
         [Repeat(2)]
-        public void HashIncludeFiles()
+        [TestCase(1)]
+        [TestCase(4)]
+        public void HashIncludeFiles(int threads)
         {
             using (var ic = FileCacheStore.Load("testincs"))
             {
                 var ht = new HashUtil(ic);
+                ht.HashingThreadCount = threads;
                 var files = Directory.GetFiles(IncludeDir);
                 foreach (var f in files)
                 {

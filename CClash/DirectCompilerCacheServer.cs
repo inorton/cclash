@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace CClash
 {
@@ -159,6 +157,8 @@ namespace CClash
         {
             StdErrorText.Clear();
             StdOutText.Clear();
+            // not entirely sure why i need to do both of these..
+            Directory.SetCurrentDirectory(workdir);
             Environment.CurrentDirectory = workdir;
             foreach (var e in envs)
             {

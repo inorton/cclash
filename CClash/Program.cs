@@ -40,11 +40,21 @@ namespace CClash
                 
                 if (args.Contains("--cclash"))
                 {
+                    Logging.Emit("maint mode");
+                    Console.Error.Write("cclash v0.5 (c) Ian Norton, November 2013");
                     var compiler = Compiler.Find();
                     if (Settings.ServiceMode)
                     {
                         var cc = new CClashServerClient(Settings.CacheDirectory);
-                        Console.Out.WriteLine(cc.GetStats(compiler));
+
+                        if (args.Contains("--stop"))
+                        {
+                            cc.Transact(new CClashRequest() { cmd = Command.Quit });
+                        }
+                        else
+                        {
+                            Console.Out.WriteLine(cc.GetStats(compiler));
+                        }
                     }
                     else
                     {

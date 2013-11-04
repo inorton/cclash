@@ -107,5 +107,12 @@ namespace CClash
                 return Environment.GetEnvironmentVariable("CCLASH_HARDLINK") != null;
             }
         }
+
+        private static int hashThreadCount = Environment.ProcessorCount;
+        public static int HashThreadCount
+        {
+            get;
+            set;
+        }
     }
 }

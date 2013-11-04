@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.IO;
 using System.IO.Pipes;
 using System.Web.Script.Serialization;
@@ -14,21 +13,24 @@ namespace CClash
         bool quitnow = false;
         DirectCompilerCacheServer cache;
 
-        DateTime started = DateTime.Now;
         int connections = 0;
 
-        public int ExitAfterSec { get; set; }
+        public int ExitAfterIdleSec { get; set; }
 
         public int MaxOperations { get; set; }
 
+        string mydocs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+
         public CClashServer()
         {
-            ExitAfterSec = 300;
+            ExitAfterIdleSec = 60;
             MaxOperations = 20000;
+            Directory.SetCurrentDirectory(mydocs);
         }
 
         public void Listen(string cachedir)
         {
+            
             try
             {
                 Logging.Emit("server listening..");
@@ -38,17 +40,17 @@ namespace CClash
                     var jss = new JavaScriptSerializer();
                     var msgbuf = new List<byte>();
                     var rxbuf = new byte[16384];
-
+                    DateTime lastConnection = DateTime.Now;
                     do
                     {
                         // don't hog folders
-                        Environment.CurrentDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+                        System.IO.Directory.SetCurrentDirectory(mydocs);
                         Logging.Emit("server waiting..");
-
+                        
                         try
                         {
                             connections++;
-                            if (connections > MaxOperations || (DateTime.Now.Subtract(started).TotalSeconds > ExitAfterSec))
+                            if (connections > MaxOperations || (DateTime.Now.Subtract(lastConnection).TotalSeconds > ExitAfterIdleSec))
                                 Stop();
 
                             if (!nss.IsConnected)
@@ -65,6 +67,7 @@ namespace CClash
                                     }
                                 }
                                 nss.EndWaitForConnection(w);
+                                lastConnection = DateTime.Now;
                             }
 
                             Logging.Emit("server connected..");
@@ -90,6 +93,10 @@ namespace CClash
                             var tx = UnicodeEncoding.Unicode.GetBytes(jresp);
                             nss.Write(tx, 0, tx.Length);
                             nss.Flush();
+
+                            // don't hog folders
+                            System.IO.Directory.SetCurrentDirectory(mydocs);
+
                             nss.WaitForPipeDrain();
                             nss.Disconnect();
                         }
@@ -117,10 +124,13 @@ namespace CClash
         public CClashResponse ProcessRequest(CClashRequest req)
         {
             var rv = new CClashResponse() { supported = false };
+            Logging.Emit("{0}", DateTime.Now.ToString("s"));
+            Logging.Emit("server req: cmd = {0}, workdir = {1}",
+                req.cmd, req.workdir);
 
             switch (req.cmd)
             {
-                // nothing actually sends this yet
+
                 case Command.GetStats:
                     rv.exitcode = 0;
                     rv.stdout = StatOutputs.GetStatsString(req.compiler);
@@ -138,6 +148,8 @@ namespace CClash
                     Stop();
                     break;
             }
+
+            Logging.Emit("server resp: {0}", rv.exitcode);
 
             return rv;
         }

@@ -6,8 +6,6 @@ using System.Runtime.Remoting.Metadata.W3cXsd2001;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Threading;
-using System.Text;
-using System.Threading.Tasks;
 
 
 namespace CClash
@@ -42,7 +40,7 @@ namespace CClash
             includeCache = includecache;
         }
 
-        private int hashingThreadCount = Environment.ProcessorCount;
+        private int hashingThreadCount = Settings.HashThreadCount;
 
         public int HashingThreadCount
         {
@@ -87,6 +85,7 @@ namespace CClash
             var threadcount = HashingThreadCount;
             if ((threadcount < 2)||(fcount < threadcount))
             {
+                Logging.Emit("st hash {0} files", fcount);
                 foreach (var f in files)
                 {
                     var d = DigestSourceFile(f);
@@ -96,6 +95,7 @@ namespace CClash
             }
             else
             {
+                Logging.Emit("mt hash {0} files on {1} threads", fcount, threadcount);
                 var fa = files.ToArray();
                 var tl = new List<Thread>();
                 var taken = 0;

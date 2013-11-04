@@ -15,11 +15,17 @@ namespace CClash
         NamedPipeClientStream ncs;
         JavaScriptSerializer jss;
         string pipename = null;
+        bool spawnServer = true;
+
         public CClashServerClient(string cachedir)
         {
             pipename = CClashServer.MakePipeName(cachedir);
-            
             jss = new JavaScriptSerializer();
+        }
+
+        public CClashServerClient(string cachedir, bool startServer) : this(cachedir)
+        {
+            spawnServer = startServer;
         }
 
         void Open()
@@ -33,12 +39,12 @@ namespace CClash
             if (ncs == null)
                 Open();
 
-            for (int i = 0; i < 3; i++)
+            for (int i = 0; i < 10; i++)
             {
                 try
                 {
                     if (!ncs.IsConnected)
-                        ncs.Connect(100);
+                        ncs.Connect(50);
                     ncs.ReadMode = PipeTransmissionMode.Message;
                     return;
                 }
@@ -49,15 +55,24 @@ namespace CClash
                 }
                 catch (TimeoutException)
                 {
-                    var p = new Process();
-                    var psi = new ProcessStartInfo(exe);
-                    psi.CreateNoWindow = true;
-                    psi.Arguments = "--cclash-server";
-                    psi.ErrorDialog = false;
-                    psi.WorkingDirectory = Environment.CurrentDirectory;
-                    psi.WindowStyle = ProcessWindowStyle.Hidden;
-                    p.StartInfo = psi;
-                    p.Start();
+                    if (spawnServer)
+                    {
+                        Logging.Emit("starting background service");
+                        var p = new Process();
+                        var psi = new ProcessStartInfo(exe);
+                        psi.CreateNoWindow = true;
+                        psi.Arguments = "--cclash-server";
+                        psi.ErrorDialog = false;
+                        psi.WorkingDirectory = Environment.CurrentDirectory;
+                        psi.WindowStyle = ProcessWindowStyle.Hidden;
+                        p.StartInfo = psi;
+                        p.Start();
+                        System.Threading.Thread.Sleep(500);
+                    }
+                    else
+                    {
+                        throw new DirectoryNotFoundException("cclash server");
+                    }
                 }
             }
             throw new InvalidProgramException("server failed to start");
