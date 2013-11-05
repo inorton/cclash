@@ -7,7 +7,89 @@ using System.Threading.Tasks;
 
 namespace CClash
 {
-    public sealed class CacheStats : IDisposable
+    public class FastCacheStats : IDisposable, ICacheStats
+    {
+        FileCacheStore statstore;
+        public FastCacheStats(FileCacheStore stats)
+        {
+            statstore = stats;
+        }
+
+        public long CacheHits
+        {
+            get;
+            set;
+        }
+
+        public long CacheMisses
+        {
+            get;
+            set;
+        }
+
+        public long CacheObjects
+        {
+            get;
+            set;
+        }
+
+        public long CacheSize
+        {
+            get;
+            set;
+        }
+
+        public long CacheUnsupported
+        {
+            get;
+            set;
+        }
+
+        public void LockStatsCall(Action x)
+        {
+            x.Invoke();
+        }
+
+        public long MSecLost
+        {
+            get;
+            set;
+        }
+
+        public bool OmitLocks
+        {
+            get;
+            set;
+        }
+
+        public long SlowHitCount
+        {
+            get;
+            set;
+        }
+
+        public void Commit()
+        {
+            var real = new CacheStats(statstore);
+            real.LockStatsCall(() =>
+            {
+                real.MSecLost += this.MSecLost;
+                real.SlowHitCount += this.SlowHitCount;
+                real.CacheUnsupported += this.CacheUnsupported;
+                real.CacheSize += this.CacheSize;
+                real.CacheObjects += this.CacheObjects;
+                real.CacheMisses += this.CacheMisses;
+                real.CacheHits += this.CacheHits;
+            });
+        }
+
+        public void Dispose()
+        {
+            Commit();
+        }
+    }
+
+    public class CacheStats : IDisposable, ICacheStats
     {
 
         public const string K_Stats = "stats";
@@ -23,6 +105,11 @@ namespace CClash
 
         FileCacheStore cache;
         Mutex statMtx = null;
+
+        public void Commit()
+        {
+
+        }
 
         public bool OmitLocks
         {

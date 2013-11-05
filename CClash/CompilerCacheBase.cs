@@ -53,7 +53,7 @@ namespace CClash
             set { comp = value; }
         }
 
-        CacheStats stats = null;
+        ICacheStats stats = null;
 
         protected static DateTime cacheStart = DateTime.Now;
 
@@ -316,11 +316,15 @@ namespace CClash
             if (outputCache != null) outputCache.Dispose();
         }
 
-        public CacheStats Stats
+        public ICacheStats Stats
         {
             get
             {
                 return stats;
+            }
+            protected set
+            {
+                stats = value;
             }
         }
 

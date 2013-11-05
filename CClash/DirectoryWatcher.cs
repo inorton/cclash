@@ -47,7 +47,7 @@ namespace CClash
             }
         }
 
-        List<string> Files { get; set; }
+        public List<string> Files { get; private set; }
 
         void OnChange(string file)
         {

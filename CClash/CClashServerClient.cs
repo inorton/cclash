@@ -78,7 +78,7 @@ namespace CClash
             throw new InvalidProgramException("server failed to start");
         }
 
-        public CacheStats Stats
+        public ICacheStats Stats
         {
             get { throw new NotImplementedException(); }
         }

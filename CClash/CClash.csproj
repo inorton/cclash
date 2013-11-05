@@ -61,6 +61,7 @@
     <Compile Include="FileCacheStore.cs" />
     <Compile Include="FileUtils.cs" />
     <Compile Include="HashUtil.cs" />
+    <Compile Include="ICacheStats.cs" />
     <Compile Include="ICompilerCache.cs" />
     <Compile Include="Logging.cs" />
     <Compile Include="PreprocessorBasedCompilerCache.cs" />

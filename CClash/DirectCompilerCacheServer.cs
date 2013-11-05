@@ -17,7 +17,7 @@ namespace CClash
         {
             StdErrorText = new StringBuilder();
             StdOutText = new StringBuilder();
-            Stats.OmitLocks = true;
+            Stats = new FastCacheStats(outputCache);
             base.includeCache.KeepLocks();
             base.outputCache.KeepLocks();
         }
@@ -30,6 +30,7 @@ namespace CClash
 
             if (!dwatchers.TryGetValue(dir, out w))
             {
+                Logging.Emit("create new watcher for {0}", dir);
                 w = new DirectoryWatcher(dir); 
                 dwatchers.Add(dir, w);
                 w.FileChanged += OnWatchedFileChanged;
@@ -47,6 +48,11 @@ namespace CClash
             if (dwatchers.TryGetValue(dir, out w))
             {
                 w.UnWatch(file);
+                if (w.Files.Count == 0)
+                {
+                    dwatchers.Remove(dir);
+                    w.Dispose();
+                }
             }
         }
 

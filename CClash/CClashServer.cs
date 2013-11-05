@@ -76,6 +76,8 @@ namespace CClash
                                     {
                                         return;
                                     }
+                                    if (DateTime.Now.Subtract(lastConnection).TotalSeconds > 90)
+                                        Stop();
                                 }
                                 nss.EndWaitForConnection(w);
                                 lastConnection = DateTime.Now;
