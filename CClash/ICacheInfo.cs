@@ -1,7 +1,7 @@
 ﻿using System;
 namespace CClash
 {
-    public interface ICacheStats : IDisposable
+    public interface ICacheInfo : IDisposable
     {
         long CacheHits { get; set; }
         long CacheMisses { get; set; }
@@ -12,7 +12,6 @@ namespace CClash
         long MSecLost { get; set; }
         bool OmitLocks { get; set; }
         long SlowHitCount { get; set; }
-
         void Commit();
     }
 }

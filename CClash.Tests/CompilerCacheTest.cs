@@ -78,6 +78,7 @@ namespace CClash.Tests
         [TestCase(10)]
         public void RunEnabledDirectHardLink(int times)
         {
+            Assert.Ignore("disabled");
             Assert.IsFalse(Settings.Disabled);
             Assert.IsTrue(Settings.DirectMode);
             var comp = CompilerTest.CompilerPath;
@@ -89,51 +90,6 @@ namespace CClash.Tests
                 var rv = Program.Main(new string[] { "/nologo", "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
                 Assert.AreEqual(0, rv);
             }
-        }
-
-        [Test]
-        [TestCase(10, null)]
-        [TestCase(10, "ppmode.log")]
-        public void RunEnabledPPMode(int times, string log)
-        {
-            Assert.Ignore("does not work properly");
-            Assert.IsFalse(Settings.Disabled);
-            Assert.IsTrue(Settings.DirectMode);
-            Environment.SetEnvironmentVariable("CCLASH_PPMODE", "yes");
-            Environment.SetEnvironmentVariable("CCLASH_DEBUG", log);
-            Assert.IsTrue(Settings.PreprocessorMode);
-            var comp = CompilerTest.CompilerPath;
-            var sw = DateTime.Now;
-            Environment.SetEnvironmentVariable("PATH", System.IO.Path.GetDirectoryName(comp) + ";" + Environment.GetEnvironmentVariable("PATH"));
-            for (int i = 0; i < times; i++)
-            {
-                var rv = Program.Main(new string[] { "/nologo", "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
-                Assert.AreEqual(0, rv);
-            }
-            var ew = DateTime.Now;
-            Console.Error.WriteLine(ew.Subtract(sw).TotalMilliseconds);
-        }
-
-        [Test]
-        [TestCase(10)]
-        public void RunCacheMissPPMode(int times)
-        {
-            Assert.Ignore("does not work properly");
-            Assert.IsFalse(Settings.Disabled);
-            Assert.IsTrue(Settings.DirectMode);
-            Environment.SetEnvironmentVariable("CCLASH_PPMODE", "yes");
-            Assert.IsTrue(Settings.PreprocessorMode);
-            var comp = CompilerTest.CompilerPath;
-            Environment.SetEnvironmentVariable("PATH", System.IO.Path.GetDirectoryName(comp) + ";" + Environment.GetEnvironmentVariable("PATH"));
-            var sw = DateTime.Now;
-            for (int i = 0; i < times; i++)
-            {
-                var g = Guid.NewGuid().ToString().Substring(0, 5);
-                var rv = Program.Main(new string[] { "/nologo", "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces", "/DRANDOM=" + g });
-                Assert.AreEqual(0, rv);
-            }
-            var ew = DateTime.Now;
-            Console.Error.WriteLine(ew.Subtract(sw).TotalMilliseconds);
         }
 
         [Test]

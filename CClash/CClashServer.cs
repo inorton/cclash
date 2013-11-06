@@ -8,7 +8,7 @@ using System.Web.Script.Serialization;
 
 namespace CClash
 {
-    public class CClashServer
+    public sealed class CClashServer
     {
         bool quitnow = false;
         DirectCompilerCacheServer cache;

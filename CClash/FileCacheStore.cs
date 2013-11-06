@@ -97,9 +97,30 @@ namespace CClash
             }
         }
 
+        public bool CacheEntryChecksInMemory
+        {
+            get;
+            set;
+        }
+
+        HashSet<string> entryCache = new HashSet<string>();
+
         public bool ContainsEntry(string key, string filename)
         {
-            return FileUtils.Exists(MakePath(key,filename));
+            var p = MakePath(key, filename);
+            if (CacheEntryChecksInMemory)
+            {
+                if (entryCache.Contains(p))
+                {
+                    return true;
+                }
+            }
+            var rv = FileUtils.Exists(p);
+            if (CacheEntryChecksInMemory && rv)
+            {
+                entryCache.Add(p);
+            }
+            return rv;
         }
 
         public void AddEntry(string key)

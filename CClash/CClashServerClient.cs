@@ -10,7 +10,7 @@ using System.Diagnostics;
 
 namespace CClash
 {
-    public class CClashServerClient : ICompilerCache
+    public sealed class CClashServerClient : ICompilerCache
     {
         NamedPipeClientStream ncs;
         string pipename = null;
@@ -82,7 +82,7 @@ namespace CClash
             throw new InvalidProgramException("server failed to start");
         }
 
-        public ICacheStats Stats
+        public ICacheInfo Stats
         {
             get { throw new NotImplementedException(); }
         }

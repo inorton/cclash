@@ -8,7 +8,7 @@ namespace CClash
 {
     public interface ICompilerCache : IDisposable
     {
-        ICacheStats Stats { get; }
+        ICacheInfo Stats { get; }
 
         bool IsSupported(IEnumerable<string> args);
         int CompileOrCache(IEnumerable<string> args);

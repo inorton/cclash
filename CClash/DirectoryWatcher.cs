@@ -4,7 +4,7 @@ using System.IO;
 
 namespace CClash
 {
-    public class DirectoryWatcher : IDisposable
+    public sealed class DirectoryWatcher : IDisposable
     {
         FileSystemWatcher w;
 

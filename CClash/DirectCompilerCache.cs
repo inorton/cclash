@@ -121,7 +121,7 @@ namespace CClash
 
                     bool good = true;
 
-                    var hashes = hasher.DigestFiles(ifiles);
+                    var hashes = GetHashes(ifiles);
 
                     #region check include files
 
@@ -165,12 +165,14 @@ namespace CClash
 
                         Logging.Emit("cache miss took {0}ms", (int)duration.TotalMilliseconds);
 
-                        var mt = jss.Serialize(m);
-                        outputCache.AddTextFileContent(hc.Hash, F_Manifest, mt);
+                        
+                        var fname = outputCache.MakePath(hc.Hash, F_Manifest);
+                        using (var fs = new FileStream(fname, FileMode.OpenOrCreate, FileAccess.Write))
+                        {
+                            m.Serialize(fs);
+                        }
 
                         outputCache.ReleaseMutex();
-
-                        Stats.LockStatsCall(() => Stats.CacheSize += mt.Length);
                         #endregion
                     }
                     #endregion

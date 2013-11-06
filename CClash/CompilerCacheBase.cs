@@ -25,8 +25,7 @@ namespace CClash
             }
             else
             {
-                Logging.Emit("use pp cache");
-                rv = new PreprocessorBasedCompilerCache(cachedir);
+                throw new NotSupportedException("ppmode is not supported yet");
             }
             rv.SetCompiler(compiler);
             return rv;
@@ -35,7 +34,7 @@ namespace CClash
 
     public abstract class CompilerCacheBase
     {
-        public const string F_Manifest = "manifest.json";
+        public const string F_Manifest = "manifest.bin";
         public const string F_Object = "target.object";
         public const string F_Pdb = "target.pdb";
         public const string F_Stdout = "compiler.stdout";
@@ -53,19 +52,16 @@ namespace CClash
             set { comp = value; }
         }
 
-        ICacheStats stats = null;
+        ICacheInfo stats = null;
 
         protected static DateTime cacheStart = DateTime.Now;
-
-        protected JavaScriptSerializer jss = new JavaScriptSerializer();
-
 
         public CompilerCacheBase(string cacheFolder)
         {
             if (string.IsNullOrEmpty(cacheFolder)) throw new ArgumentNullException("cacheFolder");            
             outputCache = FileCacheStore.Load(Path.Combine(cacheFolder, "outputs"));
             includeCache = FileCacheStore.Load(Path.Combine(cacheFolder, "includes"));
-            stats = new CacheStats(outputCache);
+            stats = new CacheInfo(outputCache);
             hasher = new HashUtil(includeCache);
         }
 
@@ -130,9 +126,9 @@ namespace CClash
             if (outputCache.ContainsEntry(commonkey.Hash, F_Manifest))
             {
                 var mn = outputCache.MakePath(commonkey.Hash, F_Manifest);
-
-                var m = jss.Deserialize<CacheManifest>(File.ReadAllText(mn));
-                manifest = m;
+                using ( var fs = new FileStream( mn, FileMode.Open ) ){
+                    manifest = CacheManifest.Deserialize(fs);
+                }
             }
 
             return manifest;
@@ -337,7 +333,7 @@ namespace CClash
             if (outputCache != null) outputCache.Dispose();
         }
 
-        public ICacheStats Stats
+        public ICacheInfo Stats
         {
             get
             {

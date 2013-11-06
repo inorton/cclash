@@ -513,7 +513,7 @@ namespace CClash
                 foreach (var x in incdirs)
                 {
                     var p = Path.Combine( x, y );
-                    if (!FileUtils.Exists(p))
+                    if (FileUtils.FileMissing(p))
                     {
                         possibles.Add(p);
                     }

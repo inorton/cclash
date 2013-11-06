@@ -21,22 +21,30 @@ namespace CClash
     {
         public byte[] Serialize()
         {
-            var b = new BinaryFormatter();
             using (var ms = new MemoryStream())
             {
-                b.Serialize(ms, this);
+                Serialize(ms);
                 return ms.ToArray();
             }
+        }
+
+        public void Serialize( Stream str )
+        {
+            new BinaryFormatter().Serialize(str, this);
+        }
+
+        public static T Deserialize<T>(Stream str)
+        {
+            return (T)(new BinaryFormatter().Deserialize(str));
         }
 
         public static T Deserialize<T>(byte[] bb)
             where T : CClashMessage, new()
         {
             var rv = new T();
-            var b = new BinaryFormatter();
             using (var ms = new MemoryStream(bb))
             {
-                rv = (T)b.Deserialize(ms);
+                rv = Deserialize<T>(ms);
             }
             return rv;
         }

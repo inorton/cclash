@@ -7,8 +7,14 @@ using System.Threading.Tasks;
 
 namespace CClash
 {
-    public class CacheManifest
+    [Serializable]
+    public class CacheManifest : CClashMessage
     {
+        public static CacheManifest Deserialize(Stream stream)
+        {
+            return CClashMessage.Deserialize<CacheManifest>(stream);
+        }
+
         /// <summary>
         /// Next time this job appears, just run the compiler.
         /// </summary>

@@ -49,7 +49,7 @@
   <ItemGroup>
     <Compile Include="CacheManifest.cs" />
     <Compile Include="CacheMode.cs" />
-    <Compile Include="CacheStats.cs" />
+    <Compile Include="CacheInformation.cs" />
     <Compile Include="CClashMessage.cs" />
     <Compile Include="CClashServer.cs" />
     <Compile Include="CClashServerClient.cs" />
@@ -62,13 +62,12 @@
     <Compile Include="FileCacheStore.cs" />
     <Compile Include="FileUtils.cs" />
     <Compile Include="HashUtil.cs" />
-    <Compile Include="ICacheStats.cs" />
+    <Compile Include="ICacheInfo.cs" />
     <Compile Include="ICompilerCache.cs" />
     <Compile Include="Logging.cs" />
-    <Compile Include="PreprocessorBasedCompilerCache.cs" />
+    <Compile Include="MemoryCache.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="CacheInfo.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="StatOutputs.cs" />
   </ItemGroup>

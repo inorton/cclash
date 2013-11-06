@@ -36,7 +36,7 @@
   </PostinstrumentEvent>
   <Binaries>
     <ProjBinary>
-      <Path>testserver\obj\Debug\testserver.exe</Path>
+      <Path>testserver\obj\Release\testserver.exe</Path>
       <ArgumentTimestamp>01/01/0001 00:00:00</ArgumentTimestamp>
       <Instrument>true</Instrument>
       <Sample>true</Sample>
@@ -48,8 +48,8 @@
       <LaunchProject>true</LaunchProject>
       <OverrideProjectSettings>false</OverrideProjectSettings>
       <LaunchMethod>Executable</LaunchMethod>
-      <ExecutablePath>testserver\bin\Debug\testserver.exe</ExecutablePath>
-      <StartupDirectory>testserver\bin\Debug\</StartupDirectory>
+      <ExecutablePath>testserver\bin\Release\testserver.exe</ExecutablePath>
+      <StartupDirectory>testserver\bin\Release\</StartupDirectory>
       <Arguments>
       </Arguments>
       <NetAppHost>IIS</NetAppHost>
@@ -76,6 +76,15 @@
     </Report>
     <Report>
       <Path>testserver131105.vspx</Path>
+    </Report>
+    <Report>
+      <Path>testserver131106.vspx</Path>
+    </Report>
+    <Report>
+      <Path>testserver131106(1).vspx</Path>
+    </Report>
+    <Report>
+      <Path>testserver131106(2).vspx</Path>
     </Report>
   </Reports>
   <Launches>

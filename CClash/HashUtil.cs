@@ -40,6 +40,10 @@ namespace CClash
             includeCache = includecache;
         }
 
+        MemoryCache<DataHash> hashed = new MemoryCache<DataHash>() { MaxAgeSeconds = 2 };
+
+        public MemoryCache<DataHash> CachedHashes { get { return hashed; } }
+
         private int hashingThreadCount = Settings.HashThreadCount;
 
         public int HashingThreadCount
@@ -75,7 +79,30 @@ namespace CClash
 
         public Dictionary<string,DataHash> DigestFiles(IEnumerable<string> files)
         {
+#if false
+            var rv = new Dictionary<string, DataHash>();
+            var missing = new List<string>();
+            foreach (var f in files)
+            {
+                DataHash tmp;
+                if (CachedHashes.TryGet(f, out tmp))
+                {
+                    rv[f] = tmp;
+                }
+                else
+                {
+                    missing.Add(f);
+                }
+            }
+
+            var newhashes = ThreadyDigestFiles(missing, true);
+            foreach (var f in newhashes)
+                rv[f.Key] = f.Value;
+
+            return rv;
+#else
             return ThreadyDigestFiles(files, true);
+#endif
         }
 
         public Dictionary<string, DataHash> ThreadyDigestFiles(IEnumerable<string> files, bool stopOnUnCachable)

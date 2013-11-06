@@ -7,10 +7,10 @@ using System.Threading.Tasks;
 
 namespace CClash
 {
-    public class FastCacheStats : IDisposable, ICacheStats
+    public class FastCacheInfo : IDisposable, ICacheInfo
     {
         FileCacheStore statstore;
-        public FastCacheStats(FileCacheStore stats)
+        public FastCacheInfo(FileCacheStore stats)
         {
             statstore = stats;
         }
@@ -70,7 +70,7 @@ namespace CClash
 
         public void Commit()
         {
-            var real = new CacheStats(statstore);
+            var real = new CacheInfo(statstore);
             real.LockStatsCall(() =>
             {
                 real.MSecLost += this.MSecLost;
@@ -89,7 +89,7 @@ namespace CClash
         }
     }
 
-    public class CacheStats : IDisposable, ICacheStats
+    public class CacheInfo : IDisposable, ICacheInfo
     {
 
         public const string K_Stats = "stats";
@@ -102,6 +102,7 @@ namespace CClash
 
         public const string F_StatSlowHits = "slow_hits.txt";
         public const string F_StatTimeWasted = "time_wasted.txt";
+        public const string F_CacheVersion = "version.txt";
 
         FileCacheStore cache;
         Mutex statMtx = null;
@@ -117,7 +118,7 @@ namespace CClash
             set;
         }
 
-        public CacheStats(FileCacheStore statCache)
+        public CacheInfo(FileCacheStore statCache)
         {
             cache = statCache;
             statMtx = new Mutex(false, "cclash_stat_" + cache.FolderPath.ToLower().GetHashCode());
@@ -240,5 +241,6 @@ namespace CClash
         {
             statMtx.Dispose();
         }
+        
     }
 }

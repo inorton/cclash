@@ -7,7 +7,7 @@ using System.Linq;
 namespace CClash
 {
 
-    public class DirectCompilerCacheServer : DirectCompilerCache
+    public sealed class DirectCompilerCacheServer : DirectCompilerCache
     {
 
         Dictionary<string, DirectoryWatcher> dwatchers = new Dictionary<string, DirectoryWatcher>();
@@ -17,9 +17,10 @@ namespace CClash
         {
             StdErrorText = new StringBuilder();
             StdOutText = new StringBuilder();
-            Stats = new FastCacheStats(outputCache);
+            Stats = new FastCacheInfo(outputCache);
             base.includeCache.KeepLocks();
             base.outputCache.KeepLocks();
+            base.includeCache.CacheEntryChecksInMemory = true;
         }
 
         public void WatchFile(string path)
@@ -197,7 +198,7 @@ namespace CClash
             dwatchers.Clear();
             base.includeCache.UnKeepLocks();
             base.outputCache.UnKeepLocks();
-
+            Stats.Commit();
             base.Dispose();
         }
 
