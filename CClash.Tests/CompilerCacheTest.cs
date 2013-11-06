@@ -52,7 +52,7 @@ namespace CClash.Tests
             Environment.SetEnvironmentVariable("PATH", System.IO.Path.GetDirectoryName( comp ) + ";" + Environment.GetEnvironmentVariable("PATH"));
             for (int i = 0; i < times; i++)
             {
-                var rv = Program.Main(new string[] { "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
+                var rv = Program.Main(new string[] { "/nologo", "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
                 Assert.AreEqual(0, rv);
             }
         }
@@ -69,7 +69,7 @@ namespace CClash.Tests
             Environment.SetEnvironmentVariable("PATH", System.IO.Path.GetDirectoryName(comp) + ";" + Environment.GetEnvironmentVariable("PATH"));
             for (int i = 0; i < times; i++)
             {
-                var rv = Program.Main(new string[] { "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
+                var rv = Program.Main(new string[] { "/nologo", "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
                 Assert.AreEqual(0, rv);
             }
         }
@@ -86,7 +86,7 @@ namespace CClash.Tests
             Environment.SetEnvironmentVariable("PATH", System.IO.Path.GetDirectoryName(comp) + ";" + Environment.GetEnvironmentVariable("PATH"));
             for (int i = 0; i < times; i++)
             {
-                var rv = Program.Main(new string[] { "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
+                var rv = Program.Main(new string[] { "/nologo", "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
                 Assert.AreEqual(0, rv);
             }
         }
@@ -107,7 +107,7 @@ namespace CClash.Tests
             Environment.SetEnvironmentVariable("PATH", System.IO.Path.GetDirectoryName(comp) + ";" + Environment.GetEnvironmentVariable("PATH"));
             for (int i = 0; i < times; i++)
             {
-                var rv = Program.Main(new string[] { "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
+                var rv = Program.Main(new string[] { "/nologo", "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
                 Assert.AreEqual(0, rv);
             }
             var ew = DateTime.Now;
@@ -129,7 +129,7 @@ namespace CClash.Tests
             for (int i = 0; i < times; i++)
             {
                 var g = Guid.NewGuid().ToString().Substring(0, 5);
-                var rv = Program.Main(new string[] { "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces", "/DRANDOM=" + g });
+                var rv = Program.Main(new string[] { "/nologo", "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces", "/DRANDOM=" + g });
                 Assert.AreEqual(0, rv);
             }
             var ew = DateTime.Now;
@@ -145,7 +145,7 @@ namespace CClash.Tests
             Assert.IsTrue(Settings.Disabled);
             for (int i = 0; i < times; i++)
             {
-                var rv = Program.Main(new string[] { "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
+                var rv = Program.Main(new string[] { "/nologo", "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
                 Assert.AreEqual(0, rv);
             }
         }
@@ -159,7 +159,7 @@ namespace CClash.Tests
             Environment.SetEnvironmentVariable("CCLASH_DISABLE_WHEN_VALUES", "X,RED,GREEN");
             Environment.SetEnvironmentVariable("TESTTEST", "RED");
             Assert.IsTrue(Settings.Disabled);
-            var rv = Program.Main(new string[] { "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
+            var rv = Program.Main(new string[] { "/nologo", "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
             Assert.AreEqual(0, rv);
         }
 
@@ -173,7 +173,7 @@ namespace CClash.Tests
             Environment.SetEnvironmentVariable("CCLASH_ENABLE_WHEN_VALUES", "X,RED,GREEN");
             Environment.SetEnvironmentVariable("TESTTEST", "RED");
             Assert.IsFalse(Settings.Disabled);
-            var rv = Program.Main(new string[] { "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
+            var rv = Program.Main(new string[] { "/nologo", "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
             Assert.AreEqual(0, rv);
         }
     }
