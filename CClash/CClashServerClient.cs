@@ -13,7 +13,6 @@ namespace CClash
     public class CClashServerClient : ICompilerCache
     {
         NamedPipeClientStream ncs;
-        JavaScriptSerializer jss;
         string pipename = null;
         bool spawnServer = true;
 
@@ -22,7 +21,6 @@ namespace CClash
         public CClashServerClient(string cachedir)
         {
             pipename = CClashServer.MakePipeName(cachedir);
-            jss = new JavaScriptSerializer();
         }
 
         public CClashServerClient(string cachedir, bool startServer) : this(cachedir)

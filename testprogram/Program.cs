@@ -13,7 +13,7 @@ namespace CClash.Tests
             
             var t = new CompilerCacheTest();
             t.Init();
-            var times = 100;
+            var times = 1000;
             var start = DateTime.Now;
             Environment.SetEnvironmentVariable("CCLASH_DIR", "compilercache-tests");
             //Environment.SetEnvironmentVariable("CCLASH_HARDLINK", "yes");
