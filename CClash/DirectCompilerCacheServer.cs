@@ -25,6 +25,19 @@ namespace CClash
         public void WatchFile(string path)
         {
             var dir = Path.GetDirectoryName(path);
+            if ( !Path.IsPathRooted(dir) )
+                dir = Path.GetFullPath(dir);
+            if (!Directory.Exists(dir))
+            {
+                Logging.Error("ignored watch on missing folder {0}", dir);
+                return;
+            }
+            if (!FileExists(path))
+            {
+                Logging.Error("ignored watch on missing file {0}", path);
+                return;
+            }
+
             var file = Path.GetFileName(path);
             DirectoryWatcher w;
 

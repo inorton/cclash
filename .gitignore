@@ -12,7 +12,9 @@ UnitTests/*
 packages/*
 TestResults/*
 CClash.Tests/dummy/*
-testprogram/bin/Debug/*
+testprogram/bin/*
+testprogram/bin/*
 testprogram/obj/*
-testserver/bin/Debug/*
+testserver/bin/*
+testserver/bin/*
 testserver/obj/*

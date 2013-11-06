@@ -17,6 +17,8 @@ namespace CClash
         string pipename = null;
         bool spawnServer = true;
 
+        Process serverProcess = null;
+
         public CClashServerClient(string cachedir)
         {
             pipename = CClashServer.MakePipeName(cachedir);
@@ -58,15 +60,19 @@ namespace CClash
                     if (spawnServer)
                     {
                         Logging.Emit("starting background service");
-                        var p = new Process();
+                        serverProcess = new Process();
                         var psi = new ProcessStartInfo(exe);
                         psi.CreateNoWindow = true;
                         psi.Arguments = "--cclash-server";
                         psi.ErrorDialog = false;
                         psi.WorkingDirectory = Environment.CurrentDirectory;
                         psi.WindowStyle = ProcessWindowStyle.Hidden;
-                        p.StartInfo = psi;
-                        p.Start();
+                        serverProcess.StartInfo = psi;
+                        serverProcess.Start();
+                        serverProcess.Exited += (o,a) =>
+                        {
+                            Logging.Emit("server exited with status {0}", serverProcess.ExitCode);
+                        };
                         System.Threading.Thread.Sleep(500);
                     }
                     else

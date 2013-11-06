@@ -138,25 +138,43 @@ namespace CClash
             return manifest;
         }
 
-        async Task CopyOutputFilesAsync(DataHash hc)
+        void CopyOutputFiles(DataHash hc)
         {
-            await Task.Run(() =>
+            try
             {
                 CopyOrHardLink(outputCache.MakePath(hc.Hash, F_Object), comp.ObjectTarget);
                 if (comp.GeneratePdb)
                     CopyOrHardLink(outputCache.MakePath(hc.Hash, F_Pdb), comp.PdbFile);
+            }
+            catch (Exception e)
+            {
+                Logging.Error("{0}",e);
+                throw;
+            }
+        }
+
+        async Task CopyOutputFilesAsync(DataHash hc)
+        {
+            await Task.Run(() =>
+            {
+                CopyOutputFiles(hc);
             });
+        }
+
+        void CopyStdio(DataHash hc)
+        {
+            var stderrfile = outputCache.MakePath(hc.Hash, F_Stderr);
+            var stdoutfile = outputCache.MakePath(hc.Hash, F_Stdout);
+
+            OutputWrite(File.ReadAllText(stdoutfile));
+            ErrorWrite(File.ReadAllText(stderrfile));
         }
 
         async Task CopyStdioAsync(DataHash hc)
         {
             await Task.Run(() =>
             {
-                var stderrfile = outputCache.MakePath(hc.Hash, F_Stderr);
-                var stdoutfile = outputCache.MakePath(hc.Hash, F_Stdout);
-
-                OutputWrite(File.ReadAllText(stdoutfile));
-                ErrorWrite(File.ReadAllText(stderrfile));
+                CopyStdio(hc);
             });
         }
 
@@ -196,8 +214,11 @@ namespace CClash
             // modify these files
             outputCache.ReleaseMutex();
 
-            var stdio = CopyStdioAsync(hc);
-            var odata = CopyOutputFilesAsync(hc);
+            //var stdio = CopyStdioAsync(hc);
+            //var odata = CopyOutputFilesAsync(hc);
+
+            CopyStdio(hc);
+            CopyOutputFiles(hc);
 
             var duration = DateTime.Now.Subtract(cacheStart);
 
@@ -222,8 +243,8 @@ namespace CClash
                     });
             });
 
-            odata.Wait();
-            stdio.Wait();
+            //odata.Wait();
+            //stdio.Wait();
             tstat.Wait();
 
             return 0;

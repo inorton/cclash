@@ -11,6 +11,12 @@ namespace CClash
     {
         static int pid = System.Diagnostics.Process.GetCurrentProcess().Id;
 
+        public static void Error(string fmt, params object[] args)
+        {
+            Console.Error.WriteLine(fmt, args);
+            Logging.Emit("error: {0}", string.Format(fmt, args));
+        }
+
         public static void Emit(string fmt, params object[] args)
         {
             if (Settings.DebugEnabled)

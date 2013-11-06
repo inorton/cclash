@@ -114,7 +114,8 @@ namespace CClash
                         }
                         catch (Exception e)
                         {
-                            Logging.Emit("server exception {0}", e);
+                            Logging.Error("server exception {0}", e);
+                            Stop();
                         }
                     } while (!quitnow);
                     Logging.Emit("server quitting");

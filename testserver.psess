@@ -71,6 +71,12 @@
     <Report>
       <Path>testserver131103.vspx</Path>
     </Report>
+    <Report>
+      <Path>testserver131104.vspx</Path>
+    </Report>
+    <Report>
+      <Path>testserver131105.vspx</Path>
+    </Report>
   </Reports>
   <Launches>
     <ProjBinary>
