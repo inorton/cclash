@@ -40,10 +40,6 @@ namespace CClash
             includeCache = includecache;
         }
 
-        MemoryCache<DataHash> hashed = new MemoryCache<DataHash>() { MaxAgeSeconds = 2 };
-
-        public MemoryCache<DataHash> CachedHashes { get { return hashed; } }
-
         private int hashingThreadCount = Settings.HashThreadCount;
 
         public int HashingThreadCount
@@ -79,89 +75,69 @@ namespace CClash
 
         public Dictionary<string,DataHash> DigestFiles(IEnumerable<string> files)
         {
-#if false
-            var rv = new Dictionary<string, DataHash>();
-            var missing = new List<string>();
-            foreach (var f in files)
-            {
-                DataHash tmp;
-                if (CachedHashes.TryGet(f, out tmp))
-                {
-                    rv[f] = tmp;
-                }
-                else
-                {
-                    missing.Add(f);
-                }
-            }
-
-            var newhashes = ThreadyDigestFiles(missing, true);
-            foreach (var f in newhashes)
-                rv[f.Key] = f.Value;
-
-            return rv;
-#else
             return ThreadyDigestFiles(files, true);
-#endif
         }
 
         public Dictionary<string, DataHash> ThreadyDigestFiles(IEnumerable<string> files, bool stopOnUnCachable)
         {
-            var fcount = files.Count();
-            var rv = new Dictionary<string, DataHash>();
-            var threadcount = HashingThreadCount;
-            if ((threadcount < 2)||(fcount < threadcount))
+            lock (includeCache)
             {
-                Logging.Emit("st hash {0} files", fcount);
-                foreach (var f in files)
+                var fcount = files.Count();
+                var rv = new Dictionary<string, DataHash>();
+                var threadcount = HashingThreadCount;
+                if ((threadcount < 2) || (fcount < threadcount))
                 {
-                    var d = DigestSourceFile(f);
-                    rv[f] = d;
-                    if (d.Result != DataHashResult.Ok) break;
-                }
-            }
-            else
-            {
-                Logging.Emit("mt hash {0} files on {1} threads", fcount, threadcount);
-                var fa = files.ToArray();
-                var tl = new List<Thread>();
-                var taken = 0;
-                var chunk = (1 + fcount / (threadcount));
-                if (chunk < 1) chunk = 1;
-
-                var inputs = new List<ThreadyDigestInput>();
-
-                do
-                {
-                    var input = new ThreadyDigestInput()
+                    Logging.Emit("st hash {0} files", fcount);
+                    foreach (var f in files)
                     {
-                        files = fa,
-                        results = new List<DataHash>(),
-                        provider = new MD5CryptoServiceProvider(),
-                        begin = taken,
-                        chunksize = chunk,
-                        stopOnCachable = stopOnUnCachable,
-                    };
-                    
-                    var t = new Thread(ThreadyDigestWorker);
-                    taken += chunk;
-                    t.Start(input);
-                    inputs.Add(input);
-                    tl.Add(t);
-                } while (taken < fcount);
-
-                for (var i = 0; i < tl.Count; i++ )
-                {
-                    var t = tl[i];
-                    t.Join(); // thread finished, store it's results
-                    foreach (var h in inputs[i].results)
-                    {
-                        rv[h.InputName] = h;
+                        var d = DigestSourceFile(f);
+                        rv[f] = d;
+                        if (d.Result != DataHashResult.Ok) break;
                     }
                 }
-            }
+                else
+                {
+                    Logging.Emit("mt hash {0} files on {1} threads", fcount, threadcount);
+                    var fa = files.ToArray();
+                    var tl = new List<Thread>();
+                    var taken = 0;
+                    var chunk = (1 + fcount / (threadcount));
+                    if (chunk < 1) chunk = 1;
 
-            return rv;
+                    var inputs = new List<ThreadyDigestInput>();
+
+                    do
+                    {
+                        var input = new ThreadyDigestInput()
+                        {
+                            files = fa,
+                            results = new List<DataHash>(),
+                            provider = new MD5CryptoServiceProvider(),
+                            begin = taken,
+                            chunksize = chunk,
+                            stopOnCachable = stopOnUnCachable,
+                        };
+
+                        var t = new Thread(ThreadyDigestWorker);
+                        taken += chunk;
+                        t.Start(input);
+                        inputs.Add(input);
+                        tl.Add(t);
+                    } while (taken < fcount);
+
+                    for (var i = 0; i < tl.Count; i++)
+                    {
+                        var t = tl[i];
+                        t.Join(); // thread finished, store it's results
+                        foreach (var h in inputs[i].results)
+                        {
+                            rv[h.InputName] = h;
+                        }
+                    }
+                }
+
+                return rv;
+            }
         }
 
         struct ThreadyDigestInput

@@ -61,7 +61,11 @@ namespace CClash
                         {
                             connections++;
                             if (connections > MaxOperations || (DateTime.Now.Subtract(lastConnection).TotalSeconds > ExitAfterIdleSec))
+                            {
+                                nss.Close();
                                 Stop();
+                                break;
+                            }
 
                             if (!nss.IsConnected)
                             {
@@ -101,12 +105,14 @@ namespace CClash
 
                             // deserialize message from msgbuf
                             var req = CClashMessage.Deserialize<CClashRequest>(msgbuf.ToArray());
+                            cache.Setup();
                             var resp = ProcessRequest(req);
                             var tx = resp.Serialize();
                             nss.Write(tx, 0, tx.Length);
                             nss.Flush();
 
                             // don't hog folders
+                            cache.Finished();
                             System.IO.Directory.SetCurrentDirectory(mydocs);
 
                             nss.WaitForPipeDrain();

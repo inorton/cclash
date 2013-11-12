@@ -3,13 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Linq;
+using System.Threading;
 
 namespace CClash
 {
 
     public sealed class DirectCompilerCacheServer : DirectCompilerCache
     {
-
         Dictionary<string, DirectoryWatcher> dwatchers = new Dictionary<string, DirectoryWatcher>();
 
         public DirectCompilerCacheServer(string cachedir)
@@ -17,10 +17,19 @@ namespace CClash
         {
             StdErrorText = new StringBuilder();
             StdOutText = new StringBuilder();
-            Stats = new FastCacheInfo(outputCache);
             base.includeCache.KeepLocks();
             base.outputCache.KeepLocks();
+            SetupStats();
             base.includeCache.CacheEntryChecksInMemory = true;
+        }
+
+        public override void Setup()
+        {
+        }
+
+        public override void Finished()
+        {
+           
         }
 
         public void WatchFile(string path)
@@ -28,39 +37,41 @@ namespace CClash
             var dir = Path.GetDirectoryName(path);
             if ( !Path.IsPathRooted(dir) )
                 dir = Path.GetFullPath(dir);
+
             if (!Directory.Exists(dir))
             {
                 Logging.Error("ignored watch on missing folder {0}", dir);
                 return;
             }
-            if (!FileExists(path))
-            {
-                Logging.Error("ignored watch on missing file {0}", path);
-                return;
-            }
 
-            var file = Path.GetFileName(path);
             DirectoryWatcher w;
 
             if (!dwatchers.TryGetValue(dir, out w))
             {
+                if (!FileExists(path))
+                {
+                    Logging.Error("ignored watch on missing file {0}", path);
+                    return;
+                }
+
                 Logging.Emit("create new watcher for {0}", dir);
-                w = new DirectoryWatcher(dir); 
+                w = new DirectoryWatcher(dir);
                 dwatchers.Add(dir, w);
                 w.FileChanged += OnWatchedFileChanged;
                 w.Enable();
             }
+            var file = Path.GetFileName(path);
             w.Watch(file);
         }
 
         public void UnwatchFile(string path)
         {
             var dir = Path.GetDirectoryName(path);
-            var file = Path.GetFileName(path);
             DirectoryWatcher w;
 
             if (dwatchers.TryGetValue(dir, out w))
             {
+                var file = Path.GetFileName(path);
                 w.UnWatch(file);
                 if (w.Files.Count == 0)
                 {
@@ -99,6 +110,8 @@ namespace CClash
 
                 WatchFile(compilerPath);
 
+                hashcache.Add(compilerPath, h);
+
                 return h;
             }
         }
@@ -117,8 +130,9 @@ namespace CClash
 
             var unknown = new List<string>();
             var rv = new Dictionary<string, DataHash>();
-            foreach (var x in fnames)
+            foreach (var n in fnames)
             {
+                var x = n.ToLower();
                 lock (hashcache)
                 {
                     if (hashcache.ContainsKey(x))
@@ -147,9 +161,7 @@ namespace CClash
                 }
             }
 
-            return rv;
-
-            
+            return rv;  
         }
 
         public StringBuilder StdErrorText { get; private set; }
@@ -202,8 +214,22 @@ namespace CClash
             base.Dispose();
         }
 
+        void SetupStats()
+        {
+            if (Stats != null)
+                Stats.Dispose();
+            Stats = new FastCacheInfo(outputCache);
+        }
+
+        int yield_count = 0;
         public void YieldLocks()
         {
+            if (yield_count++ > 100)
+            {
+                yield_count = 0;
+                SetupStats();
+            }
+
             base.includeCache.UnKeepLocks();
             base.outputCache.UnKeepLocks();
 

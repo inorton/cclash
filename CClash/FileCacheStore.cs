@@ -132,10 +132,8 @@ namespace CClash
         {
             EnsureKey(key);
             var target = MakePath(key, contentName);
-            if ( File.Exists( target ) ) File.Delete(target);
-            
-            if ( !Settings.UseHardLinks || !Compiler.MakeHardLink( filePath, target ) )
-                File.Copy(filePath, target, true);
+
+            FileUtils.CopyUnlocked(filePath, target);
 
             if (Added != null)
             {

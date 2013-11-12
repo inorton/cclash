@@ -346,13 +346,13 @@ namespace CClash
                             GeneratePdb = true;
                             break;
                         case "/Fd":
-                            PdbFile = Path.Combine( Environment.CurrentDirectory, full.Substring(3));
+                            PdbFile = Path.Combine(System.IO.Directory.GetCurrentDirectory(), full.Substring(3));
                             if (!Path.GetFileName(PdbFile).Contains("."))
                                 PdbFile += ".pdb";
                             break;
                         
                         case "/Fo":
-                            ObjectTarget = Path.Combine(Environment.CurrentDirectory, full.Substring(3));
+                            ObjectTarget = Path.Combine(System.IO.Directory.GetCurrentDirectory(), full.Substring(3));
                             if (!Path.GetFileName(ObjectTarget).Contains("."))
                                 ObjectTarget += ".obj";
                             break;
@@ -362,7 +362,7 @@ namespace CClash
                             var srcfile = full.Substring(3);
                             if (FileUtils.Exists(srcfile))
                             {
-                                srcs.Add(srcfile);
+                                srcs.Add( Path.GetFullPath(srcfile) );
                             }
                             else
                             {

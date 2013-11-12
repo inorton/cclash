@@ -11,6 +11,14 @@ namespace CClash
         {
         }
 
+        public override void Setup()
+        {
+        }
+
+        public override void Finished()
+        {
+        }
+
         /// <summary>
         /// When this returns, we will hold the output cache mutex.
         /// </summary>
@@ -71,26 +79,54 @@ namespace CClash
             return false;
         }
 
+        protected virtual int Compile(IEnumerable<string> args, string stderrfile, string stdoutfile, List<string> includes)
+        {
+            #region compile
+            using (var stderrfs = new StreamWriter(stderrfile))
+            {
+                using (var stdoutfs = new StreamWriter(stdoutfile))
+                {
+                    return CompileWithStreams(args, stderrfs, stdoutfs, includes);
+                }
+            }
+            #endregion
+        }
+
+        protected virtual void SaveOutputsLocked( CacheManifest m, Compiler c )
+        {
+            outputCache.AddFile(m.CommonHash, comp.ObjectTarget, F_Object);
+            if (c.GeneratePdb)
+            {
+                outputCache.AddFile(m.CommonHash, comp.PdbFile, F_Pdb);
+                Stats.LockStatsCall(() => Stats.CacheSize += new FileInfo(c.PdbFile).Length);
+            }
+
+            Stats.LockStatsCall(() => Stats.CacheObjects++);
+            Stats.LockStatsCall(() => Stats.CacheSize += new FileInfo(c.ObjectTarget).Length);
+
+            // write manifest
+            var duration = DateTime.Now.Subtract(cacheStart);
+            m.Duration = (int)duration.TotalMilliseconds;
+
+            Logging.Emit("cache miss took {0}ms", (int)duration.TotalMilliseconds);
+
+            var fname = outputCache.MakePath(m.CommonHash, F_Manifest);
+            using (var fs = new FileStream(fname, FileMode.OpenOrCreate, FileAccess.Write))
+            {
+                m.Serialize(fs);
+            }
+        }
+
         protected override int OnCacheMissLocked(DataHash hc, IEnumerable<string> args, CacheManifest m)
         {
             Logging.Emit("cache miss");
             outputCache.EnsureKey(hc.Hash);
             var stderrfile = outputCache.MakePath(hc.Hash, F_Stderr);
             var stdoutfile = outputCache.MakePath(hc.Hash, F_Stdout);
-            int rv = -1;
             var ifiles = new List<string>();
-
             Stats.LockStatsCall(() => Stats.CacheMisses++);
-            
-            #region compile
-            using (var stderrfs = new StreamWriter(stderrfile))
-            {
-                using (var stdoutfs = new StreamWriter(stdoutfile))
-                {
-                    rv = CompileWithStreams(args, stderrfs, stdoutfs, ifiles);
-                }
-            }
-            #endregion
+
+            int rv = Compile( args, stderrfile, stdoutfile, ifiles );
 
             // we still hold the cache lock, create the manifest asap or give up now!
 
@@ -100,86 +136,67 @@ namespace CClash
             }
             else
             {
-                #region compile succeeded
-                var idirs = comp.GetUsedIncludeDirs(ifiles);
-                if (idirs.Count < 1)
+                // this unlocks for us
+                DoCacheMiss(comp, hc, args, m, ifiles);
+            }
+            return rv;
+        }
+
+        protected virtual void DoCacheMiss( Compiler c, DataHash hc, IEnumerable<string> args, CacheManifest m, List<string> ifiles)
+        {
+
+            var idirs = c.GetUsedIncludeDirs(ifiles);
+            if (idirs.Count < 1)
+            {
+                outputCache.ReleaseMutex();
+                throw new InvalidDataException(
+                    string.Format("could not find any include folders?! [{0}]",
+                    string.Join(" ", args)));
+            }
+            else
+            {
+                #region process includes folders
+                // save manifest and other things to cache
+                var others = c.GetPotentialIncludeFiles(idirs, ifiles);
+                m = new CacheManifest();
+                m.PotentialNewIncludes = others;
+                m.IncludeFiles = new Dictionary<string, string>();
+                m.TimeStamp = DateTime.Now.ToString("s");
+                m.CommonHash = hc.Hash;
+
+                #endregion
+
+                bool good = true;
+
+                var hashes = GetHashes(ifiles);
+
+                #region check include files
+
+                foreach (var x in hashes)
                 {
-                    outputCache.ReleaseMutex();
-                    throw new InvalidDataException(
-                        string.Format("could not find any include folders?! [{0}]",
-                        string.Join(" ",args)));
-                } else
-                {
-                    #region process includes folders
-                    // save manifest and other things to cache
-                    var others = comp.GetPotentialIncludeFiles(idirs, ifiles);
-                    m = new CacheManifest();
-                    m.PotentialNewIncludes = others;
-                    m.IncludeFiles = new Dictionary<string, string>();
-                    m.TimeStamp = DateTime.Now.ToString("s");
-                    m.CommonHash = hc.Hash;
-
-                    bool good = true;
-
-                    var hashes = GetHashes(ifiles);
-
-                    #region check include files
-
-                    foreach (var x in hashes)
+                    if (x.Value.Result == DataHashResult.Ok)
                     {
-                        if (x.Value.Result == DataHashResult.Ok)
-                        {
-                            m.IncludeFiles[x.Key] = x.Value.Hash;
-                        }
-                        else
-                        {
-                            Logging.Emit("input hash error {0} {1}", x.Key, x.Value.Result);
-                            good = false;
-                            m.Disable = true;
-                            break;
-                        }
-                    }
-
-                    #endregion
-
-                    if (!good)
-                    {
-                        outputCache.ReleaseMutex();
+                        m.IncludeFiles[x.Key] = x.Value.Hash;
                     }
                     else
                     {
-                        #region save to cache
-                        outputCache.AddFile(hc.Hash, comp.ObjectTarget, F_Object);
-                        if (comp.GeneratePdb)
-                        {
-                            outputCache.AddFile(hc.Hash, comp.PdbFile, F_Pdb);
-                            Stats.LockStatsCall(() => Stats.CacheSize += new FileInfo(comp.PdbFile).Length);
-                        }
-
-                        Stats.LockStatsCall(() => Stats.CacheObjects++);
-                        Stats.LockStatsCall(() => Stats.CacheSize += new FileInfo(comp.ObjectTarget).Length);
-
-                        // write manifest
-                        var duration = DateTime.Now.Subtract(cacheStart);
-                        m.Duration = (int)duration.TotalMilliseconds;
-
-                        Logging.Emit("cache miss took {0}ms", (int)duration.TotalMilliseconds);
-
-                        
-                        var fname = outputCache.MakePath(hc.Hash, F_Manifest);
-                        using (var fs = new FileStream(fname, FileMode.OpenOrCreate, FileAccess.Write))
-                        {
-                            m.Serialize(fs);
-                        }
-
-                        outputCache.ReleaseMutex();
-                        #endregion
+                        Logging.Emit("input hash error {0} {1}", x.Key, x.Value.Result);
+                        good = false;
+                        m.Disable = true;
+                        break;
                     }
-                    #endregion
                 }
+
                 #endregion
+
+                if (good)
+                {
+                    SaveOutputsLocked(m, c);
+                }
+                outputCache.ReleaseMutex();
+
             }
-            return rv;
+
         }
 
     }

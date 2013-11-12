@@ -14,7 +14,7 @@ namespace CClash {
         {
             return new FileInfo(path).Exists;
         }
-
+        
         [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
         static extern int GetLongPathName(
             [MarshalAs(UnmanagedType.LPTStr)] string path,
@@ -43,5 +43,25 @@ namespace CClash {
             return !PathFileExists(sb);
         }
 
+
+        public static void CopyUnlocked(string from, string to)
+        {
+            int attempts = 6;
+            try
+            {
+                using (var ifs = new FileStream(from, FileMode.Open, FileAccess.Read, FileShare.Read))
+                {
+                    using (var ofs = new FileStream(to, FileMode.OpenOrCreate, FileAccess.Write))
+                    {
+                        ifs.CopyTo(ofs);
+                    }
+                }
+            }
+            catch (IOException)
+            {
+                attempts--;
+                if (attempts == 0) throw;
+            }
+        }
     }
 }

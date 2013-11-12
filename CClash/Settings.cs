@@ -11,6 +11,8 @@ namespace CClash
         public static bool DebugEnabled { get; set; }
         public static string DebugFile { get; set; }
 
+        static Settings() { }
+
         static bool ConditionVarsAreTrue(string prefix)
         {
             var var = Environment.GetEnvironmentVariable(prefix + "_VAR");
@@ -100,19 +102,18 @@ namespace CClash
             }
         }
 
-        public static bool UseHardLinks
+        private static int hashThreadCount;
+        public static int HashThreadCount
         {
             get
             {
-                return Environment.GetEnvironmentVariable("CCLASH_HARDLINK") != null;
+                if (hashThreadCount == 0) hashThreadCount = Environment.ProcessorCount;
+                return hashThreadCount;
             }
-        }
-
-        private static int hashThreadCount = Environment.ProcessorCount;
-        public static int HashThreadCount
-        {
-            get;
-            set;
+            set
+            {
+                hashThreadCount = value;
+            }
         }
     }
 }

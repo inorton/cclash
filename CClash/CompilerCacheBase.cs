@@ -65,6 +65,9 @@ namespace CClash
             hasher = new HashUtil(includeCache);
         }
 
+        public abstract void Setup();
+        public abstract void Finished();
+
         public void SetCompiler(string compiler)
         {
             if (string.IsNullOrEmpty(compiler)) throw new ArgumentNullException("compiler");
@@ -138,9 +141,9 @@ namespace CClash
         {
             try
             {
-                CopyOrHardLink(outputCache.MakePath(hc.Hash, F_Object), comp.ObjectTarget);
+                CopyFile(outputCache.MakePath(hc.Hash, F_Object), comp.ObjectTarget);
                 if (comp.GeneratePdb)
-                    CopyOrHardLink(outputCache.MakePath(hc.Hash, F_Pdb), comp.PdbFile);
+                    CopyFile(outputCache.MakePath(hc.Hash, F_Pdb), comp.PdbFile);
             }
             catch (Exception e)
             {
@@ -189,19 +192,9 @@ namespace CClash
             return FileUtils.FileMissing(path);
         }
 
-        public virtual void CopyOrHardLink(string from, string to)
+        public virtual void CopyFile(string from, string to)
         {
-            bool dolink = Settings.UseHardLinks;
-
-            if (dolink)
-            {
-                if (Compiler.MakeHardLink(to, from))
-                {
-                    return;
-                }
-            }
-
-            File.Copy(from, to, true);
+            FileUtils.CopyUnlocked(from, to);
         }
 
         protected int OnCacheHitLocked(DataHash hc, CacheManifest hm)
@@ -242,7 +235,6 @@ namespace CClash
             //odata.Wait();
             //stdio.Wait();
             tstat.Wait();
-
             return 0;
         }
 
