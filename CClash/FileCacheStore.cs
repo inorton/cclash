@@ -144,7 +144,7 @@ namespace CClash
         public void AddTextFileContent(string key, string filename, string content)
         {
             EnsureKey(key);
-            File.WriteAllText(MakePath(key, filename), content);
+            FileUtils.WriteTextFile(MakePath(key, filename), content);
             if (Added != null)
             {
                 Added(this, new FileCacheStoreAddedEventArgs() { SizeKB = content.Length * sizeof(char) });

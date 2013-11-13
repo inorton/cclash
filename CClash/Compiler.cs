@@ -587,6 +587,10 @@ namespace CClash
                     if (showIncludes && a.Data.StartsWith("Note: including file:"))
                     {
                         var inc = a.Data.Substring("Note: including file:".Length+1).TrimStart(' ');
+                        if (inc.Contains('/'))
+                        {
+                            inc = inc.Replace('/', '\\');
+                        }
                         foundIncludes.Add(inc);
                     }
                     else

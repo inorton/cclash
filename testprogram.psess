@@ -83,6 +83,15 @@
     <Report>
       <Path>testprogram131104(1).vspx</Path>
     </Report>
+    <Report>
+      <Path>testprogram131113.vspx</Path>
+    </Report>
+    <Report>
+      <Path>testprogram131113(1).vspx</Path>
+    </Report>
+    <Report>
+      <Path>testprogram131113(2).vspx</Path>
+    </Report>
   </Reports>
   <Launches>
     <ProjBinary>

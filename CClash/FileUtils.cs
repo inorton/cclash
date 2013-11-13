@@ -43,25 +43,51 @@ namespace CClash {
             return !PathFileExists(sb);
         }
 
+        static int FileIORetrySleep = 100;
+        static int FileIORetryCount = 4;
+
+        public static void WriteTextFile(string path, string content)
+        {
+            int attempts = FileIORetryCount;
+            do
+            {
+                try
+                {
+                    File.WriteAllText(path, content);
+                    return;
+                }
+                catch (IOException)
+                {
+                    attempts--;
+                    if (attempts == 0) throw;
+                    System.Threading.Thread.Sleep(FileIORetrySleep);
+                }
+            } while (true);
+        }
 
         public static void CopyUnlocked(string from, string to)
         {
-            int attempts = 6;
-            try
+            int attempts = FileIORetryCount;
+            do
             {
-                using (var ifs = new FileStream(from, FileMode.Open, FileAccess.Read, FileShare.Read))
+                try
                 {
-                    using (var ofs = new FileStream(to, FileMode.OpenOrCreate, FileAccess.Write))
+                    using (var ifs = new FileStream(from, FileMode.Open, FileAccess.Read, FileShare.Read))
                     {
-                        ifs.CopyTo(ofs);
+                        using (var ofs = new FileStream(to, FileMode.OpenOrCreate, FileAccess.Write))
+                        {
+                            ifs.CopyTo(ofs);
+                            return;
+                        }
                     }
                 }
-            }
-            catch (IOException)
-            {
-                attempts--;
-                if (attempts == 0) throw;
-            }
+                catch (IOException)
+                {
+                    attempts--;
+                    if (attempts == 0) throw;
+                    System.Threading.Thread.Sleep(FileIORetrySleep);
+                }
+            } while (true);
         }
     }
 }

@@ -154,9 +154,9 @@ namespace CClash
                 {
                     foreach (var filename in tmp.Keys)
                     {
-                        hashcache[filename] =  tmp[filename];
-                        rv[filename] = tmp[filename];
-                        WatchFile(filename);
+                        hashcache[filename.ToLower()] =  tmp[filename];
+                        rv[filename.ToLower()] = tmp[filename];
+                        WatchFile(filename.ToLower());
                     }
                 }
             }
@@ -193,7 +193,6 @@ namespace CClash
             StdOutText.Clear();
             // not entirely sure why i need to do both of these..
             Directory.SetCurrentDirectory(workdir);
-            Environment.CurrentDirectory = workdir;
             foreach (var e in envs)
             {
                 Environment.SetEnvironmentVariable(e.Key, e.Value);
@@ -210,7 +209,6 @@ namespace CClash
             dwatchers.Clear();
             base.includeCache.UnKeepLocks();
             base.outputCache.UnKeepLocks();
-            Stats.Commit();
             base.Dispose();
         }
 

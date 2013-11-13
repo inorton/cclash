@@ -190,9 +190,10 @@ namespace CClash
 
             if (!FileUtils.Exists(filepath)) return rv;
             provider.Initialize();
-            using (var fs = new FileStream(filepath, FileMode.Open, FileAccess.Read))
+            using (var fs = new FileStream(filepath, FileMode.Open, FileAccess.Read, FileShare.Read))
             using (var bs = new BufferedStream(fs))
             {
+                Logging.Emit("digest {0}", filepath);
                 rv.Hash = new SoapHexBinary(provider.ComputeHash(bs)).ToString();
                 rv.Result = DataHashResult.Ok;
                 

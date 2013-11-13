@@ -190,7 +190,7 @@ namespace CClash.Tests
         public void TestHardLinking()
         {
             var src = Path.Combine(Environment.CurrentDirectory, "test.old");
-            File.WriteAllText(src, "test");
+            FileUtils.WriteTextFile(src, "test");
             var target = Path.Combine(Environment.CurrentDirectory, "test.txt");
             if (File.Exists(target)) File.Delete(target);
             Assert.AreEqual( true, Compiler.MakeHardLink(target, src) );

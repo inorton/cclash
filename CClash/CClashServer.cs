@@ -113,7 +113,7 @@ namespace CClash
 
                             // don't hog folders
                             cache.Finished();
-                            System.IO.Directory.SetCurrentDirectory(mydocs);
+                            
 
                             nss.WaitForPipeDrain();
                             nss.Disconnect();
@@ -158,6 +158,7 @@ namespace CClash
                 case Command.Run:
                     cache.SetCompiler(req.compiler);
                     rv.exitcode = cache.CompileOrCacheEnvs(req.workdir, req.envs, req.argv);
+                    System.IO.Directory.SetCurrentDirectory(mydocs);
                     rv.supported = true;
                     rv.stderr = cache.StdErrorText.ToString();
                     rv.stdout = cache.StdOutText.ToString();
@@ -176,6 +177,7 @@ namespace CClash
         public void Stop()
         {
             quitnow = true;
+            cache.Dispose();
         }
     }
 }

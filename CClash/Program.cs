@@ -85,23 +85,22 @@ namespace CClash
                     Logging.Emit("disabled by environment");
                 }
 
-                var rv = new Compiler()
-                {
-                    CompilerExe = Compiler.Find(),
-                }.InvokeCompiler(args, Console.Error.WriteLine, Console.Out.WriteLine, false, null);
-                Logging.Emit("exit {0} after {1} ms", rv, DateTime.Now.Subtract(start).TotalMilliseconds);
-                return rv;
             }
             catch (Exception e)
             {
                 Logging.Emit("{0} after {1} ms", e.GetType().Name, DateTime.Now.Subtract(start).TotalMilliseconds);
                 Logging.Emit("{0} {1}",e.GetType().Name + " message: " + e.Message);
 #if DEBUG
-                throw;
-#else
-                return -1;
+                Logging.Error("Exception from cacher {0}!!!", e);
 #endif
             }
+
+            var rv = new Compiler()
+            {
+                CompilerExe = Compiler.Find(),
+            }.InvokeCompiler(args, Console.Error.WriteLine, Console.Out.WriteLine, false, null);
+            Logging.Emit("exit {0} after {1} ms", rv, DateTime.Now.Subtract(start).TotalMilliseconds);
+            return rv;
         }
     }
 }
