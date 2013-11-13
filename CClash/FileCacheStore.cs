@@ -7,8 +7,8 @@ namespace CClash
 {
     public sealed class FileCacheStore : IDisposable
     {
-        public delegate void FileCacheStoreAddedHandler(FileCacheStore cache, FileCacheStoreAddedEventArgs args);
-        public delegate void FileCacheStoreRemovedHandler(FileCacheStore cache, FileCacheStoreRemovedEventArgs args);
+        public delegate void FileCacheStoreAddedHandler(object sender, FileCacheStoreAddedEventArgs e);
+        public delegate void FileCacheStoreRemovedHandler(object sender, FileCacheStoreRemovedEventArgs e);
 
         public static FileCacheStore Load(string cacheFolder)
         {

@@ -32,7 +32,7 @@ namespace CClash
         }
     }
 
-    public abstract class CompilerCacheBase
+    public abstract class CompilerCacheBase : IDisposable
     {
         public const string F_Manifest = "manifest.bin";
         public const string F_Object = "target.object";
@@ -228,6 +228,7 @@ namespace CClash
                         else
                         {
                             Logging.Emit("fast cache hit {0}ms", (int)duration.TotalMilliseconds);
+                            Stats.MSecSaved += (int)(hm.Duration - duration.TotalMilliseconds);
                         }
                     });
             });
@@ -318,12 +319,21 @@ namespace CClash
             Console.Error.Write(str);
         }
 
-        public virtual void Dispose()
+        public void Dispose()
         {
-            if (Stats != null) Stats.Dispose();
-            if (includeCache != null) includeCache.Dispose();
-            if (outputCache != null) outputCache.Dispose();
+            Dispose(true);
         }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                if (stats != null) stats.Dispose();
+                if (includeCache != null) includeCache.Dispose();
+                if (outputCache != null) outputCache.Dispose();
+            }
+        }
+
 
         public ICacheInfo Stats
         {

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace CClash
 {
-    public class FastCacheInfo : IDisposable, ICacheInfo
+    public sealed class FastCacheInfo : IDisposable, ICacheInfo
     {
         FileCacheStore statstore;
         public FastCacheInfo(FileCacheStore stats)
@@ -56,6 +56,13 @@ namespace CClash
             set;
         }
 
+        public long MSecSaved
+        {
+            get;
+            set;
+        }
+
+
         public bool OmitLocks
         {
             get;
@@ -80,6 +87,7 @@ namespace CClash
                 real.CacheObjects += this.CacheObjects;
                 real.CacheMisses += this.CacheMisses;
                 real.CacheHits += this.CacheHits;
+                real.MSecSaved += this.MSecSaved;
             });
         }
 
@@ -102,6 +110,7 @@ namespace CClash
 
         public const string F_StatSlowHits = "slow_hits.txt";
         public const string F_StatTimeWasted = "time_wasted.txt";
+        public const string F_StatTimeSaved = "time_saved.txt";
         public const string F_CacheVersion = "version.txt";
 
         FileCacheStore cache;
@@ -162,6 +171,18 @@ namespace CClash
             set
             {
                 WriteStat(F_StatTimeWasted, value);
+            }
+        }
+
+        public long MSecSaved
+        {
+            get
+            {
+                return ReadStat(F_StatTimeSaved);
+            }
+            set
+            {
+                WriteStat(F_StatTimeSaved, value);
             }
         }
 
@@ -237,9 +258,14 @@ namespace CClash
             }
         }
 
+        private void Dispose(bool disposing)
+        {
+            if ( disposing ) statMtx.Dispose();
+        }
+
         public void Dispose()
         {
-            statMtx.Dispose();
+            Dispose(true);
         }
         
     }

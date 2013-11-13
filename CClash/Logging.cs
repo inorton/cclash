@@ -19,7 +19,7 @@ namespace CClash
                     File.AppendAllLines(
                         Settings.MissLogFile,
                         new string[] {
-                            string.Format("{0},dir={1},src={2},hdr={3}",
+                            string.Format( DateTime.Now.ToString("s") + " {0},dir={1},src={2},hdr={3}",
                             reason, dir, srcfile, headerfile)
                             }
                         );

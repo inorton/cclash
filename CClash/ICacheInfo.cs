@@ -10,6 +10,7 @@ namespace CClash
         long CacheUnsupported { get; set; }
         void LockStatsCall(Action x);
         long MSecLost { get; set; }
+        long MSecSaved { get; set; }
         bool OmitLocks { get; set; }
         long SlowHitCount { get; set; }
         void Commit();

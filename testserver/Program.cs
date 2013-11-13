@@ -12,7 +12,15 @@ namespace CClash
         {
             //Environment.SetEnvironmentVariable("CCLASH_HARDLINK", "yes");
             Environment.SetEnvironmentVariable("CCLASH_SERVER", "yes");
-            Environment.SetEnvironmentVariable("CCLASH_DIR", "compilercache-tests");
+            Environment.SetEnvironmentVariable("CCLASH_MISSES", System.IO.Path.Combine( Environment.CurrentDirectory, "misses.txt"));
+            Settings.CacheDirectory = System.IO.Path.Combine( Environment.CurrentDirectory, "cclash-unittest");
+
+            try
+            {
+                if (System.IO.Directory.Exists(Settings.CacheDirectory))
+                    System.IO.Directory.Delete(Settings.CacheDirectory, true);
+            }
+            catch { }
             var serv = new CClashServer();
             serv.Listen(Settings.CacheDirectory);
         }

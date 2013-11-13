@@ -10,7 +10,7 @@ namespace CClash.Tests
     [TestFixture]
     public class CompilerCacheTest
     {
-        string tmpcache = "cclash-unittest";
+        public const string CacheFolderName = "cclash-unittest";
         [SetUp]
         public void Init()
         {
@@ -21,16 +21,16 @@ namespace CClash.Tests
             Environment.SetEnvironmentVariable("CCLASH_SERVER", null);
             Environment.SetEnvironmentVariable("CCLASH_HARDLINK", null);
 
-            Environment.SetEnvironmentVariable("CCLASH_DIR", tmpcache);
+            Environment.SetEnvironmentVariable("CCLASH_DIR", CacheFolderName);
         }
 
         [TearDown]
         public void Down()
         {
             Environment.SetEnvironmentVariable("CCLASH_DIR", null);
-            if (System.IO.Directory.Exists(tmpcache))
+            if (System.IO.Directory.Exists(CacheFolderName))
             {
-                System.IO.Directory.Delete(tmpcache, true);
+                System.IO.Directory.Delete(CacheFolderName, true);
             }
                 
         }

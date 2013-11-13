@@ -4,6 +4,7 @@ using System.IO;
 
 namespace CClash
 {
+    [System.Diagnostics.CodeAnalysis.SuppressMessage("Microsoft.Design", "CA1063:ImplementIDisposableCorrectly")]
     public class DirectCompilerCache : CompilerCacheBase, ICompilerCache
     {
         public DirectCompilerCache(string cacheFolder)
@@ -52,11 +53,20 @@ namespace CClash
                 {
                     if (h.Value.Result == DataHashResult.Ok)
                     {
-
-                        if (manifest.IncludeFiles[h.Key] != h.Value.Hash)
+                        string mhash;
+                        if (manifest.IncludeFiles.TryGetValue(h.Key, out mhash))
                         {
-                            Logging.Emit("include file hash changed {0}", h.Key);
-                            Logging.Miss(DataHashResult.FileChanged, Directory.GetCurrentDirectory(), comp.SingleSourceFile, h.Key);
+                            if (mhash != h.Value.Hash)
+                            {
+                                Logging.Emit("include file hash changed {0}", h.Key);
+                                Logging.Miss(DataHashResult.FileChanged, Directory.GetCurrentDirectory(), comp.SingleSourceFile, h.Key);
+                                return false;
+                            }
+                        }
+                        else
+                        {
+                            Logging.Emit("include file added {0}", h.Key);
+                            Logging.Miss(DataHashResult.FileAdded, Directory.GetCurrentDirectory(), comp.SingleSourceFile, h.Key);
                             return false;
                         }
                     }
@@ -73,23 +83,30 @@ namespace CClash
                     if (!FileUtils.Exists(outputCache.MakePath(commonkey.Hash, f)))
                     {
                         outputCache.Remove(commonkey.Hash);
+                        Logging.Miss(DataHashResult.CacheCorrupt, commonkey.Hash, comp.SingleSourceFile, "");
                         return false;
                     }
                 }
 
                 return true; // cache hit, all includes match and no new files added
             }
+            Logging.Miss(DataHashResult.NoPreviousBuild, Directory.GetCurrentDirectory(), comp.SingleSourceFile, "");
             return false;
         }
+
+        TimeSpan lastCompileDuration = default(TimeSpan);
 
         protected virtual int Compile(IEnumerable<string> args, string stderrfile, string stdoutfile, List<string> includes)
         {
             #region compile
+            var start = DateTime.Now;
             using (var stderrfs = new StreamWriter(stderrfile))
             {
                 using (var stdoutfs = new StreamWriter(stdoutfile))
                 {
-                    return CompileWithStreams(args, stderrfs, stdoutfs, includes);
+                    var rv = CompileWithStreams(args, stderrfs, stdoutfs, includes);
+                    lastCompileDuration = DateTime.Now.Subtract(start);
+                    return rv;
                 }
             }
             #endregion
@@ -142,6 +159,12 @@ namespace CClash
                 // this unlocks for us
                 DoCacheMiss(comp, hc, args, m, ifiles);
             }
+
+            var duration = DateTime.Now.Subtract(cacheStart);
+            var wasted = duration - lastCompileDuration;
+            // estimate about 40% overhead was a waste.
+            Stats.LockStatsCall(() => Stats.MSecLost += (int)wasted.TotalMilliseconds);
+
             return rv;
         }
 

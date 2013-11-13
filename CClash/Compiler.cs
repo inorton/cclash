@@ -117,10 +117,8 @@ namespace CClash
                     }
                     if (Path.IsPathRooted(f))
                     {
-
+                        return f;
                     }
-
-                    return f;
                 }
             }
 
@@ -564,7 +562,7 @@ namespace CClash
         {
             Logging.Emit("invoking real compiler: [{0}]", string.Join( " ", args.ToArray() ));
             
-            if (!FileUtils.Exists(CompilerExe))
+            if (string.IsNullOrWhiteSpace(CompilerExe) || !FileUtils.Exists(CompilerExe))
                 throw new FileNotFoundException("cant find cl.exe");
 
             var cla = JoinAguments( FixupArgs( args) );

@@ -81,11 +81,11 @@ namespace CClash
             }
         }
 
-        public void OnWatchedFileChanged(string path)
+        public void OnWatchedFileChanged( object sender, FileChangedEventArgs args)
         {
             lock (hashcache)
             {
-                hashcache.Remove(path);
+                hashcache.Remove(args.FilePath);
             }
         }
 
@@ -200,19 +200,22 @@ namespace CClash
             return base.CompileOrCache(args);
         }
 
-        public override void Dispose()
+        protected override void Dispose( bool disposing)
         {
-            foreach (var x in dwatchers)
+            if (disposing)
             {
-                x.Value.Dispose();
+                foreach (var x in dwatchers)
+                {
+                    x.Value.Dispose();
+                }
+                dwatchers.Clear();
+                base.includeCache.UnKeepLocks();
+                base.outputCache.UnKeepLocks();
             }
-            dwatchers.Clear();
-            base.includeCache.UnKeepLocks();
-            base.outputCache.UnKeepLocks();
-            base.Dispose();
+            base.Dispose(disposing);
         }
 
-        void SetupStats()
+        public void SetupStats()
         {
             if (Stats != null)
                 Stats.Dispose();

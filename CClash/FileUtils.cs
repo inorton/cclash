@@ -15,7 +15,7 @@ namespace CClash {
             return new FileInfo(path).Exists;
         }
         
-        [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, ThrowOnUnmappableChar = true, BestFitMapping = false)]
         static extern int GetLongPathName(
             [MarshalAs(UnmanagedType.LPTStr)] string path,
             [MarshalAs(UnmanagedType.LPTStr)] StringBuilder longPath,
@@ -34,7 +34,7 @@ namespace CClash {
         }
 
         // this should be much faster if a file doesn't exist
-        [DllImport("Shlwapi.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        [DllImport("Shlwapi.dll", SetLastError = true, CharSet = CharSet.Auto, BestFitMapping = false, ThrowOnUnmappableChar = true)]
         private extern static bool PathFileExists(StringBuilder path);
 
         public static bool FileMissing(string path)

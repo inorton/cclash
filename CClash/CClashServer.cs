@@ -8,7 +8,7 @@ using System.Web.Script.Serialization;
 
 namespace CClash
 {
-    public sealed class CClashServer
+    public sealed class CClashServer : IDisposable
     {
         bool quitnow = false;
         DirectCompilerCacheServer cache;
@@ -62,7 +62,6 @@ namespace CClash
                             connections++;
                             if (connections > MaxOperations || (DateTime.Now.Subtract(lastConnection).TotalSeconds > ExitAfterIdleSec))
                             {
-                                nss.Close();
                                 Stop();
                                 break;
                             }
@@ -152,6 +151,8 @@ namespace CClash
 
                 case Command.GetStats:
                     rv.exitcode = 0;
+                    cache.SetupStats(); // commits stats to disk
+                    
                     rv.stdout = StatOutputs.GetStatsString(req.compiler);
                     break;
 
@@ -177,7 +178,20 @@ namespace CClash
         public void Stop()
         {
             quitnow = true;
-            cache.Dispose();
+            Dispose(true);
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+        }
+
+        private void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                if ( cache != null ) cache.Dispose();
+            }
         }
     }
 }

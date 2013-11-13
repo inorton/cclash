@@ -4,11 +4,16 @@ using System.IO;
 
 namespace CClash
 {
+    public class FileChangedEventArgs : EventArgs
+    {
+        public string FilePath { get; set; }
+    }
+
     public sealed class DirectoryWatcher : IDisposable
     {
         FileSystemWatcher w;
 
-        public delegate void FileChangedHandler(string filepath);
+        public delegate void FileChangedHandler(object sender, FileChangedEventArgs e);
 
         public DirectoryWatcher(string folder)
         {
@@ -56,7 +61,7 @@ namespace CClash
             {
                 if (FileChanged != null)
                 {
-                    FileChanged(file);
+                    FileChanged(this, new FileChangedEventArgs() { FilePath = file });
                 }
             }
         }

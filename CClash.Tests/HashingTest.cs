@@ -70,7 +70,7 @@ namespace CClash.Tests
 
                     if (hash.Result == DataHashResult.Ok)
                     {
-                        Assert.AreEqual(hash.Hash, hashes[f].Hash);
+                        Assert.AreEqual(hash.Hash, hashes[f.ToLower()].Hash);
                     }
                 }
 

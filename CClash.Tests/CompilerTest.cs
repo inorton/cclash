@@ -147,8 +147,7 @@ namespace CClash.Tests
             Assert.AreEqual(1, c.CliIncludePaths.Count);
             Assert.AreEqual("test-sources\\inc with spaces", c.CliIncludePaths[0]);
             Assert.AreEqual("test-sources\\hello.c", c.SingleSourceFile);
-            using (var ms = new MemoryStream())
-            using (var sw = new StreamWriter(ms))
+            using (var sw = new StreamWriter(new MemoryStream()))
             {
                 var rv = c.InvokePreprocessor(sw);
                 Assert.AreEqual(0, rv);

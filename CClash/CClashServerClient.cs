@@ -84,7 +84,10 @@ namespace CClash
 
         public ICacheInfo Stats
         {
-            get { throw new NotImplementedException(); }
+            get
+            {
+                return null;
+            }
         }
 
         public bool IsSupported(IEnumerable<string> args)
@@ -176,7 +179,16 @@ namespace CClash
 
         public void Dispose()
         {
-            if ( ncs != null ) ncs.Dispose();
+            Dispose(true);
+        }
+
+        private void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                if ( serverProcess != null ) serverProcess.Dispose();
+                ncs.Dispose();
+            }
         }
     }
 }

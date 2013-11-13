@@ -13,63 +13,64 @@ namespace CClash
         public static int Main(string[] args)
         {
             var start = DateTime.Now;
-            try
+
+            var dbg = Environment.GetEnvironmentVariable("CCLASH_DEBUG");
+            if (!string.IsNullOrEmpty(dbg))
             {
-                var dbg = Environment.GetEnvironmentVariable("CCLASH_DEBUG");
-                if (!string.IsNullOrEmpty(dbg))
-                {
-                    Settings.DebugFile = dbg;
-                    Settings.DebugEnabled = true;
-                }
+                Settings.DebugFile = dbg;
+                Settings.DebugEnabled = true;
+            }
 
-                var miss = Environment.GetEnvironmentVariable("CCLASH_MISSES");
-                if (!string.IsNullOrEmpty(miss)) {
-                    Settings.MissLogFile = miss;
-                }
+            var miss = Environment.GetEnvironmentVariable("CCLASH_MISSES");
+            if (!string.IsNullOrEmpty(miss))
+            {
+                Settings.MissLogFile = miss;
+            }
 
-                if (Settings.DebugEnabled)
+            if (Settings.DebugEnabled)
+            {
+                Logging.Emit("command line args:");
+                foreach (var a in args)
                 {
-                    Logging.Emit("command line args:");
-                    foreach (var a in args)
+                    Logging.Emit("arg: {0}", a);
+                }
+            }
+
+            if (args.Contains("--cclash-server"))
+            {
+                var server = new CClashServer();
+                server.Listen(Settings.CacheDirectory);
+                return 0;
+            }
+
+            if (args.Contains("--cclash"))
+            {
+                Logging.Emit("maint mode");
+                Console.Error.WriteLine("cclash {0} (c) Ian Norton, November 2013",
+                    typeof(Program).Assembly.GetName().Version.ToString());
+
+                var compiler = Compiler.Find();
+                if (Settings.ServiceMode)
+                {
+                    var cc = new CClashServerClient(Settings.CacheDirectory);
+
+                    if (args.Contains("--stop"))
                     {
-                        Logging.Emit("arg: {0}", a);
-                    }
-                }
-
-                if (args.Contains("--cclash-server"))
-                {
-                    var server = new CClashServer();
-                    server.Listen(Settings.CacheDirectory);
-                    return 0;
-                }
-                
-                if (args.Contains("--cclash"))
-                {
-                    Logging.Emit("maint mode");
-                    Console.Error.WriteLine("cclash {0} (c) Ian Norton, November 2013", 
-                        typeof(Program).Assembly.GetName().Version.ToString());
-
-                    var compiler = Compiler.Find();
-                    if (Settings.ServiceMode)
-                    {
-                        var cc = new CClashServerClient(Settings.CacheDirectory);
-
-                        if (args.Contains("--stop"))
-                        {
-                            cc.Transact(new CClashRequest() { cmd = Command.Quit });
-                        }
-                        else
-                        {
-                            Console.Out.WriteLine(cc.GetStats(compiler));
-                        }
+                        cc.Transact(new CClashRequest() { cmd = Command.Quit });
                     }
                     else
                     {
-                        Console.Out.WriteLine(StatOutputs.GetStatsString(compiler));
+                        Console.Out.WriteLine(cc.GetStats(compiler));
                     }
-                    return 0;
                 }
-
+                else
+                {
+                    Console.Out.WriteLine(StatOutputs.GetStatsString(compiler));
+                }
+                return 0;
+            }
+            try
+            {
                 if (!Settings.Disabled)
                 {
                     string compiler = Compiler.Find();
@@ -79,7 +80,7 @@ namespace CClash
                     var cachedir = Settings.CacheDirectory;
                     Logging.Emit("compiler: {0}", compiler);
 
-                    using ( ICompilerCache cc = CompilerCacheFactory.Get( Settings.DirectMode, cachedir, compiler ) )
+                    using (ICompilerCache cc = CompilerCacheFactory.Get(Settings.DirectMode, cachedir, compiler))
                     {
                         cc.SetCompiler(compiler);
                         return cc.CompileOrCache(args);
@@ -89,12 +90,11 @@ namespace CClash
                 {
                     Logging.Emit("disabled by environment");
                 }
-
             }
             catch (Exception e)
             {
                 Logging.Emit("{0} after {1} ms", e.GetType().Name, DateTime.Now.Subtract(start).TotalMilliseconds);
-                Logging.Emit("{0} {1}",e.GetType().Name + " message: " + e.Message);
+                Logging.Emit("{0} {1}", e.GetType().Name + " message: " + e.Message);
 #if DEBUG
                 Logging.Error("Exception from cacher {0}!!!", e);
 #endif

@@ -18,6 +18,8 @@ namespace CClash
         AccessDenied,
         FileAdded,
         FileChanged,
+        NoPreviousBuild,
+        CacheCorrupt,
     }
 
     public sealed class DataHash
@@ -93,7 +95,7 @@ namespace CClash
                     foreach (var f in files)
                     {
                         var d = DigestSourceFile(f);
-                        rv[f] = d;
+                        rv[f.ToLower()] = d;
                         if (d.Result != DataHashResult.Ok) break;
                     }
                 }
@@ -133,7 +135,7 @@ namespace CClash
                         t.Join(); // thread finished, store it's results
                         foreach (var h in inputs[i].results)
                         {
-                            rv[h.InputName] = h;
+                            rv[h.InputName.ToLower()] = h;
                         }
                     }
                 }
@@ -192,7 +194,7 @@ namespace CClash
 
             if (!FileUtils.Exists(filepath)) return rv;
             provider.Initialize();
-            using (var fs = new FileStream(filepath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            var fs = new FileStream(filepath, FileMode.Open, FileAccess.Read, FileShare.Read);
             using (var bs = new BufferedStream(fs))
             {
                 Logging.Emit("digest {0}", filepath);
@@ -252,8 +254,6 @@ namespace CClash
 
                         } while (true);
                     }
-                    
-
                 }
             }
             rv.Result = DataHashResult.Ok;
