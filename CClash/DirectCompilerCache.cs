@@ -42,6 +42,7 @@ namespace CClash
                     if (!FileUtils.FileMissing(f))
                     {
                         Logging.Emit("detected added include file {0}", f);
+                        Logging.Miss(DataHashResult.FileAdded, Directory.GetCurrentDirectory(), comp.SingleSourceFile, f);
                         return false;
                     }
                 }
@@ -55,12 +56,14 @@ namespace CClash
                         if (manifest.IncludeFiles[h.Key] != h.Value.Hash)
                         {
                             Logging.Emit("include file hash changed {0}", h.Key);
+                            Logging.Miss(DataHashResult.FileChanged, Directory.GetCurrentDirectory(), comp.SingleSourceFile, h.Key);
                             return false;
                         }
                     }
                     else
                     {
                         Logging.Emit("include file hash error {0} {1}", h.Key, h.Value.Result);
+                        Logging.Miss(h.Value.Result, Directory.GetCurrentDirectory(), comp.SingleSourceFile, h.Key);
                         return false;
                     }
                 }

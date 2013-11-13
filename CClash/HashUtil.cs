@@ -16,6 +16,8 @@ namespace CClash
         ContainsTimeOrDate,
         FileNotFound,
         AccessDenied,
+        FileAdded,
+        FileChanged,
     }
 
     public sealed class DataHash

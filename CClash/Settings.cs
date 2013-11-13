@@ -11,6 +11,14 @@ namespace CClash
         public static bool DebugEnabled { get; set; }
         public static string DebugFile { get; set; }
 
+        public static string MissLogFile { get; set; }
+        public static bool MissLogEnabled { 
+            get 
+            {
+                return !string.IsNullOrEmpty(MissLogFile); 
+            }
+        }
+
         static Settings() { }
 
         static bool ConditionVarsAreTrue(string prefix)

@@ -11,6 +11,22 @@ namespace CClash
     {
         static int pid = System.Diagnostics.Process.GetCurrentProcess().Id;
 
+        static object miss_log_sync = new object();
+
+        public static void Miss(DataHashResult reason, string dir, string srcfile, string headerfile) {
+            if (Settings.MissLogEnabled) {
+                lock (miss_log_sync) {
+                    File.AppendAllLines(
+                        Settings.MissLogFile,
+                        new string[] {
+                            string.Format("{0},dir={1},src={2},hdr={3}",
+                            reason, dir, srcfile, headerfile)
+                            }
+                        );
+                }
+            }
+        }
+
         public static void Error(string fmt, params object[] args)
         {
             Console.Error.WriteLine(fmt, args);
