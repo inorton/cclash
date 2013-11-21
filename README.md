@@ -26,9 +26,9 @@ OpenSSL windows build                                     | Duration | Time Diff
 ----------------------------------------------------------|----------|-----------------|
 average build time without cclash                         |   288s   |                 |
 cclash enabled first run                                  |   464s   |           +61%  |
-cclash enabled second run                                 | **128s** |           -56%  |
+cclash enabled second run                                 | **128s** |           **-56% ** |
 cclash enabled first run (CCLASH_SERVER)                  |   391s   |           +35%  |
-cclash enabled second run (CCLASH_SERVER)                 | **108s** |           -63%  |
+cclash enabled second run (CCLASH_SERVER)                 | **108s** |           **-63%**  |
 
 The first build with a clean cache costs about an extra 30-60% in build time for each file. Subsequent builds (with no source changes) give about a 50-65% reduction in build time.
 
@@ -45,6 +45,14 @@ There are two ways. The first is easier if you can adjust your environment. The 
 or
 
    * Rename the real cl.exe (and cl.exe.config) to cl_real.exe (and cl_real.exe.config), place cclash's cl.exe (and cl.exe.config) in the same visual studio folder.
+
+## Future Features
+
+There are a number of things that might happen to make cclash faster and applicable in more situations. At the moment it doesn't understant pre-compiled headers so that is one possibility. Using it inside visual studio also can have mixed results so better support for the options provided by the IDE is also an option. For now though, the easier ones are:
+
+   * cache linker calls
+   * pre-compiled headers
+   * build mapping ( make dot maps of the sources involved in builds )
 
 ## GPL v3.0 License
 
