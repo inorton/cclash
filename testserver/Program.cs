@@ -23,6 +23,8 @@ namespace CClash
             catch { }
             var serv = new CClashServer();
             serv.Listen(Settings.CacheDirectory);
+            Console.Error.WriteLine("finished..");
+            Console.ReadLine();
         }
     }
 }

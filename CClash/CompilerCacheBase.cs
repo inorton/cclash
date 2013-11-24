@@ -72,9 +72,10 @@ namespace CClash
         public abstract void Setup();
         public abstract void Finished();
 
-        public void SetCompiler(string compilerPath, string workdir, StringDictionary envs)
+        public void SetCompiler(string compiler, string workdir, StringDictionary envs)
         {
-            if (string.IsNullOrEmpty(compilerPath)) throw new ArgumentNullException("compilerPath");
+            if (string.IsNullOrEmpty(compiler)) throw new ArgumentNullException("compiler");
+            compilerPath = compiler;
             comp = new Compiler( workdir, envs )
             {
                 CompilerExe = compilerPath

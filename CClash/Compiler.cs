@@ -152,6 +152,17 @@ namespace CClash
 
         public string WorkingDirectory { get; private set; }
 
+        public static string[] UsedEnvNames = new string[] {
+            "INCLUDE",
+            "PATH",
+            "LINK",
+            "LIB",
+            "LIBPATH",
+            "TMP",
+            "CL",
+            "_CL_",
+        };
+
         /// <summary>
         /// Create a new instance of the Compiler class.
         /// </summary>
@@ -161,12 +172,9 @@ namespace CClash
             if (!Directory.Exists(workdir)) throw new DirectoryNotFoundException(workdir);
             WorkingDirectory = workdir;
             Envs = new System.Collections.Specialized.StringDictionary();
-            Envs["INCLUDE"] = "";
-            Envs["PATH"] = "";
-            Envs["LIB"] = "";
-            Envs["TMP"] = "";
-            Envs["CL"] = "";
-            Envs["_CL_"] = "";
+            foreach ( var n in UsedEnvNames )
+                Envs[n] = string.Empty;
+
             foreach (string n in envs.Keys)
                 Envs[n] = envs[n];
 
@@ -619,7 +627,7 @@ namespace CClash
                 WorkingDirectory = WorkingDirectory,
             };
 
-            psi.EnvironmentVariables.Clear();
+            
             foreach (string n in Envs.Keys)
                 psi.EnvironmentVariables[n] = Envs[n];
 

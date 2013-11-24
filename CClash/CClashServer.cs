@@ -159,7 +159,7 @@ namespace CClash
 
                 case Command.Run:                    
                     cache.SetCompiler(req.compiler, req.workdir, Compiler.ConvertEnvDict( req.envs ));
-                    rv.exitcode = cache.CompileOrCacheEnvs(req.workdir, req.envs, req.argv);
+                    rv.exitcode = cache.CompileOrCache(req.argv);
                     System.IO.Directory.SetCurrentDirectory(mydocs);
                     rv.supported = true;
                     rv.stderr = cache.StdErrorText.ToString();

@@ -20,6 +20,7 @@ namespace CClash
                 Settings.DebugFile = dbg;
                 Settings.DebugEnabled = true;
             }
+            Compiler.FixEnv();
 
             var miss = Environment.GetEnvironmentVariable("CCLASH_MISSES");
             if (!string.IsNullOrEmpty(miss))
@@ -98,7 +99,7 @@ namespace CClash
                 Logging.Error("Exception from cacher {0}!!!", e);
 #endif
             }
-            Compiler.FixEnv();
+            
             var sd = new System.Collections.Specialized.StringDictionary();
             var envs = Environment.GetEnvironmentVariables();
             foreach ( object n in envs.Keys )
