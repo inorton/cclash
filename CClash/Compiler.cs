@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Collections.Specialized;
 
 namespace CClash
 {
@@ -31,7 +32,29 @@ namespace CClash
             return !FileUtils.Exists(to) && (CreateHardLink(to, from, IntPtr.Zero) != 0);
         }
 
-        static void cygwinEnvFixup()
+        public static StringDictionary ConvertEnvDict(IDictionary<string, string> env)
+        {
+            var rv = new StringDictionary();
+            foreach (var n in env)
+            {
+                rv[n.Key] = n.Value;
+            }
+            return rv;
+        }
+
+        public static StringDictionary GetEnvs()
+        {
+            FixEnv();
+            var sd = new StringDictionary();
+            var e = Environment.GetEnvironmentVariables();
+            foreach (var n in e.Keys)
+            {
+                sd[(string)n] = e[n] as string;
+            }
+            return sd;
+        }
+
+        public static void FixEnv()
         {
             var ost = Environment.GetEnvironmentVariable("OSTYPE");
             if (Environment.GetEnvironmentVariable("CCLASH_CYGWIN_FIX") != null)
@@ -125,14 +148,35 @@ namespace CClash
             return null;
         }
 
+        public StringDictionary Envs { get; private set; }
+
+        public string WorkingDirectory { get; private set; }
 
         /// <summary>
         /// Create a new instance of the Compiler class.
         /// </summary>
-        public Compiler()
+        public Compiler( string workdir, StringDictionary envs )
         {
+            if (!Path.IsPathRooted(workdir)) throw new ArgumentException("workdir must be an absolute path");
+            if (!Directory.Exists(workdir)) throw new DirectoryNotFoundException(workdir);
+            WorkingDirectory = workdir;
+            Envs = new System.Collections.Specialized.StringDictionary();
+            Envs["INCLUDE"] = "";
+            Envs["PATH"] = "";
+            Envs["LIB"] = "";
+            Envs["TMP"] = "";
+            Envs["CL"] = "";
+            Envs["_CL_"] = "";
+            foreach (string n in envs.Keys)
+                Envs[n] = envs[n];
+
             compilerExe = "cl";
-            cygwinEnvFixup();
+        }
+
+        public string GetPath(string path)
+        {
+            if (Path.IsPathRooted(path)) return path;
+            return Path.Combine(WorkingDirectory, path);
         }
 
         private string compilerExe;
@@ -344,23 +388,23 @@ namespace CClash
                             GeneratePdb = true;
                             break;
                         case "/Fd":
-                            PdbFile = Path.Combine(System.IO.Directory.GetCurrentDirectory(), full.Substring(3));
+                            PdbFile = GetPath(full.Substring(3));
                             if (!Path.GetFileName(PdbFile).Contains("."))
                                 PdbFile += ".pdb";
                             break;
                         
                         case "/Fo":
-                            ObjectTarget = Path.Combine(System.IO.Directory.GetCurrentDirectory(), full.Substring(3));
+                            ObjectTarget = GetPath(full.Substring(3));
                             if (!Path.GetFileName(ObjectTarget).Contains("."))
                                 ObjectTarget += ".obj";
                             break;
 
                         case "/Tp":
                         case "/Tc":
-                            var srcfile = full.Substring(3);
+                            var srcfile = GetPath(full.Substring(3));
                             if (FileUtils.Exists(srcfile))
                             {
-                                srcs.Add( Path.GetFullPath(srcfile) );
+                                srcs.Add( srcfile );
                             }
                             else
                             {
@@ -383,7 +427,7 @@ namespace CClash
 
                             if (opt.StartsWith("@"))
                             {
-                                ResponseFile = full.Substring(1);
+                                ResponseFile = GetPath(full.Substring(1));
                                 var rsptxt = File.ReadAllText(opt.Substring(1));
                                 if (rsptxt.Length < 2047)
                                 // windows max command line, this is why they invented response files
@@ -410,19 +454,20 @@ namespace CClash
 
                             if (!full.StartsWith("/"))
                             {
-                                if (FileUtils.Exists(full))
+                                var tmpsrc = GetPath(full);
+                                if (FileUtils.Exists(tmpsrc))
                                 {
-                                    srcs.Add(full);
+                                    srcs.Add(tmpsrc);
                                     continue;
                                 }
                             }
                             if (full.StartsWith("/I"))
                             {
-                                var d = full.Substring(2);
+                                var d = GetPath(full.Substring(2));
                                 if (d == ".")
-                                    d = Environment.CurrentDirectory;
+                                    d = WorkingDirectory;
                                 if (d == "..")
-                                    d = Path.GetDirectoryName(Environment.CurrentDirectory);
+                                    d = Path.GetDirectoryName(WorkingDirectory);
 
                                 if (Directory.Exists(d))
                                 {
@@ -440,7 +485,7 @@ namespace CClash
                     if (ObjectTarget == null)
                     {
                         var f = Path.GetFileNameWithoutExtension(SingleSourceFile) + ".obj";
-                        ObjectTarget = Path.Combine(Environment.CurrentDirectory, f);
+                        ObjectTarget = GetPath(f);
                     }
                     if (GeneratePdb && PdbFile == null)
                     {
@@ -449,7 +494,7 @@ namespace CClash
                             if ( CompilerExe.Contains(string.Format("Microsoft Visual Studio {0}.0",x)) )
                             {
                                 var f = string.Format("vc{0}0.pdb", x); 
-                                PdbFile = Path.Combine(Environment.CurrentDirectory, f);
+                                PdbFile = GetPath(f);
                                 break;
                             }
                         }
@@ -492,12 +537,11 @@ namespace CClash
         {
             List<string> possibles = new List<string>();
             List<string> includelines = new List<string>();
-            var fullSrc = Path.GetFullPath(SingleSourceFile);
             foreach (var d in incdirs)
             {
                 foreach (var f in ( from x in incfiles where x.StartsWith(d, StringComparison.CurrentCultureIgnoreCase) select x ) )
                 {
-                    if (f != fullSrc)
+                    if (f != SingleSourceFile)
                     {
                         var incpath = f.Substring(d.Length);
                         includelines.Add(incpath.TrimStart('\\'));
@@ -529,7 +573,7 @@ namespace CClash
         {
             var incdirs = new List<string>();
             var tmplist = new List<string>(1000);
-            var iinc = Environment.GetEnvironmentVariable("INCLUDE");
+            var iinc = Envs["INCLUDE"];
             Logging.Emit("INCLUDE={0}", iinc);
             if (iinc != null)
             {
@@ -544,9 +588,9 @@ namespace CClash
             }
             var srcfolder = Path.GetDirectoryName(SingleSourceFile);
             if (string.IsNullOrEmpty(srcfolder))
-                srcfolder = Environment.CurrentDirectory;
+                srcfolder = WorkingDirectory;
             Logging.Emit("notice source folder: {0}", srcfolder);
-            incdirs.Add(Path.GetFullPath(srcfolder));
+            incdirs.Add(srcfolder);
             return incdirs;
         }
 
@@ -572,8 +616,12 @@ namespace CClash
                 UseShellExecute = false,
                 RedirectStandardError = true,
                 RedirectStandardOutput = true, 
-                WorkingDirectory = Environment.CurrentDirectory,
+                WorkingDirectory = WorkingDirectory,
             };
+
+            psi.EnvironmentVariables.Clear();
+            foreach (string n in Envs.Keys)
+                psi.EnvironmentVariables[n] = Envs[n];
 
             psi.EnvironmentVariables["PATH"] = Path.GetDirectoryName(CompilerExe) + ";" + psi.EnvironmentVariables["PATH"];
             psi.ErrorDialog = true;

@@ -80,9 +80,8 @@ namespace CClash
                     var cachedir = Settings.CacheDirectory;
                     Logging.Emit("compiler: {0}", compiler);
 
-                    using (ICompilerCache cc = CompilerCacheFactory.Get(Settings.DirectMode, cachedir, compiler))
+                    using (ICompilerCache cc = CompilerCacheFactory.Get(Settings.DirectMode, cachedir, compiler, Environment.CurrentDirectory, Compiler.GetEnvs()))
                     {
-                        cc.SetCompiler(compiler);
                         return cc.CompileOrCache(args);
                     }
                 }
@@ -99,8 +98,13 @@ namespace CClash
                 Logging.Error("Exception from cacher {0}!!!", e);
 #endif
             }
+            Compiler.FixEnv();
+            var sd = new System.Collections.Specialized.StringDictionary();
+            var envs = Environment.GetEnvironmentVariables();
+            foreach ( object n in envs.Keys )
+                sd[(string)n] = (string) envs[n];
 
-            var rv = new Compiler()
+            var rv = new Compiler( Environment.CurrentDirectory, sd )
             {
                 CompilerExe = Compiler.Find(),
             }.InvokeCompiler(args, Console.Error.WriteLine, Console.Out.WriteLine, false, null);

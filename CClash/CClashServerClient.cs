@@ -7,6 +7,7 @@ using System.IO;
 using System.IO.Pipes;
 using System.Web.Script.Serialization;
 using System.Diagnostics;
+using System.Collections.Specialized;
 
 namespace CClash
 {
@@ -96,27 +97,25 @@ namespace CClash
         }
 
         string compilerPath;
-
-        public void SetCompiler(string compiler)
+        string workingDirectory;
+        Dictionary<string, string> environment = new Dictionary<string, string>();
+        public void SetCompiler(string compilerPath, string workdir, StringDictionary envs)
         {
-            if (string.IsNullOrEmpty(compiler)) throw new ArgumentNullException("compiler");
-            
-            compilerPath = System.IO.Path.GetFullPath(compiler);
+            if (string.IsNullOrEmpty(compilerPath)) throw new ArgumentNullException("compilerPath");
+            workingDirectory = workdir;
+            compilerPath = System.IO.Path.GetFullPath(compilerPath);
+            foreach (string n in envs.Keys)
+                environment[n] = envs[n];
         }
 
         public int CompileOrCache(IEnumerable<string> args)
         {
-            var envs = new Dictionary<string,string>();
-            envs["INCLUDE"] = Environment.GetEnvironmentVariable("INCLUDE");
-            envs["LIB"] = Environment.GetEnvironmentVariable("LIB");
-            envs["PATH"] = Environment.GetEnvironmentVariable("PATH");
-
             var req = new CClashRequest()
             {
                 cmd = Command.Run,
                 compiler = compilerPath,
-                envs = envs,
-                workdir = Environment.CurrentDirectory,
+                envs = environment,
+                workdir = workingDirectory,
                 argv = new List<string> ( args ),
             };
             var resp = Transact(req);

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -10,24 +11,27 @@ namespace CClash
 {
     public class CompilerCacheFactory
     {
-        public static ICompilerCache Get(bool direct, string cachedir, string compiler )
+        public static ICompilerCache Get(bool direct, string cachedir, string compiler, string workdir, StringDictionary envs )
         {
             ICompilerCache rv;
             if (Settings.ServiceMode)
             {
-                return new CClashServerClient(cachedir);
-            }
-
-            if (direct)
-            {
-                Logging.Emit("use direct mode");
-                rv = new DirectCompilerCache(cachedir);
+                rv = new CClashServerClient(cachedir);
             }
             else
             {
-                throw new NotSupportedException("ppmode is not supported yet");
+
+                if (direct)
+                {
+                    Logging.Emit("use direct mode");
+                    rv = new DirectCompilerCache(cachedir);
+                }
+                else
+                {
+                    throw new NotSupportedException("ppmode is not supported yet");
+                }
             }
-            rv.SetCompiler(compiler);
+            rv.SetCompiler(compiler, workdir, envs);
             return rv;
         }
     }
@@ -68,12 +72,10 @@ namespace CClash
         public abstract void Setup();
         public abstract void Finished();
 
-        public void SetCompiler(string compiler)
+        public void SetCompiler(string compilerPath, string workdir, StringDictionary envs)
         {
-            if (string.IsNullOrEmpty(compiler)) throw new ArgumentNullException("compiler");
-            
-            compilerPath = System.IO.Path.GetFullPath(compiler);
-            comp = new Compiler()
+            if (string.IsNullOrEmpty(compilerPath)) throw new ArgumentNullException("compilerPath");
+            comp = new Compiler( workdir, envs )
             {
                 CompilerExe = compilerPath
             };

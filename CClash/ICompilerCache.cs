@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,7 +13,7 @@ namespace CClash
 
         bool IsSupported(IEnumerable<string> args);
         int CompileOrCache(IEnumerable<string> args);
-        void SetCompiler(string compiler);
+        void SetCompiler(string compilerPath, string workdir, StringDictionary envs);
         DataHash DeriveHashKey(IEnumerable<string> args);
     }
 }

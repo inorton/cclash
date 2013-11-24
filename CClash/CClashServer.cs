@@ -5,6 +5,7 @@ using System.Text;
 using System.IO;
 using System.IO.Pipes;
 using System.Web.Script.Serialization;
+using System.Collections.Specialized;
 
 namespace CClash
 {
@@ -156,8 +157,8 @@ namespace CClash
                     rv.stdout = StatOutputs.GetStatsString(req.compiler);
                     break;
 
-                case Command.Run:
-                    cache.SetCompiler(req.compiler);
+                case Command.Run:                    
+                    cache.SetCompiler(req.compiler, req.workdir, Compiler.ConvertEnvDict( req.envs ));
                     rv.exitcode = cache.CompileOrCacheEnvs(req.workdir, req.envs, req.argv);
                     System.IO.Directory.SetCurrentDirectory(mydocs);
                     rv.supported = true;

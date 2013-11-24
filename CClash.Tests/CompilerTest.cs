@@ -60,7 +60,7 @@ namespace CClash.Tests
         [TestCase("/c","test-sources\\exists.c", "/Fotest-sources")]
         public void ParseSupportedArgs(params string[] argv)
         {
-            var c = new Compiler();
+            var c = new Compiler(Environment.CurrentDirectory, Compiler.GetEnvs());
             var sbo = new StringBuilder();
             var sbe = new StringBuilder();
             Assert.IsTrue(c.ProcessArguments(argv));
@@ -91,7 +91,7 @@ namespace CClash.Tests
         [TestCase("/c", "test-sources\\exists.c", "/Zi", "/Fdtest-sources\\stuff.pdb")]
         public void ParseSupportedPdbArgs(params string[] argv)
         {
-            var c = new Compiler();
+            var c = new Compiler(Environment.CurrentDirectory, Compiler.GetEnvs());
             c.CompilerExe = CompilerPath;
             Assert.IsTrue(c.ProcessArguments(argv));
             Assert.IsTrue(c.GeneratePdb);
@@ -113,7 +113,8 @@ namespace CClash.Tests
         [TestCase("/c", "test-sources\\exists.c", "/Yu")]
         public void ParseUnSupportedArgs(params string[] argv)
         {
-            var c = new Compiler();
+            var c = new Compiler( Environment.CurrentDirectory, Compiler.GetEnvs() );
+            c.CompilerExe = CompilerPath;
             Assert.IsFalse(c.ProcessArguments(argv));
         }
 
@@ -121,7 +122,8 @@ namespace CClash.Tests
         [TestCase("/c", "test-sources\\hello.c", "/Itest-sources\\inc with spaces")]
         public void IncludeFileTest(params string[] argv)
         {
-            var c = new Compiler() { CompilerExe = CompilerPath };
+            var c = new Compiler(Environment.CurrentDirectory, Compiler.GetEnvs());
+            c.CompilerExe = CompilerPath;
             var hv = new List<string>();
 
             Assert.IsTrue(c.ProcessArguments(argv));
@@ -140,13 +142,14 @@ namespace CClash.Tests
         [TestCase("@test-sources\\compiler2.resp")]
         public void PreprocessorTest(params string[] argv)
         {
-            var c = new Compiler() { CompilerExe = CompilerPath };
+            var c = new Compiler(Environment.CurrentDirectory, Compiler.GetEnvs());
+            c.CompilerExe = CompilerPath;
             var supported = c.ProcessArguments(argv);
 
             Assert.IsTrue(supported);
             Assert.AreEqual(1, c.CliIncludePaths.Count);
-            Assert.AreEqual("test-sources\\inc with spaces", c.CliIncludePaths[0]);
-            Assert.AreEqual("test-sources\\hello.c", c.SingleSourceFile);
+            Assert.AreEqual(Path.Combine(Environment.CurrentDirectory,"test-sources\\inc with spaces"), c.CliIncludePaths[0]);
+            Assert.AreEqual(Path.Combine(Environment.CurrentDirectory,"test-sources\\hello.c"), c.SingleSourceFile);
             using (var sw = new StreamWriter(new MemoryStream()))
             {
                 var rv = c.InvokePreprocessor(sw);
@@ -161,12 +164,12 @@ namespace CClash.Tests
         [TestCase("@test-sources\\compiler2.resp")]
         public void CompileObjectTest(params string[] argv)
         {
-            var c = new Compiler() { CompilerExe = CompilerPath };
+            var c = new Compiler( Environment.CurrentDirectory, Compiler.GetEnvs() ){ CompilerExe = CompilerPath };
             
             Assert.IsTrue(c.ProcessArguments(argv));
             Assert.AreEqual(1, c.CliIncludePaths.Count);
-            Assert.AreEqual("test-sources\\inc with spaces", c.CliIncludePaths[0]);
-            Assert.AreEqual("test-sources\\hello.c", c.SingleSourceFile);
+            Assert.AreEqual(Path.Combine( Environment.CurrentDirectory, "test-sources\\inc with spaces"), c.CliIncludePaths[0]);
+            Assert.AreEqual(Path.Combine( Environment.CurrentDirectory, "test-sources\\hello.c"), c.SingleSourceFile);
             var stderr = new StringBuilder();
             var stdout = new StringBuilder();
             var rv = c.InvokeCompiler(c.CommandLine, x => stderr.AppendLine(x), x => stdout.AppendLine(x), false, null);
@@ -180,7 +183,7 @@ namespace CClash.Tests
         [TestCase("/link")]
         public void DetectNotSupported(params string[] argv)
         {
-            var c = new Compiler() { CompilerExe = CompilerPath };
+            var c = new Compiler(Environment.CurrentDirectory, Compiler.GetEnvs());
 
             Assert.IsFalse(c.ProcessArguments(argv));
         }
