@@ -32,30 +32,23 @@ namespace CClash
             return !FileUtils.Exists(to) && (CreateHardLink(to, from, IntPtr.Zero) != 0);
         }
 
-        public static StringDictionary ConvertEnvDict(IDictionary<string, string> env)
-        {
-            var rv = new StringDictionary();
-            foreach (var n in env)
-            {
-                rv[n.Key] = n.Value;
-            }
-            return rv;
-        }
-
-        public static StringDictionary GetEnvs()
+        public static IDictionary<string, string> GetEnvs()
         {
             FixEnv();
-            var sd = new StringDictionary();
+            var sd = new Dictionary<string, string>();
             var e = Environment.GetEnvironmentVariables();
             foreach (var n in e.Keys)
             {
-                sd[(string)n] = e[n] as string;
+                var name = ((string)n).ToUpper();
+                sd[name] = e[n] as string;
             }
             return sd;
         }
 
+        static bool fixedenvs = false;
         public static void FixEnv()
         {
+            if ( fixedenvs ) return;
             var ost = Environment.GetEnvironmentVariable("OSTYPE");
             if (Environment.GetEnvironmentVariable("CCLASH_CYGWIN_FIX") != null)
                 ost = "cygwin";
@@ -114,6 +107,7 @@ namespace CClash
                     }
                 }
             }
+            fixedenvs = true;
         }
 
         public static string Find()
@@ -148,7 +142,7 @@ namespace CClash
             return null;
         }
 
-        public StringDictionary Envs { get; private set; }
+        public Dictionary<string, string> Envs { get; private set; }
 
         public string WorkingDirectory { get; private set; }
 
@@ -166,18 +160,12 @@ namespace CClash
         /// <summary>
         /// Create a new instance of the Compiler class.
         /// </summary>
-        public Compiler( string workdir, StringDictionary envs )
+        public Compiler( string workdir, IDictionary<string,string> envs )
         {
             if (!Path.IsPathRooted(workdir)) throw new ArgumentException("workdir must be an absolute path");
             if (!Directory.Exists(workdir)) throw new DirectoryNotFoundException(workdir);
             WorkingDirectory = workdir;
-            Envs = new System.Collections.Specialized.StringDictionary();
-            foreach ( var n in UsedEnvNames )
-                Envs[n] = string.Empty;
-
-            foreach (string n in envs.Keys)
-                Envs[n] = envs[n];
-
+            Envs = new Dictionary<string, string>(envs);
             compilerExe = "cl";
         }
 
@@ -626,10 +614,9 @@ namespace CClash
                 RedirectStandardOutput = true, 
                 WorkingDirectory = WorkingDirectory,
             };
-
             
-            foreach (string n in Envs.Keys)
-                psi.EnvironmentVariables[n] = Envs[n];
+            foreach (var kv in Envs)
+                psi.EnvironmentVariables[kv.Key] = kv.Value;
 
             psi.EnvironmentVariables["PATH"] = Path.GetDirectoryName(CompilerExe) + ";" + psi.EnvironmentVariables["PATH"];
             psi.ErrorDialog = true;
@@ -645,7 +632,7 @@ namespace CClash
                         {
                             inc = inc.Replace('/', '\\');
                         }
-                        foundIncludes.Add(inc);
+                        foundIncludes.Add(GetPath(inc));
                     }
                     else
                     {

@@ -11,7 +11,7 @@ namespace CClash
 {
     public class CompilerCacheFactory
     {
-        public static ICompilerCache Get(bool direct, string cachedir, string compiler, string workdir, StringDictionary envs )
+        public static ICompilerCache Get(bool direct, string cachedir, string compiler, string workdir, IDictionary<string,string> envs )
         {
             ICompilerCache rv;
             if (Settings.ServiceMode)
@@ -72,7 +72,7 @@ namespace CClash
         public abstract void Setup();
         public abstract void Finished();
 
-        public void SetCompiler(string compiler, string workdir, StringDictionary envs)
+        public void SetCompiler(string compiler, string workdir, IDictionary<string,string> envs)
         {
             if (string.IsNullOrEmpty(compiler)) throw new ArgumentNullException("compiler");
             compilerPath = compiler;

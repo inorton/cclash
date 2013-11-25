@@ -158,7 +158,7 @@ namespace CClash
                     break;
 
                 case Command.Run:                    
-                    cache.SetCompiler(req.compiler, req.workdir, Compiler.ConvertEnvDict( req.envs ));
+                    cache.SetCompiler(req.compiler, req.workdir, req.envs );
                     rv.exitcode = cache.CompileOrCache(req.argv);
                     System.IO.Directory.SetCurrentDirectory(mydocs);
                     rv.supported = true;

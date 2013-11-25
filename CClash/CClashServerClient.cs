@@ -99,7 +99,7 @@ namespace CClash
         string compilerPath;
         string workingDirectory;
         Dictionary<string, string> environment = new Dictionary<string, string>();
-        public void SetCompiler(string compiler, string workdir, StringDictionary envs)
+        public void SetCompiler(string compiler, string workdir, IDictionary<string,string> envs)
         {
             if (string.IsNullOrEmpty(compiler)) throw new ArgumentNullException("compiler");
             workingDirectory = workdir;
@@ -110,22 +110,11 @@ namespace CClash
 
         public int CompileOrCache(IEnumerable<string> args)
         {
-
-            var txvars = new Dictionary<string, string>();
-            foreach (var n in Compiler.UsedEnvNames)
-            {
-                string v;
-                if (environment.TryGetValue(n.ToLower(), out v))
-                {
-                    txvars.Add(n.ToUpper(), v);
-                }
-            }
-
             var req = new CClashRequest()
             {
                 cmd = Command.Run,
                 compiler = compilerPath,
-                envs = txvars,
+                envs = environment,
                 workdir = workingDirectory,
                 argv = new List<string> ( args ),
             };

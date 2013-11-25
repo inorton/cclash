@@ -100,12 +100,7 @@ namespace CClash
 #endif
             }
             
-            var sd = new System.Collections.Specialized.StringDictionary();
-            var envs = Environment.GetEnvironmentVariables();
-            foreach ( object n in envs.Keys )
-                sd[(string)n] = (string) envs[n];
-
-            var rv = new Compiler( Environment.CurrentDirectory, sd )
+                       var rv = new Compiler( Environment.CurrentDirectory, Compiler.GetEnvs() )
             {
                 CompilerExe = Compiler.Find(),
             }.InvokeCompiler(args, Console.Error.WriteLine, Console.Out.WriteLine, false, null);
