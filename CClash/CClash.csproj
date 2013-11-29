@@ -47,6 +47,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ThreadedExistsUtil.cs" />
     <Compile Include="CacheManifest.cs" />
     <Compile Include="CacheMode.cs" />
     <Compile Include="CacheInformation.cs" />
@@ -63,6 +64,7 @@
     <Compile Include="FileUtils.cs" />
     <Compile Include="HashUtil.cs" />
     <Compile Include="ICacheInfo.cs" />
+    <Compile Include="ICompiler.cs" />
     <Compile Include="ICompilerCache.cs" />
     <Compile Include="Logging.cs" />
     <Compile Include="Program.cs" />

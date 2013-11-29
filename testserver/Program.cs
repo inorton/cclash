@@ -10,8 +10,9 @@ namespace CClash
     {
         static void Main(string[] args)
         {
-            //Environment.SetEnvironmentVariable("CCLASH_HARDLINK", "yes");
+            Environment.SetEnvironmentVariable("CCLASH_TRY_HARDLINKS", "yes");
             Environment.SetEnvironmentVariable("CCLASH_SERVER", "yes");
+            Environment.SetEnvironmentVariable("CCLASH_LAZY_NEW_INCLUDES", "yes");
             Environment.SetEnvironmentVariable("CCLASH_MISSES", System.IO.Path.Combine( Environment.CurrentDirectory, "misses.txt"));
             Settings.CacheDirectory = System.IO.Path.Combine( Environment.CurrentDirectory, "cclash-unittest");
 

@@ -10,6 +10,20 @@ namespace CClash {
     public sealed class FileUtils 
     {
 
+        [DllImport("Kernel32.dll", CharSet = CharSet.Unicode)]
+        static extern bool CreateHardLink(
+        string lpFileName,
+        string lpExistingFileName,
+        IntPtr lpSecurityAttributes
+        );
+
+        public static bool TryHardLink(string src, string dst)
+        {
+            if (!FileMissing(dst))
+                File.Delete(dst);
+            return CreateHardLink(dst, src, IntPtr.Zero);
+        }
+
         public static bool Exists(string path)
         {
             return new FileInfo(path).Exists;
@@ -72,12 +86,20 @@ namespace CClash {
             {
                 try
                 {
-                    using (var ifs = new FileStream(from, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    try
                     {
-                        using (var ofs = new FileStream(to, FileMode.OpenOrCreate, FileAccess.Write))
+                        File.Copy(from, to, true);
+                        return;
+                    }
+                    catch ( IOException )
+                    {
+                        using (var ifs = new FileStream(from, FileMode.Open, FileAccess.Read, FileShare.Read))
                         {
-                            ifs.CopyTo(ofs);
-                            return;
+                            using (var ofs = new FileStream(to, FileMode.OpenOrCreate, FileAccess.Write))
+                            {
+                                ifs.CopyTo(ofs);
+                                return;
+                            }
                         }
                     }
                 }
@@ -89,5 +111,16 @@ namespace CClash {
                 }
             } while (true);
         }
+
+        
+        public static bool CheckMultiNotExists(IEnumerable<string> files)
+        {
+            bool rv = false;
+
+
+
+            return rv;
+        }
+             
     }
 }

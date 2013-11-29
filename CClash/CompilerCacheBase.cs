@@ -11,7 +11,7 @@ namespace CClash
 {
     public class CompilerCacheFactory
     {
-        public static ICompilerCache Get(bool direct, string cachedir, string compiler, string workdir, IDictionary<string,string> envs )
+        public static ICompilerCache Get(bool direct, string cachedir )
         {
             ICompilerCache rv;
             if (Settings.ServiceMode)
@@ -31,7 +31,6 @@ namespace CClash
                     throw new NotSupportedException("ppmode is not supported yet");
                 }
             }
-            rv.SetCompiler(compiler, workdir, envs);
             return rv;
         }
     }
@@ -46,16 +45,9 @@ namespace CClash
 
         protected FileCacheStore outputCache;
         protected FileCacheStore includeCache;
-        protected String compilerPath;
+        
         protected HashUtil hasher;
-        protected Compiler comp;
-
-        public Compiler Compiler
-        {
-            get { return comp; }
-            set { comp = value; }
-        }
-
+        
         ICacheInfo stats = null;
 
         protected static DateTime cacheStart = DateTime.Now;
@@ -72,29 +64,20 @@ namespace CClash
         public abstract void Setup();
         public abstract void Finished();
 
-        public void SetCompiler(string compiler, string workdir, IDictionary<string,string> envs)
+        public ICompiler GetCompiler(string compiler, string workdir, IDictionary<string,string> envs)
         {
-            if (string.IsNullOrEmpty(compiler)) throw new ArgumentNullException("compiler");
-            compilerPath = compiler;
-            comp = new Compiler( workdir, envs )
-            {
-                CompilerExe = compilerPath
-            };
+            return new Compiler(compiler, workdir, envs);
         }
 
-        public virtual bool IsSupported(IEnumerable<string> args)
+        public virtual bool IsSupported( ICompiler comp, IEnumerable<string> args)
         {
             cacheStart = DateTime.Now;
-            if (FileUtils.Exists(compilerPath))
+            var rv = comp.ProcessArguments(args.ToArray());
+            if (!rv)
             {
-                var rv = comp.ProcessArguments(args.ToArray());
-                if (!rv)
-                {
-                    Logging.Emit("args not supported");
-                }
-                return rv;
+                Logging.Emit("args not supported");
             }
-            throw new FileNotFoundException(compilerPath);
+            return rv;
         }
 
         public virtual DataHash DigestBinaryFile(string path)
@@ -107,14 +90,14 @@ namespace CClash
             return DigestBinaryFile(compilerPath);
         }
 
-        public DataHash DeriveHashKey(IEnumerable<string> args)
+        public DataHash DeriveHashKey(ICompiler comp, IEnumerable<string> args)
         {
-            var comphash = DigestCompiler(compilerPath);
+            var comphash = DigestCompiler(comp.CompilerExe);
             if (comphash.Result == DataHashResult.Ok)
             {
                 var buf = new StringBuilder();
                 buf.AppendLine(this.GetType().FullName.ToString());
-                var incs = Environment.GetEnvironmentVariable("INCLUDE");
+                var incs = comp.Envs["INCLUDE"];
                 if (incs != null)
                     buf.AppendLine(incs);
                 foreach (var a in args)
@@ -140,13 +123,29 @@ namespace CClash
             return manifest;
         }
 
-        void CopyOutputFiles(DataHash hc)
+        public void CopyOrHardLink(string src, string dst)
+        {
+            if (!Settings.TryHardLinks || !FileUtils.TryHardLink(src, dst))
+            {
+                CopyFile(src, dst);
+            }
+        }
+
+        protected virtual void CopyOutputFiles(DataHash hc, string objpath, string pdbpath)
         {
             try
             {
-                CopyFile(outputCache.MakePath(hc.Hash, F_Object), comp.ObjectTarget);
-                if (comp.GeneratePdb)
-                    CopyFile(outputCache.MakePath(hc.Hash, F_Pdb), comp.PdbFile);
+                var cachedobj = outputCache.MakePath(hc.Hash, F_Object);
+                var cachedpdb = outputCache.MakePath(hc.Hash, F_Pdb);
+
+                //CopyFile(cachedobj, objpath); // do things modify object files?
+                CopyOrHardLink(cachedobj, objpath);
+                
+                if (!string.IsNullOrWhiteSpace(pdbpath))
+                {
+                    //CopyFile(cachedpdb, pdbpath); // do things modify pdbs?
+                    CopyOrHardLink(cachedpdb, pdbpath);
+                }
             }
             catch (Exception e)
             {
@@ -155,29 +154,13 @@ namespace CClash
             }
         }
 
-        async Task CopyOutputFilesAsync(DataHash hc)
-        {
-            await Task.Run(() =>
-            {
-                CopyOutputFiles(hc);
-            });
-        }
-
-        void CopyStdio(DataHash hc)
+        void CopyStdio(DataHash hc, Action<string> stderr, Action<string> stdout)
         {
             var stderrfile = outputCache.MakePath(hc.Hash, F_Stderr);
             var stdoutfile = outputCache.MakePath(hc.Hash, F_Stdout);
 
-            OutputWrite(File.ReadAllText(stdoutfile));
-            ErrorWrite(File.ReadAllText(stderrfile));
-        }
-
-        async Task CopyStdioAsync(DataHash hc)
-        {
-            await Task.Run(() =>
-            {
-                CopyStdio(hc);
-            });
+            if (stderr != null) stderr(File.ReadAllText(stderrfile));
+            if (stdout != null) stdout(File.ReadAllText(stdoutfile));
         }
 
         public virtual Dictionary<string, DataHash> GetHashes(IEnumerable<string> fnames)
@@ -200,17 +183,14 @@ namespace CClash
             FileUtils.CopyUnlocked(from, to);
         }
 
-        protected int OnCacheHitLocked(DataHash hc, CacheManifest hm)
+        protected int OnCacheHitLocked(DataHash hc, ICompiler comp, CacheManifest hm, Action<string> stderr, Action<string> stdout)
         {
             // we dont need the lock now, it is highly unlikley someone else will
             // modify these files
             outputCache.ReleaseMutex();
 
-            //var stdio = CopyStdioAsync(hc);
-            //var odata = CopyOutputFilesAsync(hc);
-
-            CopyStdio(hc);
-            CopyOutputFiles(hc);
+            CopyStdio(hc, stderr, stdout);
+            CopyOutputFiles(hc, comp.ObjectTarget, comp.PdbFile);
 
             var duration = DateTime.Now.Subtract(cacheStart);
 
@@ -236,46 +216,52 @@ namespace CClash
                     });
             });
 
-            //odata.Wait();
-            //stdio.Wait();
             tstat.Wait();
             return 0;
         }
 
-        protected abstract bool CheckCache(IEnumerable<string> args, DataHash commonkey, out CacheManifest manifest);
-        protected abstract int OnCacheMissLocked(DataHash hc, IEnumerable<string> args, CacheManifest m);
+        protected abstract bool CheckCache(ICompiler comp, IEnumerable<string> args, DataHash commonkey, out CacheManifest manifest);
+        protected abstract int OnCacheMissLocked(DataHash hc, ICompiler comp, IEnumerable<string> args, CacheManifest m, Action<string> stderr, Action<string> stdout);
 
-        protected int CompileWithStreams(IEnumerable<string> args, StreamWriter stderr, StreamWriter stdout, List<string> includes)
+        protected int CompileWithStreams(ICompiler comp, IEnumerable<string> args, StreamWriter stderr, StreamWriter stdout, List<string> includes)
         {
+            bool saveincludes = includes != null;
             var rv = comp.InvokeCompiler(args,
                         x =>
                         {
-                            ErrorWriteLine(x);
+                            if (!saveincludes)
+                            {
+                                ErrorWriteLine(x);
+                            }
                             stderr.WriteLine(x);
                         }, y =>
                         {
-                            OutputWriteLine(y);
+                            if (!saveincludes)
+                            {
+                                OutputWriteLine(y);
+                            }
                             stdout.WriteLine(y);
-                        }, includes != null, includes);
+                            
+                        }, saveincludes, includes);
 
             return rv;
         }
 
-        public virtual int CompileOrCache(IEnumerable<string> args)
+        public virtual int CompileOrCache(ICompiler comp, IEnumerable<string> args, Action<string> stderr, Action<string> stdout)
         {
-            if (IsSupported(args))
+            if (IsSupported(comp, args))
             {
-                var hc = DeriveHashKey(args);
+                var hc = DeriveHashKey(comp, args);
                 if (hc.Result == DataHashResult.Ok)
                 {
                     CacheManifest hm;
-                    if (CheckCache(args ,hc, out hm))
+                    if (CheckCache(comp, args, hc, out hm))
                     {
-                        return OnCacheHitLocked(hc, hm);
+                        return OnCacheHitLocked(hc, comp, hm, stderr, stdout);
                     }
                     else
                     {   // miss, try build
-                        return OnCacheMissLocked(hc, args, hm);
+                        return OnCacheMissLocked(hc, comp, args, hm, stderr, stdout);
                     }
                 }
             }
@@ -292,14 +278,7 @@ namespace CClash
                 }
             }
 
-            return CompileOnly(args);
-        }
-
-        public int CompileOnly(IEnumerable<string> args)
-        {
-            {
-                return comp.InvokeCompiler(args, ErrorWriteLine, OutputWriteLine, false, null);
-            }
+            return comp.InvokeCompiler(args, stderr, stdout, false, null);
         }
 
         public virtual void ErrorWriteLine(string str)

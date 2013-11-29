@@ -11,6 +11,159 @@ using System.Collections.Specialized;
 
 namespace CClash
 {
+    public sealed class CClashServerClientCompiler : ICompiler
+    {
+        public string CompilerExe { get; set; }
+        public bool ProcessArguments(string[] args)
+        {
+            return true;
+        }
+
+        public List<string> CliIncludePaths
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public string[] CommandLine
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+            set
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public Dictionary<string, string> Envs
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public IEnumerable<string> FixupArgs(IEnumerable<string> args)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool GeneratePdb
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+            set
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public string GetPath(string path)
+        {
+            throw new NotImplementedException();
+        }
+
+        public List<string> GetPotentialIncludeFiles(IEnumerable<string> incdirs, IEnumerable<string> incfiles)
+        {
+            throw new NotImplementedException();
+        }
+
+        public List<string> GetUsedIncludeDirs(List<string> files)
+        {
+            throw new NotImplementedException();
+        }
+
+        public int InvokeCompiler(IEnumerable<string> args, Action<string> onStdErr, Action<string> onStdOut, bool showIncludes, List<string> foundIncludes)
+        {
+            throw new NotImplementedException();
+        }
+
+        public int InvokePreprocessor(StreamWriter stdout)
+        {
+            throw new NotImplementedException();
+        }
+
+        public bool Linking
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+            set
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public string ObjectTarget
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+            set
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public string PdbFile
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+            set
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public bool PrecompiledHeaders
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+            set
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public string ResponseFile
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+            set
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        public bool SingleSource
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public string SingleSourceFile
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public string[] SourceFiles
+        {
+            get { throw new NotImplementedException(); }
+        }
+
+        public string WorkingDirectory
+        {
+            get { throw new NotImplementedException(); }
+        }
+    }
+
     public sealed class CClashServerClient : ICompilerCache
     {
         NamedPipeClientStream ncs;
@@ -64,7 +217,6 @@ namespace CClash
                         psi.CreateNoWindow = true;
                         psi.Arguments = "--cclash-server";
                         psi.ErrorDialog = false;
-                        psi.WorkingDirectory = Environment.CurrentDirectory;
                         psi.WindowStyle = ProcessWindowStyle.Hidden;
                         serverProcess.StartInfo = psi;
                         serverProcess.Start();
@@ -91,7 +243,7 @@ namespace CClash
             }
         }
 
-        public bool IsSupported(IEnumerable<string> args)
+        public bool IsSupported( ICompiler comp, IEnumerable<string> args)
         {
             return true;
         }
@@ -99,16 +251,22 @@ namespace CClash
         string compilerPath;
         string workingDirectory;
         Dictionary<string, string> environment = new Dictionary<string, string>();
-        public void SetCompiler(string compiler, string workdir, IDictionary<string,string> envs)
+        public ICompiler GetCompiler(string compiler, string workdir, IDictionary<string,string> envs)
         {
             if (string.IsNullOrEmpty(compiler)) throw new ArgumentNullException("compiler");
             workingDirectory = workdir;
             compilerPath = System.IO.Path.GetFullPath(compiler);
             foreach (string n in envs.Keys)
                 environment[n] = envs[n];
+            return new CClashServerClientCompiler() { CompilerExe = compiler };
         }
 
-        public int CompileOrCache(IEnumerable<string> args)
+        public StringBuilder GetStdioStringBuilder()
+        {
+            return null;
+        }
+
+        public int CompileOrCache(ICompiler comp, IEnumerable<string> args, Action<string> stderr, Action<string> stdout)
         {
             var req = new CClashRequest()
             {
@@ -121,9 +279,8 @@ namespace CClash
             var resp = Transact(req);
             if (resp != null)
             {
-
-                Console.Error.Write(resp.stderr);
-                Console.Out.Write(resp.stdout);
+                if (stderr != null) stderr(resp.stderr);
+                if (stdout != null) stdout(resp.stdout);
 
                 return resp.exitcode;
             }
@@ -159,7 +316,7 @@ namespace CClash
             return resp;
         }
 
-        public DataHash DeriveHashKey(IEnumerable<string> args)
+        public DataHash DeriveHashKey( ICompiler unused, IEnumerable<string> args)
         {
             throw new NotSupportedException();
         }

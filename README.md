@@ -20,17 +20,19 @@ Also, you can set `CCLASH_HARDLINK` and cclash will attempt to make NTFS hardlin
 
 ## How well does it work?
 
-On my (not very good) windows 8 machine, I have a simple test by building openssl under nmake. These tests were all done _after_ running the Configure step.
+On my (not very good) windows 8 machine, I have a simple test by building openssl under nmake. These tests were all done _after_ running the Configure step and with a "warm" disk cache.
 
-OpenSSL windows build                                     | Duration | Time Difference |
-----------------------------------------------------------|----------|-----------------|
-average build time without cclash                         |   288s   |                 |
-cclash enabled first run                                  |   464s   |           +61%  |
-cclash enabled second run                                 | **128s** |           **-56% ** |
-cclash enabled first run (CCLASH_SERVER)                  |   391s   |           +35%  |
-cclash enabled second run (CCLASH_SERVER)                 | **108s** |           **-63%**  |
+OpenSSL windows build                                              | Duration | Time Difference |
+-------------------------------------------------------------------|----------|-----------------|
+average build time without cclash                                  |   288s   |                 |
+cclash enabled cold run                                            |   454s   |           +57%  |
+cclash enabled warm run                                            | **133s** |       **-46% ** |
+cclash enabled cold run (CCLASH_SERVER)                            |   404s   |           +40%  |
+cclash enabled cold run (CCLASH_SERVER and CCLASH_TRY_HARDLINKS)   |   394s   |           +36%  |
+cclash enabled warm run (CCLASH_SERVER)                            | **119s** |       **-59%**  |
+cclash enabled warm run (CCLASH_SERVER and CCLASH_TRY_HARDLINKS)   |  **95s** |       **-68%**  |
 
-The first build with a clean cache costs about an extra 30-60% in build time for each file. Subsequent builds (with no source changes) give about a 50-65% reduction in build time.
+The first build with a clean cache costs about an extra 40-60% in build time for each file. Subsequent builds (with no source changes) give about a 50-70% reduction in build time.
 
 So.. For cclash to make a difference to you, you would want to be in a situation where you will compile most of your files more than 2 or 3 times. In my case, I wanted cclash for a continuous integration build so it _should_ pay off quite quickly day or so
 

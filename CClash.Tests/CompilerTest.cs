@@ -54,13 +54,18 @@ namespace CClash.Tests
                 File.Delete(file);
         }
 
+        Compiler GetCompiler()
+        {
+            return new Compiler(CompilerPath, Environment.CurrentDirectory, Compiler.GetEnvs());
+        }
+
         [Test]
         [TestCase("/c","test-sources\\exists.c")]
         [TestCase("/c","test-sources\\exists.c", "/Fowhatever.obj")]
         [TestCase("/c","test-sources\\exists.c", "/Fotest-sources")]
         public void ParseSupportedArgs(params string[] argv)
         {
-            var c = new Compiler(Environment.CurrentDirectory, Compiler.GetEnvs());
+            var c = GetCompiler();
             var sbo = new StringBuilder();
             var sbe = new StringBuilder();
             Assert.IsTrue(c.ProcessArguments(argv));
@@ -72,8 +77,6 @@ namespace CClash.Tests
 
             EnsureDeleted(c.ObjectTarget);
             EnsureDeleted(c.PdbFile);
-            
-            c.CompilerExe = CompilerPath;
 
             var ec = c.InvokeCompiler(
                 c.CommandLine,
@@ -91,8 +94,8 @@ namespace CClash.Tests
         [TestCase("/c", "test-sources\\exists.c", "/Zi", "/Fdtest-sources\\stuff.pdb")]
         public void ParseSupportedPdbArgs(params string[] argv)
         {
-            var c = new Compiler(Environment.CurrentDirectory, Compiler.GetEnvs());
-            c.CompilerExe = CompilerPath;
+            var c = GetCompiler();
+
             Assert.IsTrue(c.ProcessArguments(argv));
             Assert.IsTrue(c.GeneratePdb);
             Assert.IsNotNullOrEmpty(c.PdbFile);
@@ -113,8 +116,7 @@ namespace CClash.Tests
         [TestCase("/c", "test-sources\\exists.c", "/Yu")]
         public void ParseUnSupportedArgs(params string[] argv)
         {
-            var c = new Compiler( Environment.CurrentDirectory, Compiler.GetEnvs() );
-            c.CompilerExe = CompilerPath;
+            var c = GetCompiler();
             Assert.IsFalse(c.ProcessArguments(argv));
         }
 
@@ -122,8 +124,7 @@ namespace CClash.Tests
         [TestCase("/c", "test-sources\\hello.c", "/Itest-sources\\inc with spaces")]
         public void IncludeFileTest(params string[] argv)
         {
-            var c = new Compiler(Environment.CurrentDirectory, Compiler.GetEnvs());
-            c.CompilerExe = CompilerPath;
+            var c = GetCompiler();
             var hv = new List<string>();
 
             Assert.IsTrue(c.ProcessArguments(argv));
@@ -142,8 +143,7 @@ namespace CClash.Tests
         [TestCase("@test-sources\\compiler2.resp")]
         public void PreprocessorTest(params string[] argv)
         {
-            var c = new Compiler(Environment.CurrentDirectory, Compiler.GetEnvs());
-            c.CompilerExe = CompilerPath;
+            var c = GetCompiler();
             var supported = c.ProcessArguments(argv);
 
             Assert.IsTrue(supported);
@@ -164,8 +164,7 @@ namespace CClash.Tests
         [TestCase("@test-sources\\compiler2.resp")]
         public void CompileObjectTest(params string[] argv)
         {
-            var c = new Compiler( Environment.CurrentDirectory, Compiler.GetEnvs() ){ CompilerExe = CompilerPath };
-            
+            var c = GetCompiler();
             Assert.IsTrue(c.ProcessArguments(argv));
             Assert.AreEqual(1, c.CliIncludePaths.Count);
             Assert.AreEqual(Path.Combine( Environment.CurrentDirectory, "test-sources\\inc with spaces"), c.CliIncludePaths[0]);
@@ -173,7 +172,11 @@ namespace CClash.Tests
             var stderr = new StringBuilder();
             var stdout = new StringBuilder();
             var rv = c.InvokeCompiler(c.CommandLine, x => stderr.AppendLine(x), x => stdout.AppendLine(x), false, null);
-
+            if (rv != 0)
+            {
+                Console.Error.Write(stderr.ToString());
+                Console.Out.Write(stdout.ToString());
+            }
             Assert.AreEqual(0, rv);
         }
 
@@ -183,8 +186,7 @@ namespace CClash.Tests
         [TestCase("/link")]
         public void DetectNotSupported(params string[] argv)
         {
-            var c = new Compiler(Environment.CurrentDirectory, Compiler.GetEnvs());
-
+            var c = GetCompiler();
             Assert.IsFalse(c.ProcessArguments(argv));
         }
 
@@ -195,7 +197,7 @@ namespace CClash.Tests
             FileUtils.WriteTextFile(src, "test");
             var target = Path.Combine(Environment.CurrentDirectory, "test.txt");
             if (File.Exists(target)) File.Delete(target);
-            Assert.AreEqual( true, Compiler.MakeHardLink(target, src) );
+            Assert.AreEqual( true, FileUtils.TryHardLink( src, target ) );
         }
     }
 }

@@ -12,25 +12,12 @@ namespace CClash
     /// <summary>
     /// Class for processing compiler inputs, running the compiler and deducing outputs.
     /// </summary>
-    public sealed class Compiler
+    public sealed class Compiler : ICompiler
     {
         static Regex findLineInclude = new Regex("#line\\s+\\d+\\s+\"([^\"]+)\"");
         
         [DllImport("kernel32.dll",  CharSet = CharSet.Auto)]
         static unsafe extern IntPtr GetEnvironmentStringsA();
-
-
-        [DllImport("Kernel32.dll", CharSet = CharSet.Unicode)]
-        static extern int CreateHardLink(
-        string lpFileName,
-        string lpExistingFileName,
-        IntPtr lpSecurityAttributes
-        );
-
-        public static bool MakeHardLink(string to, string from)
-        {
-            return !FileUtils.Exists(to) && (CreateHardLink(to, from, IntPtr.Zero) != 0);
-        }
 
         public static IDictionary<string, string> GetEnvs()
         {
@@ -160,13 +147,16 @@ namespace CClash
         /// <summary>
         /// Create a new instance of the Compiler class.
         /// </summary>
-        public Compiler( string workdir, IDictionary<string,string> envs )
+        public Compiler( string clpath, string workdir, IDictionary<string,string> envs )
         {
+            if (string.IsNullOrWhiteSpace(clpath)) throw new ArgumentNullException("clpath");
+            if (!FileUtils.Exists(clpath)) throw new FileNotFoundException(clpath);
             if (!Path.IsPathRooted(workdir)) throw new ArgumentException("workdir must be an absolute path");
             if (!Directory.Exists(workdir)) throw new DirectoryNotFoundException(workdir);
             WorkingDirectory = workdir;
             Envs = new Dictionary<string, string>(envs);
-            compilerExe = "cl";
+            if (!Envs.ContainsKey("INCLUDE")) Envs["INCLUDE"] = string.Empty; // throw instead?
+            compilerExe = clpath;
         }
 
         public string GetPath(string path)

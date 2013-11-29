@@ -11,9 +11,9 @@ namespace CClash
     {
         ICacheInfo Stats { get; }
 
-        bool IsSupported(IEnumerable<string> args);
-        int CompileOrCache(IEnumerable<string> args);
-        void SetCompiler(string compilerPath, string workdir, IDictionary<string,string> envs);
-        DataHash DeriveHashKey(IEnumerable<string> args);
+        bool IsSupported(ICompiler comp, IEnumerable<string> args);
+        int CompileOrCache(ICompiler comp, IEnumerable<string> args, Action<string> stderr, Action<string> stdout);
+        ICompiler GetCompiler(string compilerPath, string workdir, IDictionary<string,string> envs);
+        DataHash DeriveHashKey(ICompiler comp, IEnumerable<string> args);
     }
 }

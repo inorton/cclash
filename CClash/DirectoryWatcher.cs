@@ -19,12 +19,14 @@ namespace CClash
         {
             Files = new List<string>();
             w = new FileSystemWatcher(folder);
+            w.Created += (o, a) => { OnCreate(a.FullPath); };
             w.Changed += (o, a) => { OnChange(a.FullPath); };
             w.Deleted += (o, a) => { OnChange(a.FullPath); };
             w.Renamed += (o, a) => { OnChange(a.FullPath); };
         }
 
         public event FileChangedHandler FileChanged;
+        public event FileChangedHandler FileCreated;
 
         public void Enable()
         {
@@ -62,6 +64,18 @@ namespace CClash
                 if (FileChanged != null)
                 {
                     FileChanged(this, new FileChangedEventArgs() { FilePath = file });
+                }
+            }
+        }
+
+        void OnCreate(string file)
+        {
+            file = Path.GetFileName(file);
+            if (Files.Contains(file))
+            {
+                if (FileCreated != null)
+                {
+                    FileCreated(this, new FileChangedEventArgs() { FilePath = file });
                 }
             }
         }

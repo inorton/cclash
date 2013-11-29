@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using Microsoft.Win32;
+
 namespace CClash
 {
     public sealed class Settings
@@ -21,41 +23,52 @@ namespace CClash
 
         static Settings() { }
 
-        static bool ConditionVarsAreTrue(string prefix)
+        static bool ConditionVarsAreTrue(string prefix, Dictionary<string, string> envs )
         {
-            var var = Environment.GetEnvironmentVariable(prefix + "_VAR");
-            if (!string.IsNullOrEmpty(var))
+            string var = null;
+            string varvalue = null;
+            if (envs.TryGetValue(prefix + "_VAR", out var) && envs.TryGetValue( var, out varvalue ) )
             {
-                var values = Environment.GetEnvironmentVariable(prefix + "_VALUES");
-                if (!string.IsNullOrEmpty(values))
+                string values = null;
+                if (envs.TryGetValue(prefix + "_VALUES", out values))
                 {
-                    var check = Environment.GetEnvironmentVariable(var);
                     var vlist = values.Split(',');
                     foreach (var v in vlist)
                     {
-                        if (v == check) return true;
+                        if (v == varvalue) return true;
                     }
                 }
             }
             return false;
         }
 
-        static bool EnabledByConditions()
+        static bool EnabledByConditions(Dictionary<string, string> envs)
         {
-            return ConditionVarsAreTrue("CCLASH_ENABLE_WHEN");
+            return ConditionVarsAreTrue("CCLASH_ENABLE_WHEN", envs);
         }
 
-        static bool DisabledByConditions()
+        static bool DisabledByConditions(Dictionary<string, string> envs)
         {
-            return ConditionVarsAreTrue("CCLASH_DISABLE_WHEN");
+            return ConditionVarsAreTrue("CCLASH_DISABLE_WHEN", envs);
+        }
+
+        static Dictionary<string, string> getEdict()
+        {
+            var envs = Environment.GetEnvironmentVariables();
+            var edict = new Dictionary<string, string>(envs.Count);
+            foreach (var n in envs.Keys)
+            {
+                edict.Add((string)n, (string)envs[n]);
+            }
+            return edict;
         }
 
         public static bool Disabled
         {
             get
             {
-                var dis = !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("CCLASH_DISABLED"));
-                return (dis || DisabledByConditions()) && (!EnabledByConditions());
+                var edict = getEdict();
+                return edict.ContainsKey("CCLASH_DISABLED") || DisabledByConditions(edict) && (!EnabledByConditions(edict));
             }
         }
 
@@ -85,12 +98,7 @@ namespace CClash
         {
             get
             {
-                var dm = Environment.GetEnvironmentVariable("CCLASH_PPMODE");
-                if (dm != null)
-                {
-                    return true;
-                }
-                return ConditionVarsAreTrue("CCLASH_PPMODE_WHEN");
+                return false;
             }
         }
 
@@ -122,6 +130,54 @@ namespace CClash
             {
                 hashThreadCount = value;
             }
+        }
+
+        public static bool TryHardLinks
+        {
+            get
+            {
+                return Environment.GetEnvironmentVariable("CCLASH_TRY_HARDLINKS") != null;
+            }
+        }
+
+        public static bool BypassPotentialIncludeChecks
+        {
+            get
+            {
+                return Environment.GetEnvironmentVariable("CCLASH_LAZY_NEW_INCLUDES") != null;
+
+            }
+        }
+
+        public static bool GetServicePort(string cachedir, out int portnumber)
+        {
+            portnumber = -1;
+            var r = GetCClashDirRegKey();
+            portnumber = (int)r.GetValue(cachedir, portnumber);
+            return portnumber > 0;
+        }
+
+        public static void SetServicePort(string cachedir, int portnumber)
+        {
+            var r = GetCClashDirRegKey();
+            r.SetValue(cachedir, portnumber, RegistryValueKind.DWord);
+        }
+
+        const string CClashRegKeyName = "cclash";
+
+        static RegistryKey GetCClashDirRegKey()
+        {
+            var cc = Registry.CurrentUser.OpenSubKey(CClashRegKeyName);
+            if (cc == null)
+            {
+                cc = Registry.CurrentUser.CreateSubKey(CClashRegKeyName);
+            }
+            var cdir = cc.OpenSubKey("cachedir");
+            if (cdir == null)
+            {
+                cdir = cc.CreateSubKey("cachedir");
+            }
+            return cdir;
         }
     }
 }

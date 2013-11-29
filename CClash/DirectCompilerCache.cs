@@ -20,13 +20,27 @@ namespace CClash
         {
         }
 
+        protected virtual bool CheckPotentialIncludes(IEnumerable<string> potentials, ICompiler comp)
+        {
+            foreach (var f in potentials)
+            {
+                if (!FileUtils.FileMissing(f))
+                {
+                    Logging.Emit("detected added include file {0}", f);
+                    Logging.Miss(DataHashResult.FileAdded, "", comp.SingleSourceFile, f);
+                    return false;
+                }
+            }
+            return true;
+        }
+
         /// <summary>
         /// When this returns, we will hold the output cache mutex.
         /// </summary>
         /// <param name="commonkey"></param>
         /// <param name="manifest"></param>
         /// <returns></returns>
-        protected override bool CheckCache( IEnumerable<string> args, DataHash commonkey, out CacheManifest manifest )
+        protected override bool CheckCache( ICompiler comp, IEnumerable<string> args, DataHash commonkey, out CacheManifest manifest )
         {
             manifest = null;
             outputCache.WaitOne();
@@ -38,15 +52,11 @@ namespace CClash
                     Logging.Emit("disabled by manifest");
                     return false;
                 }
-                foreach (var f in manifest.PotentialNewIncludes)
-                {
-                    if (!FileUtils.FileMissing(f))
-                    {
-                        Logging.Emit("detected added include file {0}", f);
-                        Logging.Miss(DataHashResult.FileAdded, Directory.GetCurrentDirectory(), comp.SingleSourceFile, f);
-                        return false;
-                    }
-                }
+
+
+                if (!CheckPotentialIncludes(manifest.PotentialNewIncludes, comp))
+                    return false;
+
                 var hashes = GetHashes(manifest.IncludeFiles.Keys);
 
                 foreach (var h in hashes)
@@ -59,21 +69,21 @@ namespace CClash
                             if (mhash != h.Value.Hash)
                             {
                                 Logging.Emit("include file hash changed {0}", h.Key);
-                                Logging.Miss(DataHashResult.FileChanged, Directory.GetCurrentDirectory(), comp.SingleSourceFile, h.Key);
+                                Logging.Miss(DataHashResult.FileChanged, "", comp.SingleSourceFile, h.Key);
                                 return false;
                             }
                         }
                         else
                         {
                             Logging.Emit("include file added {0}", h.Key);
-                            Logging.Miss(DataHashResult.FileAdded, Directory.GetCurrentDirectory(), comp.SingleSourceFile, h.Key);
+                            Logging.Miss(DataHashResult.FileAdded, "", comp.SingleSourceFile, h.Key);
                             return false;
                         }
                     }
                     else
                     {
                         Logging.Emit("include file hash error {0} {1}", h.Key, h.Value.Result);
-                        Logging.Miss(h.Value.Result, Directory.GetCurrentDirectory(), comp.SingleSourceFile, h.Key);
+                        Logging.Miss(h.Value.Result, "", comp.SingleSourceFile, h.Key);
                         return false;
                     }
                 }
@@ -96,33 +106,46 @@ namespace CClash
 
         TimeSpan lastCompileDuration = default(TimeSpan);
 
-        protected virtual int Compile(IEnumerable<string> args, string stderrfile, string stdoutfile, List<string> includes)
+        void WriteIO(StreamWriter w, string str, TextWriter console, bool echo)
         {
-            #region compile
-            var start = DateTime.Now;
+            if (echo)
+                if (console != null)
+                    console.WriteLine(str);
+            w.WriteLine(str);
+        }
+
+        protected int Compile(ICompiler comp, IEnumerable<string> args, string stderrfile, string stdoutfile, List<string> includes, bool echoConsole)
+        {
             using (var stderrfs = new StreamWriter(stderrfile))
             {
                 using (var stdoutfs = new StreamWriter(stdoutfile))
                 {
-                    var rv = CompileWithStreams(args, stderrfs, stdoutfs, includes);
-                    lastCompileDuration = DateTime.Now.Subtract(start);
+                    int rv = comp.InvokeCompiler(args, (x) => WriteIO(stderrfs, x, Console.Error, echoConsole),
+                        (y) => WriteIO(stdoutfs, y, Console.Out, echoConsole), includes != null, includes);
                     return rv;
                 }
             }
-            #endregion
         }
 
-        protected virtual void SaveOutputsLocked( CacheManifest m, Compiler c )
+        protected virtual int Compile(ICompiler comp, IEnumerable<string> args, string stderrfile, string stdoutfile, List<string> includes)
         {
-            outputCache.AddFile(m.CommonHash, comp.ObjectTarget, F_Object);
-            if (c.GeneratePdb)
+            return Compile(comp, args, stderrfile, stdoutfile, includes, true);
+        }
+
+        protected virtual void SaveOutputsLocked(ICompiler comp, CacheManifest m)
+        {
+            var objpath = outputCache.MakePath(m.CommonHash, F_Object);
+            CopyOrHardLink(comp.ObjectTarget, objpath);
+            
+            if (comp.GeneratePdb)
             {
-                outputCache.AddFile(m.CommonHash, comp.PdbFile, F_Pdb);
-                Stats.LockStatsCall(() => Stats.CacheSize += new FileInfo(c.PdbFile).Length);
+                var pdbpath = outputCache.MakePath(m.CommonHash, F_Pdb);
+                CopyOrHardLink(comp.PdbFile, pdbpath);
+                Stats.LockStatsCall(() => Stats.CacheSize += new FileInfo(comp.PdbFile).Length);
             }
 
             Stats.LockStatsCall(() => Stats.CacheObjects++);
-            Stats.LockStatsCall(() => Stats.CacheSize += new FileInfo(c.ObjectTarget).Length);
+            Stats.LockStatsCall(() => Stats.CacheSize += new FileInfo(comp.ObjectTarget).Length);
 
             // write manifest
             var duration = DateTime.Now.Subtract(cacheStart);
@@ -137,7 +160,7 @@ namespace CClash
             }
         }
 
-        protected override int OnCacheMissLocked(DataHash hc, IEnumerable<string> args, CacheManifest m)
+        protected override int OnCacheMissLocked(DataHash hc, ICompiler comp, IEnumerable<string> args, CacheManifest m, Action<string> stderr, Action<string> stdout)
         {
             Logging.Emit("cache miss");
             outputCache.EnsureKey(hc.Hash);
@@ -146,7 +169,7 @@ namespace CClash
             var ifiles = new List<string>();
             Stats.LockStatsCall(() => Stats.CacheMisses++);
 
-            int rv = Compile( args, stderrfile, stdoutfile, ifiles );
+            int rv = Compile(comp, args, stderrfile, stdoutfile, ifiles );
 
             // we still hold the cache lock, create the manifest asap or give up now!
 
@@ -168,7 +191,7 @@ namespace CClash
             return rv;
         }
 
-        protected virtual void DoCacheMiss( Compiler c, DataHash hc, IEnumerable<string> args, CacheManifest m, List<string> ifiles)
+        protected virtual void DoCacheMiss( ICompiler c, DataHash hc, IEnumerable<string> args, CacheManifest m, List<string> ifiles)
         {
 
             var idirs = c.GetUsedIncludeDirs(ifiles);
@@ -183,7 +206,18 @@ namespace CClash
             {
                 #region process includes folders
                 // save manifest and other things to cache
-                var others = c.GetPotentialIncludeFiles(idirs, ifiles);
+
+                List<string> others;
+                if (Settings.BypassPotentialIncludeChecks)
+                {
+                    others = new List<string>();
+                }
+                else
+                {
+                    others = c.GetPotentialIncludeFiles(idirs, ifiles);
+                }
+
+
                 m = new CacheManifest();
                 m.PotentialNewIncludes = others;
                 m.IncludeFiles = new Dictionary<string, string>();
@@ -217,7 +251,7 @@ namespace CClash
 
                 if (good)
                 {
-                    SaveOutputsLocked(m, c);
+                    SaveOutputsLocked(c, m);
                 }
                 outputCache.ReleaseMutex();
 

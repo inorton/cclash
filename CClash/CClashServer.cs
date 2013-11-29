@@ -54,8 +54,6 @@ namespace CClash
                     
                     do
                     {
-                        // don't hog folders
-                        System.IO.Directory.SetCurrentDirectory(mydocs);
                         Logging.Emit("server waiting..");
                         YieldLocks();
                         try
@@ -158,12 +156,13 @@ namespace CClash
                     break;
 
                 case Command.Run:                    
-                    cache.SetCompiler(req.compiler, req.workdir, req.envs );
-                    rv.exitcode = cache.CompileOrCache(req.argv);
-                    System.IO.Directory.SetCurrentDirectory(mydocs);
+                    var comp = cache.GetCompiler(req.compiler, req.workdir, req.envs );
+                    var tmperr = new StringBuilder();
+                    var tmpout = new StringBuilder();
+                    rv.exitcode = cache.CompileOrCache(comp as Compiler, req.argv, (er) => tmperr.Append(er), (ou) => tmpout.Append(ou));
                     rv.supported = true;
-                    rv.stderr = cache.StdErrorText.ToString();
-                    rv.stdout = cache.StdOutText.ToString();
+                    rv.stderr = tmperr.ToString();
+                    rv.stdout = tmpout.ToString();
                     break;
 
                 case Command.Quit:

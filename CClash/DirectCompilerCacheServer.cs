@@ -48,16 +48,12 @@ namespace CClash
 
             if (!dwatchers.TryGetValue(dir, out w))
             {
-                if (!FileExists(path))
-                {
-                    Logging.Error("ignored watch on missing file {0}", path);
-                    return;
-                }
-
                 Logging.Emit("create new watcher for {0}", dir);
                 w = new DirectoryWatcher(dir);
                 dwatchers.Add(dir, w);
+
                 w.FileChanged += OnWatchedFileChanged;
+                // w.FileCreated += OnWatchedFileCreated; // need to think about this more..
                 w.Enable();
             }
             var file = Path.GetFileName(path);
@@ -89,6 +85,11 @@ namespace CClash
             }
         }
 
+        public void OnWatchedFileCreated(object sender, FileChangedEventArgs args)
+        {
+            
+        }
+
         public override bool FileExists(string path)
         {
             lock (hashcache)
@@ -114,6 +115,11 @@ namespace CClash
 
                 return h;
             }
+        }
+
+        protected override int Compile(ICompiler comp, IEnumerable<string> args, string stderrfile, string stdoutfile, List<string> includes)
+        {
+            return Compile(comp, args, stderrfile, stdoutfile, includes, false);
         }
 
         Dictionary<string, DataHash> hashcache = new Dictionary<string, DataHash>();
@@ -162,6 +168,21 @@ namespace CClash
             }
 
             return rv;  
+        }
+
+        // this is rather naughty, we only do this check at most every 5 mins but ccache doesn't even do that so
+        // it should be an acceptable risk. If you don't like it, don't use the server mode.
+        DateTime lastCheck = default(DateTime);
+        protected override bool CheckPotentialIncludes(IEnumerable<string> potentials, ICompiler comp)
+        {
+            if (DateTime.Now.Subtract(lastCheck).TotalMinutes >= 5)
+            {
+                lastCheck = DateTime.Now;
+                // strip out anything containing Program Files
+                var ml = from x in potentials where !x.Contains("Program Files") select x;
+                return base.CheckPotentialIncludes(ml, comp);
+            }
+            return true;
         }
 
         public StringBuilder StdErrorText { get; private set; }
