@@ -295,7 +295,7 @@ namespace CClash
             CClashResponse resp = null;
 
             var txbuf = req.Serialize();
-
+            ncs.Write(new byte[] { txbuf.Length }, 0, 1);
             ncs.Write(txbuf, 0, txbuf.Length);
             ncs.Flush();
 

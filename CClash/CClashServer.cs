@@ -39,15 +39,21 @@ namespace CClash
             }
         }
 
+        Stream AcceptStream(string cachedir)
+        {
+            return new NamedPipeServerStream(MakePipeName(cachedir), PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.WriteThrough | PipeOptions.Asynchronous);
+        }
+
         public void Listen(string cachedir)
         {
             
             try
             {
                 Logging.Emit("server listening..");
-                using (var nss = new NamedPipeServerStream(MakePipeName(cachedir), PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.WriteThrough | PipeOptions.Asynchronous))
+                using (var nss = AcceptStream(cachedir) )
                 {
                     cache = new DirectCompilerCacheServer(cachedir);
+
                     var msgbuf = new List<byte>();
                     var rxbuf = new byte[16384];
                     DateTime lastConnection = DateTime.Now;
@@ -112,7 +118,6 @@ namespace CClash
                             // don't hog folders
                             cache.Finished();
                             
-
                             nss.WaitForPipeDrain();
                             nss.Disconnect();
                         }
