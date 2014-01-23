@@ -4,7 +4,6 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using System.IO.Pipes;
-using System.Web.Script.Serialization;
 using System.Collections.Specialized;
 
 namespace CClash
@@ -39,10 +38,21 @@ namespace CClash
             }
         }
 
-        Stream AcceptStream(string cachedir)
+        NamedPipeServerStream BindStream(string cachedir)
         {
             return new NamedPipeServerStream(MakePipeName(cachedir), PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.WriteThrough | PipeOptions.Asynchronous);
         }
+
+        public bool Connected(Stream s)
+        {
+            if (s is NamedPipeServerStream)
+            {
+                return ((NamedPipeServerStream)s).IsConnected;
+            }
+
+            return false;
+        }
+
 
         public void Listen(string cachedir)
         {
@@ -50,7 +60,7 @@ namespace CClash
             try
             {
                 Logging.Emit("server listening..");
-                using (var nss = AcceptStream(cachedir) )
+                using (var nss = BindStream(cachedir) )
                 {
                     cache = new DirectCompilerCacheServer(cachedir);
 
@@ -71,7 +81,7 @@ namespace CClash
                                 break;
                             }
 
-                            if (!nss.IsConnected)
+                            if (!Connected(nss))
                             {
                                 var w = nss.BeginWaitForConnection(null, null);
                                 while (!w.AsyncWaitHandle.WaitOne(5000))
@@ -108,7 +118,8 @@ namespace CClash
                             Logging.Emit("server read  {0} bytes", msgbuf.Count);
 
                             // deserialize message from msgbuf
-                            var req = CClashMessage.Deserialize<CClashRequest>(msgbuf.ToArray());
+                            var req = new CClashRequest();
+                            req.Deserialize(msgbuf.ToArray());
                             cache.Setup();
                             var resp = ProcessRequest(req);
                             var tx = resp.Serialize();

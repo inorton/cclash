@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using System.Web.Script.Serialization;
 
 namespace CClash
 {
@@ -45,6 +44,7 @@ namespace CClash
 
         protected FileCacheStore outputCache;
         protected FileCacheStore includeCache;
+        protected FileCacheStore objectCache;
         
         protected HashUtil hasher;
         
@@ -56,6 +56,7 @@ namespace CClash
         {
             if (string.IsNullOrEmpty(cacheFolder)) throw new ArgumentNullException("cacheFolder");            
             outputCache = FileCacheStore.Load(Path.Combine(cacheFolder, "outputs"));
+            objectCache = FileCacheStore.Load(Path.Combine(cacheFolder, "objects"));
             includeCache = FileCacheStore.Load(Path.Combine(cacheFolder, "includes"));
             stats = new CacheInfo(outputCache);
             hasher = new HashUtil(includeCache);
@@ -131,19 +132,16 @@ namespace CClash
             }
         }
 
-        protected virtual void CopyOutputFiles(DataHash hc, string objpath, string pdbpath)
+        protected virtual void CopyOutputFiles(CacheManifest hm, string objpath, string pdbpath)
         {
             try
             {
-                var cachedobj = outputCache.MakePath(hc.Hash, F_Object);
-                var cachedpdb = outputCache.MakePath(hc.Hash, F_Pdb);
-
-                //CopyFile(cachedobj, objpath); // do things modify object files?
+                var cachedobj = objectCache.MakePath(hm.ObjectHash, F_Object);
                 CopyOrHardLink(cachedobj, objpath);
                 
                 if (!string.IsNullOrWhiteSpace(pdbpath))
                 {
-                    //CopyFile(cachedpdb, pdbpath); // do things modify pdbs?
+                    var cachedpdb = objectCache.MakePath(hm.PdbHash, F_Pdb);
                     CopyOrHardLink(cachedpdb, pdbpath);
                 }
             }
@@ -190,7 +188,7 @@ namespace CClash
             outputCache.ReleaseMutex();
 
             CopyStdio(hc, stderr, stdout);
-            CopyOutputFiles(hc, comp.ObjectTarget, comp.PdbFile);
+            CopyOutputFiles(hm, comp.ObjectTarget, comp.PdbFile);
 
             var duration = DateTime.Now.Subtract(cacheStart);
 

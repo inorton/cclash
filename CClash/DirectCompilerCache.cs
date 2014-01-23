@@ -134,18 +134,25 @@ namespace CClash
 
         protected virtual void SaveOutputsLocked(ICompiler comp, CacheManifest m)
         {
-            var objpath = outputCache.MakePath(m.CommonHash, F_Object);
-            CopyOrHardLink(comp.ObjectTarget, objpath);
-            
-            if (comp.GeneratePdb)
+            var objhash = DigestBinaryFile(comp.ObjectTarget);
+            m.ObjectHash = objhash.Hash;
+            if (!objectCache.ContainsEntry(objhash.Hash, F_Object))
             {
-                var pdbpath = outputCache.MakePath(m.CommonHash, F_Pdb);
-                CopyOrHardLink(comp.PdbFile, pdbpath);
-                Stats.LockStatsCall(() => Stats.CacheSize += new FileInfo(comp.PdbFile).Length);
+                objectCache.AddFile(objhash.Hash, comp.ObjectTarget, F_Object);
+                Stats.LockStatsCall(() => Stats.CacheObjects++);
+                Stats.LockStatsCall(() => Stats.CacheSize += new FileInfo(comp.ObjectTarget).Length);
             }
 
-            Stats.LockStatsCall(() => Stats.CacheObjects++);
-            Stats.LockStatsCall(() => Stats.CacheSize += new FileInfo(comp.ObjectTarget).Length);
+            if (comp.GeneratePdb)
+            {
+                var pdbhash = DigestBinaryFile(comp.PdbFile);
+                m.PdbHash = pdbhash.Hash;
+                if (!objectCache.ContainsEntry(pdbhash.Hash, F_Pdb))
+                {
+                    objectCache.AddFile(pdbhash.Hash, comp.PdbFile, F_Pdb);
+                    Stats.LockStatsCall(() => Stats.CacheSize += new FileInfo(comp.PdbFile).Length);
+                }
+            }
 
             // write manifest
             var duration = DateTime.Now.Subtract(cacheStart);

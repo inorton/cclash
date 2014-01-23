@@ -5,7 +5,6 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using System.IO.Pipes;
-using System.Web.Script.Serialization;
 using System.Diagnostics;
 using System.Collections.Specialized;
 
@@ -295,7 +294,7 @@ namespace CClash
             CClashResponse resp = null;
 
             var txbuf = req.Serialize();
-            ncs.Write(new byte[] { txbuf.Length }, 0, 1);
+            ncs.Write(new byte[] { (byte)txbuf.Length }, 0, 1);
             ncs.Write(txbuf, 0, txbuf.Length);
             ncs.Flush();
 
@@ -310,7 +309,9 @@ namespace CClash
 
             if (rx.Count > 0)
             {
-                resp = CClashMessage.Deserialize<CClashResponse>(rx.ToArray());
+                var tmp = new CClashResponse();
+                tmp.Deserialize(rx.ToArray());
+                resp = tmp;
                 ncs.Close();
             }
             return resp;

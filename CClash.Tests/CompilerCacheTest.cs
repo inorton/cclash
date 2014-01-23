@@ -10,11 +10,19 @@ namespace CClash.Tests
     [TestFixture]
     public class CompilerCacheTest
     {
-        public const string CacheFolderName = "cclash-unittest";
+        public const string CacheFolderNamePrefix = "cclash-unittest";
+        public const string OutDirPrefix = "cclash-objs";
+
+        static string CacheFolderName;
+        static string OutDir;
+
         [SetUp]
         public void Init()
         {
             CompilerTest.SetEnvs();
+
+            CacheFolderName = String.Format("{0}_{1}", CacheFolderNamePrefix, Guid.NewGuid().ToString().Substring(0, 6));
+            OutDir = String.Format("{0}_{1}", OutDirPrefix, Guid.NewGuid().ToString().Substring(0, 6));
             
             Environment.SetEnvironmentVariable("CCLASH_DEBUG", null);
             Environment.SetEnvironmentVariable("CCLASH_SERVER", null);
@@ -34,6 +42,10 @@ namespace CClash.Tests
                 try
                 {
                     System.IO.Directory.Delete(CacheFolderName, true);
+                    System.IO.Directory.Delete(OutDir, true);
+                }
+                catch (System.IO.DirectoryNotFoundException)
+                {
                 }
                 catch (Exception)
                 {
@@ -43,6 +55,14 @@ namespace CClash.Tests
                 }
             }
                 
+        }
+
+        public static string MakeOutfileArg()
+        {
+            if (!System.IO.Directory.Exists(OutDir))
+                System.IO.Directory.CreateDirectory(OutDir);
+            var fo = string.Format("/Fo{0}.obj", System.IO.Path.Combine( OutDir, Guid.NewGuid().ToString().Substring(0, 5)) );
+            return fo;
         }
 
         [Test]
@@ -64,8 +84,9 @@ namespace CClash.Tests
             {
                 Console.Error.WriteLine("# {0}", i);
                 var srcfile = System.IO.Path.Combine( "test-sources", Guid.NewGuid().ToString() + ".c" );
+                var fo = MakeOutfileArg();
                 System.IO.File.Copy( @"test-sources\hello.c", srcfile, true );
-                var rv = Program.Main(new string[] { "/nologo", "/c", srcfile , "/Itest-sources\\inc with spaces" });
+                var rv = Program.Main(new string[] { "/nologo", "/c", srcfile, fo , "/Itest-sources\\inc with spaces" });
                 Assert.AreEqual(0, rv);
             }
         }
@@ -98,7 +119,8 @@ namespace CClash.Tests
             Environment.SetEnvironmentVariable("PATH", System.IO.Path.GetDirectoryName(comp) + ";" + Environment.GetEnvironmentVariable("PATH"));
             for (int i = 0; i < times; i++)
             {
-                var rv = Program.Main(new string[] { "/nologo", "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
+                var fo = MakeOutfileArg();
+                var rv = Program.Main(new string[] { "/nologo", "/c", @"test-sources\hello.c", fo, "/Itest-sources\\inc with spaces" });
                 Assert.AreEqual(0, rv);
             }
             Program.Main(new string[] { "--cclash", "--stop" });
@@ -114,7 +136,8 @@ namespace CClash.Tests
             Assert.IsTrue(Settings.Disabled);
             for (int i = 0; i < times; i++)
             {
-                var rv = Program.Main(new string[] { "/nologo", "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
+                var fo = MakeOutfileArg();
+                var rv = Program.Main(new string[] { "/nologo", "/c", @"test-sources\hello.c", fo, "/Itest-sources\\inc with spaces" });
                 Assert.AreEqual(0, rv);
             }
         }
@@ -128,7 +151,8 @@ namespace CClash.Tests
             Environment.SetEnvironmentVariable("CCLASH_DISABLE_WHEN_VALUES", "X,RED,GREEN");
             Environment.SetEnvironmentVariable("TESTTEST", "RED");
             Assert.IsTrue(Settings.Disabled);
-            var rv = Program.Main(new string[] { "/nologo", "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
+            var fo = MakeOutfileArg();
+            var rv = Program.Main(new string[] { "/nologo", "/c", @"test-sources\hello.c", fo, "/Itest-sources\\inc with spaces" });
             Assert.AreEqual(0, rv);
         }
 
@@ -152,7 +176,8 @@ namespace CClash.Tests
             Environment.SetEnvironmentVariable("CCLASH_ENABLE_WHEN_VALUES", "X,RED,GREEN");
             Environment.SetEnvironmentVariable("TESTTEST", "RED");
             Assert.IsFalse(Settings.Disabled);
-            var rv = Program.Main(new string[] { "/nologo", "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
+            var fo = MakeOutfileArg();
+            var rv = Program.Main(new string[] { "/nologo", "/c", @"test-sources\hello.c", fo, "/Itest-sources\\inc with spaces" });
             Assert.AreEqual(0, rv);
         }
 

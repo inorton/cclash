@@ -70,6 +70,11 @@ namespace CClash
             }
         }
 
+        string MakeTlf(string key)
+        {
+            return Path.Combine(FolderPath, key.Substring(0, 2));
+        }
+
         public string MakePath(string key )
         {
             var tlf = key.Substring(0, 2);
@@ -87,9 +92,10 @@ namespace CClash
         public void EnsureKey(string key)
         {
             var kp = MakePath(key);
-            if (!Directory.Exists(kp.Substring(0,2))) 
+            var top = MakeTlf(key);
+            if (!Directory.Exists(top))
             {
-                Directory.CreateDirectory(kp.Substring(0,2));
+                Directory.CreateDirectory(top);
             }
             if (!Directory.Exists(kp))
             {
@@ -160,11 +166,14 @@ namespace CClash
             {
                 int sz = 0;
                 var di = new DirectoryInfo(p);
-                foreach (var f in di.GetFiles())
+                if (Removed != null)
                 {
-                    sz += (int)(f.Length / 1024);
+                    foreach (var f in di.GetFiles())
+                    {
+                        sz += (int)(f.Length / 1024);
+                    }
                 }
-                Directory.Delete(MakePath(key), true);
+                Directory.Delete(p, true);
                 if (Removed != null)
                 {
                     Removed(this, new FileCacheStoreRemovedEventArgs() { SizeKB = sz });

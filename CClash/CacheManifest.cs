@@ -4,16 +4,52 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Runtime.Serialization.Formatters.Binary;
 
 namespace CClash
 {
     [Serializable]
-    public class CacheManifest : CClashMessage
+    public class CClashBinaryMessage
+    {
+        public void Serialize(Stream str)
+        {
+            new BinaryFormatter().Serialize(str, this);
+        }
+
+        public static T Deserialize<T>(Stream str)
+        {
+            return (T)(new BinaryFormatter().Deserialize(str)); 
+        }
+
+        public static T Deserialize<T>(byte[] bb)
+            where T : CClashBinaryMessage, new()
+        {
+            var rv = new T();
+            using (var ms = new MemoryStream(bb))
+            {
+                rv = Deserialize<T>(ms);
+            }
+            return rv;
+        }
+    }
+
+    [Serializable]
+    public class CacheManifest : CClashBinaryMessage
     {
         public static CacheManifest Deserialize(Stream stream)
         {
-            return CClashMessage.Deserialize<CacheManifest>(stream);
+            return CClashBinaryMessage.Deserialize<CacheManifest>(stream);
         }
+
+        /// <summary>
+        /// Sha1 hash of the object file
+        /// </summary>
+        public string ObjectHash { get; set; }
+
+        /// <summary>
+        /// Sha1 hash of the pdb file if there was one
+        /// </summary>
+        public string PdbHash { get; set; }
 
         /// <summary>
         /// Next time this job appears, just run the compiler.
