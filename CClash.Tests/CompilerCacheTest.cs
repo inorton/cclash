@@ -92,34 +92,35 @@ namespace CClash.Tests
         }
 
         [Test]
-        [TestCase(100)]
+        [TestCase(500)]
         public void RunEnabledDirect(int times)
         {
             Assert.IsFalse(Settings.Disabled);
             Assert.IsTrue(Settings.DirectMode);
             var comp = CompilerTest.CompilerPath;
+            var fo = MakeOutfileArg();
             Environment.SetEnvironmentVariable("PATH", System.IO.Path.GetDirectoryName( comp ) + ";" + Environment.GetEnvironmentVariable("PATH"));
             for (int i = 0; i < times; i++)
             {
                 Console.Error.WriteLine("# {0}", i);
-                var rv = Program.Main(new string[] { "/nologo", "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
+                var rv = Program.Main(new string[] { "/nologo", "/c", @"test-sources\hello.c", fo, "/Itest-sources\\inc with spaces" });
                 Assert.AreEqual(0, rv);
             }
         }
 
         [Test]
         [Explicit]
-        [TestCase(100)]
+        [TestCase(500)]
         public void RunEnabledDirectServer(int times)
         {
             Assert.IsFalse(Settings.Disabled);
             Assert.IsTrue(Settings.DirectMode);
             var comp = CompilerTest.CompilerPath;
+            var fo = MakeOutfileArg();
             Environment.SetEnvironmentVariable("CCLASH_SERVER", "yes");
             Environment.SetEnvironmentVariable("PATH", System.IO.Path.GetDirectoryName(comp) + ";" + Environment.GetEnvironmentVariable("PATH"));
             for (int i = 0; i < times; i++)
             {
-                var fo = MakeOutfileArg();
                 var rv = Program.Main(new string[] { "/nologo", "/c", @"test-sources\hello.c", fo, "/Itest-sources\\inc with spaces" });
                 Assert.AreEqual(0, rv);
             }
@@ -128,7 +129,7 @@ namespace CClash.Tests
         }
 
         [Test]
-        [TestCase(100)]
+        [TestCase(500)]
         public void RunDisabled(int times)
         {
             Assert.IsFalse(Settings.Disabled);

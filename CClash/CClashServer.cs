@@ -8,28 +8,28 @@ using System.Collections.Specialized;
 
 namespace CClash
 {
-    public sealed class CClashServer : IDisposable
+    public abstract class CClashServerBase
     {
-        bool quitnow = false;
-        DirectCompilerCacheServer cache;
-
-        int connections = 0;
-
-        public int ExitAfterIdleSec { get; set; }
-
-        public int MaxOperations { get; set; }
-
-        string mydocs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-
-        public CClashServer()
+        public CClashServerBase()
         {
             ExitAfterIdleSec = 60;
             MaxOperations = 20000;
             Directory.SetCurrentDirectory(mydocs);
         }
 
+        protected bool quitnow = false;
+        protected DirectCompilerCacheServer cache;
+
+        protected int connections = 0;
+
+        public int ExitAfterIdleSec { get; set; }
+
+        public int MaxOperations { get; set; }
+
+        protected string mydocs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+
         DateTime lastYield = DateTime.Now;
-        void YieldLocks()
+        protected void YieldLocks()
         {
             if (DateTime.Now.Subtract(lastYield).TotalSeconds > 5)
             {
@@ -38,12 +38,69 @@ namespace CClash
             }
         }
 
+        public abstract bool Connected(Stream s);
+
+        public abstract void Listen(string cachedir);
+
+        public abstract void Stop();
+
+        public CClashResponse ProcessRequest(CClashRequest req)
+        {
+            var rv = new CClashResponse() { supported = false };
+            Logging.Emit("{0}", DateTime.Now.ToString("s"));
+            Logging.Emit("server req: cmd = {0}, workdir = {1}",
+                req.cmd, req.workdir);
+
+            switch (req.cmd)
+            {
+                case Command.NoOp:
+                    rv.supported = true;
+                    rv.stderr = "no op";
+                    rv.stdout = req.argv.FirstOrDefault();
+                    break;
+
+                case Command.GetStats:
+                    rv.exitcode = 0;
+                    cache.SetupStats(); // commits stats to disk
+
+                    rv.stdout = StatOutputs.GetStatsString(req.compiler);
+                    break;
+
+                case Command.Run:
+                    var comp = cache.GetCompiler(req.compiler, req.workdir, req.envs);
+                    var tmperr = new StringBuilder();
+                    var tmpout = new StringBuilder();
+                    rv.exitcode = cache.CompileOrCache(comp as Compiler, req.argv, (er) => tmperr.Append(er), (ou) => tmpout.Append(ou));
+                    rv.supported = true;
+                    rv.stderr = tmperr.ToString();
+                    rv.stdout = tmpout.ToString();
+                    break;
+
+                case Command.Quit:
+                    Stop();
+                    break;
+            }
+
+            Logging.Emit("server resp: {0}", rv.exitcode);
+
+            return rv;
+        }
+    }
+
+    public sealed class CClashPipeServer :  CClashServerBase, IDisposable
+    {
+
+        public CClashPipeServer() : base()
+        {
+        }
+
+
         NamedPipeServerStream BindStream(string cachedir)
         {
             return new NamedPipeServerStream(MakePipeName(cachedir), PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.WriteThrough | PipeOptions.Asynchronous);
         }
 
-        public bool Connected(Stream s)
+        public override bool Connected(Stream s)
         {
             if (s is NamedPipeServerStream)
             {
@@ -54,7 +111,7 @@ namespace CClash
         }
 
 
-        public void Listen(string cachedir)
+        public override void Listen(string cachedir)
         {
             
             try
@@ -64,10 +121,9 @@ namespace CClash
                 {
                     cache = new DirectCompilerCacheServer(cachedir);
 
-                    var msgbuf = new List<byte>();
-                    var rxbuf = new byte[16384];
+                    var rxbuf = new StringBuilder();
                     DateTime lastConnection = DateTime.Now;
-                    
+                 
                     do
                     {
                         Logging.Emit("server waiting..");
@@ -102,27 +158,24 @@ namespace CClash
                             }
 
                             Logging.Emit("server connected..");
+                            var reader = new StreamReader(nss);
 
-                            msgbuf.Clear();
-                            int count = 0;
+                            string line;
+                            rxbuf.Clear();
                             do
                             {
-                                count = nss.Read(rxbuf, msgbuf.Count, rxbuf.Length);
-                                if (count > 0)
-                                {
-                                    msgbuf.AddRange(rxbuf.Take(count));
-                                }
-
-                            } while (!nss.IsMessageComplete);
-
-                            Logging.Emit("server read  {0} bytes", msgbuf.Count);
+                                line = reader.ReadLine();
+                                rxbuf.AppendLine(line);
+                                if (line == ":end:") break;
+                                if (line == null) break;
+                            } while (true);
 
                             // deserialize message from msgbuf
                             var req = new CClashRequest();
-                            req.Deserialize(msgbuf.ToArray());
+                            req.Deserialize(rxbuf.ToString());
                             cache.Setup();
                             var resp = ProcessRequest(req);
-                            var tx = resp.Serialize();
+                            var tx = resp.ToBytes();
                             nss.Write(tx, 0, tx.Length);
                             nss.Flush();
 
@@ -154,44 +207,7 @@ namespace CClash
             return x.Replace(':', '=') + ".pipe";
         }
 
-        public CClashResponse ProcessRequest(CClashRequest req)
-        {
-            var rv = new CClashResponse() { supported = false };
-            Logging.Emit("{0}", DateTime.Now.ToString("s"));
-            Logging.Emit("server req: cmd = {0}, workdir = {1}",
-                req.cmd, req.workdir);
-
-            switch (req.cmd)
-            {
-
-                case Command.GetStats:
-                    rv.exitcode = 0;
-                    cache.SetupStats(); // commits stats to disk
-                    
-                    rv.stdout = StatOutputs.GetStatsString(req.compiler);
-                    break;
-
-                case Command.Run:                    
-                    var comp = cache.GetCompiler(req.compiler, req.workdir, req.envs );
-                    var tmperr = new StringBuilder();
-                    var tmpout = new StringBuilder();
-                    rv.exitcode = cache.CompileOrCache(comp as Compiler, req.argv, (er) => tmperr.Append(er), (ou) => tmpout.Append(ou));
-                    rv.supported = true;
-                    rv.stderr = tmperr.ToString();
-                    rv.stdout = tmpout.ToString();
-                    break;
-
-                case Command.Quit:
-                    Stop();
-                    break;
-            }
-
-            Logging.Emit("server resp: {0}", rv.exitcode);
-
-            return rv;
-        }
-
-        public void Stop()
+        public override void Stop()
         {
             quitnow = true;
             Dispose(true);

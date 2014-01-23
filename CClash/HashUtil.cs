@@ -194,6 +194,7 @@ namespace CClash
 
             if (!FileUtils.Exists(filepath)) return rv;
             provider.Initialize();
+
             var fs = new FileStream(filepath, FileMode.Open, FileAccess.Read, FileShare.Read);
             using (var bs = new BufferedStream(fs))
             {

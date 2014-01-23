@@ -42,12 +42,12 @@ namespace CClash
         }
 
         /// <summary>
-        /// Sha1 hash of the object file
+        /// md5 hash of the object file
         /// </summary>
         public string ObjectHash { get; set; }
 
         /// <summary>
-        /// Sha1 hash of the pdb file if there was one
+        /// md5 hash of the pdb file if there was one
         /// </summary>
         public string PdbHash { get; set; }
 

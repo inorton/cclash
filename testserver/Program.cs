@@ -22,7 +22,7 @@ namespace CClash
                     System.IO.Directory.Delete(Settings.CacheDirectory, true);
             }
             catch { }
-            var serv = new CClashServer();
+            var serv = new CClashPipeServer();
             serv.Listen(Settings.CacheDirectory);
             Console.Error.WriteLine("finished..");
             Console.ReadLine();

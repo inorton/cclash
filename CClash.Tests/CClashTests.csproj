@@ -50,6 +50,7 @@
     <Compile Include="FileCacheTest.cs" />
     <Compile Include="HashingTest.cs" />
     <Compile Include="MessageTests.cs" />
+    <Compile Include="NetworkTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TestProgramClients.cs" />
   </ItemGroup>

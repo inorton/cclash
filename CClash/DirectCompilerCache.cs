@@ -88,7 +88,7 @@ namespace CClash
                     }
                 }
 
-                foreach (var f in new string[] { F_Manifest, F_Object, F_Stderr, F_Stdout })
+                foreach (var f in new string[] { F_Manifest, F_Stderr, F_Stdout })
                 {
                     if (!FileUtils.Exists(outputCache.MakePath(commonkey.Hash, f)))
                     {
@@ -98,7 +98,12 @@ namespace CClash
                     }
                 }
 
-                return true; // cache hit, all includes match and no new files added
+                var hasobj = objectCache.ContainsEntry( manifest.ObjectHash, F_Object );
+                if ( hasobj && comp.GeneratePdb)
+                {
+                    return objectCache.ContainsEntry(manifest.PdbHash, F_Pdb);
+                }
+                return hasobj;
             }
             Logging.Miss(DataHashResult.NoPreviousBuild, Directory.GetCurrentDirectory(), comp.SingleSourceFile, "");
             return false;

@@ -39,7 +39,7 @@ namespace CClash
 
             if (args.Contains("--cclash-server"))
             {
-                var server = new CClashServer();
+                var server = new CClashPipeServer();
                 server.Listen(Settings.CacheDirectory);
                 return 0;
             }

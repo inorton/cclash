@@ -11,7 +11,6 @@ namespace CClash.Tests
         static void Main(string[] args)
         {
             System.Threading.Thread.Sleep(1000);
-            //TestProgramClients.NormalSpeedTest();
 
             TestProgramClients.MissSpeedTest();
 

@@ -11,14 +11,13 @@ namespace CClash.Tests
         void BytesCloneTest<T>(T original)
             where T : CClashMessage, new()
         {
-            var bb1 = original.Serialize();
-
+            var txt = original.Serialize();
+            
             var m2 = new T();
-            m2.Deserialize(bb1);
+            m2.Deserialize(txt);
+            var txt2 = m2.Serialize();
 
-            var bb2 = m2.Serialize();
-
-            Assert.IsTrue(bb1.SequenceEqual(bb2));
+            Assert.AreEqual(txt, txt2);
         }
 
         [Test]

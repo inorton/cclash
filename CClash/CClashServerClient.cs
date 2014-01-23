@@ -163,7 +163,90 @@ namespace CClash
         }
     }
 
-    public sealed class CClashServerClient : ICompilerCache
+    public abstract class CClashServerClientBase
+    {
+        public Process ServerProcess { get; set; }
+
+        public bool SpawnServer { get; set; }
+
+        protected void StartServer()
+        {
+            if (SpawnServer)
+            {
+                var exe = GetType().Assembly.Location;
+                Logging.Emit("starting background service");
+                ServerProcess = new Process();
+                var psi = new ProcessStartInfo(exe);
+                psi.CreateNoWindow = true;
+                psi.Arguments = "--cclash-server";
+                psi.ErrorDialog = false;
+                psi.WindowStyle = ProcessWindowStyle.Hidden;
+                ServerProcess.StartInfo = psi;
+                ServerProcess.Start();
+                ServerProcess.Exited += (o, a) =>
+                {
+                    Logging.Emit("server exited with status {0}", ServerProcess.ExitCode);
+                };
+                System.Threading.Thread.Sleep(500);
+            }
+        }
+
+        public abstract void Connect();
+        public abstract void Disconnect();
+
+        public Stream Stream
+        {
+            get;
+            protected set;
+        }
+
+        public StreamReader GetReader()
+        {
+            if (Stream != null)
+            {
+                return new StreamReader(Stream);
+            }
+            throw new InvalidOperationException("no stream set");
+        }
+
+        public StreamWriter GetWriter()
+        {
+            if (Stream != null)
+            {
+                return new StreamWriter(Stream);
+            }
+            throw new InvalidOperationException("no stream set");
+        }
+
+        public CClashResponse Transact(CClashRequest req)
+        {
+            Connect();
+            CClashResponse resp = new CClashResponse();
+
+            req.SerializeMessage(Stream);
+
+            var rxbuf = new StringBuilder();
+            string line = string.Empty;
+
+            var sr = GetReader();
+
+            do
+            {
+                line = sr.ReadLine();
+                rxbuf.AppendLine(line);
+                if (line == null) break;
+                if (line == ":end:") break;
+            } while (true);
+
+            if (rxbuf.Length > 0)
+            {
+                resp.Deserialize(rxbuf.ToString());
+            }
+            return resp;
+        }
+    }
+
+    public sealed class CClashServerClient : CClashServerClientBase, ICompilerCache
     {
         NamedPipeClientStream ncs;
         string pipename = null;
@@ -173,7 +256,7 @@ namespace CClash
 
         public CClashServerClient(string cachedir)
         {
-            pipename = CClashServer.MakePipeName(cachedir);
+            pipename = CClashPipeServer.MakePipeName(cachedir);
         }
 
         public CClashServerClient(string cachedir, bool startServer) : this(cachedir)
@@ -181,57 +264,46 @@ namespace CClash
             spawnServer = startServer;
         }
 
-        void Open()
-        {      
-            ncs = new NamedPipeClientStream(".", pipename, PipeDirection.InOut);
+        NamedPipeClientStream OpenPipe()
+        {
+            return new NamedPipeClientStream(".", pipename, PipeDirection.InOut);
         }
 
-        void Connect()
+        public override void Disconnect()
         {
-            var exe = GetType().Assembly.Location;
-            if (ncs == null)
-                Open();
+            if (Stream != null)
+            {
+                Stream.Close();
+            }
+            Stream = null;
+        }
 
-            for (int i = 0; i < 10; i++)
+        public override void Connect()
+        {
+            var ncs = OpenPipe();
+            int i;
+            for (i = 0; i < 10; i++)
             {
                 try
                 {
                     if (!ncs.IsConnected)
-                        ncs.Connect(50);
-                    ncs.ReadMode = PipeTransmissionMode.Message;
+                        ncs.Connect(100);
+                    ncs.ReadMode = PipeTransmissionMode.Byte;
+                    Stream = ncs;
                     return;
                 }
                 catch (IOException)
                 {
-                    try { ncs.Dispose(); Open(); }
+                    try { ncs.Dispose(); ncs = OpenPipe(); }
                     catch { }
                 }
                 catch (TimeoutException)
                 {
-                    if (spawnServer)
-                    {
-                        Logging.Emit("starting background service");
-                        serverProcess = new Process();
-                        var psi = new ProcessStartInfo(exe);
-                        psi.CreateNoWindow = true;
-                        psi.Arguments = "--cclash-server";
-                        psi.ErrorDialog = false;
-                        psi.WindowStyle = ProcessWindowStyle.Hidden;
-                        serverProcess.StartInfo = psi;
-                        serverProcess.Start();
-                        serverProcess.Exited += (o,a) =>
-                        {
-                            Logging.Emit("server exited with status {0}", serverProcess.ExitCode);
-                        };
-                        System.Threading.Thread.Sleep(500);
-                    }
-                    else
-                    {
-                        throw new DirectoryNotFoundException("cclash server");
-                    }
+                    StartServer();
                 }
             }
-            throw new InvalidProgramException("server failed to start");
+            throw new InvalidProgramException(
+                string.Format("failed to connect to server after {0} attempts", i));
         }
 
         public ICacheInfo Stats
@@ -288,34 +360,7 @@ namespace CClash
             
         }
 
-        public CClashResponse Transact(CClashRequest req)
-        {
-            Connect();
-            CClashResponse resp = null;
 
-            var txbuf = req.Serialize();
-            ncs.Write(new byte[] { (byte)txbuf.Length }, 0, 1);
-            ncs.Write(txbuf, 0, txbuf.Length);
-            ncs.Flush();
-
-            var rx = new List<byte>();
-
-            var rxbuf = new byte[8192];
-            do
-            {
-                var rbytes = ncs.Read(rxbuf, 0, rxbuf.Length);
-                rx.AddRange(rxbuf.Take(rbytes));
-            } while (!ncs.IsMessageComplete);
-
-            if (rx.Count > 0)
-            {
-                var tmp = new CClashResponse();
-                tmp.Deserialize(rx.ToArray());
-                resp = tmp;
-                ncs.Close();
-            }
-            return resp;
-        }
 
         public DataHash DeriveHashKey( ICompiler unused, IEnumerable<string> args)
         {
@@ -344,7 +389,7 @@ namespace CClash
             if (disposing)
             {
                 if ( serverProcess != null ) serverProcess.Dispose();
-                ncs.Dispose();
+                Disconnect();
             }
         }
     }
