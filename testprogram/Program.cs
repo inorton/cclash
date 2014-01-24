@@ -12,7 +12,9 @@ namespace CClash.Tests
         {
             System.Threading.Thread.Sleep(1000);
 
-            TestProgramClients.MissSpeedTest();
+            TestProgramClients.NormalSpeedTest("inet");
+
+            TestProgramClients.MissSpeedTest("inet");
 
             CClash.Program.Main(new string[] { "--cclash", "--stop" });
             Environment.SetEnvironmentVariable("CCLASH_SERVER", null);

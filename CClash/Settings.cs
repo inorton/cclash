@@ -110,11 +110,28 @@ namespace CClash
             }
         }
 
+        public static bool ExcludeOutputObjectPathFromCommonHash
+        {
+            get
+            {
+                return Environment.GetEnvironmentVariable("CCLASH_HASH_NO_OBJECTARG") != null;
+            }
+        }
+
         public static bool ServiceMode
         {
             get
             {
                 return Environment.GetEnvironmentVariable("CCLASH_SERVER") != null;
+            }
+        }
+
+        public static bool InetServiceMode
+        {
+            get
+            {
+                var sm = Environment.GetEnvironmentVariable("CCLASH_SERVER");
+                return (sm == "inet");
             }
         }
 
@@ -153,29 +170,46 @@ namespace CClash
         {
             portnumber = -1;
             var r = GetCClashDirRegKey();
-            portnumber = (int)r.GetValue(cachedir, portnumber);
+
+            var portkey = HashCacheDir(cachedir);
+
+            portnumber = (int)r.GetValue(portkey, portnumber);
+            r.Close();
             return portnumber > 0;
         }
 
         public static void SetServicePort(string cachedir, int portnumber)
         {
             var r = GetCClashDirRegKey();
-            r.SetValue(cachedir, portnumber, RegistryValueKind.DWord);
+            var portkey = HashCacheDir(cachedir);
+            r.SetValue(portkey, portnumber, RegistryValueKind.DWord);
+            r.Close();
         }
 
         const string CClashRegKeyName = "cclash";
 
+        static string HashCacheDir(string cachedir)
+        {
+            var md5 = new System.Security.Cryptography.MD5CryptoServiceProvider();
+            var lower = cachedir.ToLower();
+            var bb = md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes(lower));
+            var sb = new System.Runtime.Remoting.Metadata.W3cXsd2001.SoapHexBinary(bb);
+            return sb.ToString();
+        }
+
         static RegistryKey GetCClashDirRegKey()
         {
-            var cc = Registry.CurrentUser.OpenSubKey(CClashRegKeyName);
+            var soft = Registry.CurrentUser.OpenSubKey("Software",true);
+
+            var cc = soft.OpenSubKey(CClashRegKeyName,true);
             if (cc == null)
             {
-                cc = Registry.CurrentUser.CreateSubKey(CClashRegKeyName);
+                cc = soft.CreateSubKey(CClashRegKeyName);
             }
-            var cdir = cc.OpenSubKey("cachedir");
+            var cdir = cc.OpenSubKey("cachedirs",true);
             if (cdir == null)
             {
-                cdir = cc.CreateSubKey("cachedir");
+                cdir = cc.CreateSubKey("cachedirs");
             }
             return cdir;
         }

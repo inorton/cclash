@@ -15,7 +15,9 @@ namespace CClash
             ICompilerCache rv;
             if (Settings.ServiceMode)
             {
-                rv = new CClashServerClient(cachedir);
+                CClashServerClientBase c = new CClashPipeServerClient();
+                c.Init(cachedir);
+                rv = c as ICompilerCache;
             }
             else
             {
@@ -102,7 +104,10 @@ namespace CClash
                 if (incs != null)
                     buf.AppendLine(incs);
                 foreach (var a in args)
-                    buf.AppendLine(a);
+                {
+                    if ( !(Settings.ExcludeOutputObjectPathFromCommonHash && a.StartsWith("/Fo")) )
+                        buf.AppendLine(a);
+                }
                 buf.AppendLine(comphash.Hash);
                 comphash = hasher.DigestString(buf.ToString());
             }

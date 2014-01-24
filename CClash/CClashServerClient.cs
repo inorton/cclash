@@ -163,11 +163,33 @@ namespace CClash
         }
     }
 
-    public abstract class CClashServerClientBase
+    public class CClashServerClientFactory
+    {
+        public CClashServerClientBase GetClient()
+        {
+            if (Settings.InetServiceMode)
+            {
+                return new CClashInetServerClient();
+            }
+            return new CClashPipeServerClient();
+        }
+    }
+
+    public abstract class CClashServerClientBase : IDisposable
     {
         public Process ServerProcess { get; set; }
 
-        public bool SpawnServer { get; set; }
+        public bool SpawnServer { get { return !NoSpawnServer; } }
+
+        public bool NoSpawnServer { get; set; }
+
+        public abstract void Init(string cachedir);
+
+        public void Init(string cachedir, bool startserver)
+        {
+            NoSpawnServer = !startserver;
+            Init(cachedir);
+        }
 
         protected void StartServer()
         {
@@ -244,77 +266,8 @@ namespace CClash
             }
             return resp;
         }
-    }
 
-    public sealed class CClashServerClient : CClashServerClientBase, ICompilerCache
-    {
-        NamedPipeClientStream ncs;
-        string pipename = null;
-        bool spawnServer = true;
-
-        Process serverProcess = null;
-
-        public CClashServerClient(string cachedir)
-        {
-            pipename = CClashPipeServer.MakePipeName(cachedir);
-        }
-
-        public CClashServerClient(string cachedir, bool startServer) : this(cachedir)
-        {
-            spawnServer = startServer;
-        }
-
-        NamedPipeClientStream OpenPipe()
-        {
-            return new NamedPipeClientStream(".", pipename, PipeDirection.InOut);
-        }
-
-        public override void Disconnect()
-        {
-            if (Stream != null)
-            {
-                Stream.Close();
-            }
-            Stream = null;
-        }
-
-        public override void Connect()
-        {
-            var ncs = OpenPipe();
-            int i;
-            for (i = 0; i < 10; i++)
-            {
-                try
-                {
-                    if (!ncs.IsConnected)
-                        ncs.Connect(100);
-                    ncs.ReadMode = PipeTransmissionMode.Byte;
-                    Stream = ncs;
-                    return;
-                }
-                catch (IOException)
-                {
-                    try { ncs.Dispose(); ncs = OpenPipe(); }
-                    catch { }
-                }
-                catch (TimeoutException)
-                {
-                    StartServer();
-                }
-            }
-            throw new InvalidProgramException(
-                string.Format("failed to connect to server after {0} attempts", i));
-        }
-
-        public ICacheInfo Stats
-        {
-            get
-            {
-                return null;
-            }
-        }
-
-        public bool IsSupported( ICompiler comp, IEnumerable<string> args)
+        public bool IsSupported(ICompiler comp, IEnumerable<string> args)
         {
             return true;
         }
@@ -322,7 +275,7 @@ namespace CClash
         string compilerPath;
         string workingDirectory;
         Dictionary<string, string> environment = new Dictionary<string, string>();
-        public ICompiler GetCompiler(string compiler, string workdir, IDictionary<string,string> envs)
+        public ICompiler GetCompiler(string compiler, string workdir, IDictionary<string, string> envs)
         {
             if (string.IsNullOrEmpty(compiler)) throw new ArgumentNullException("compiler");
             workingDirectory = workdir;
@@ -345,7 +298,7 @@ namespace CClash
                 compiler = compilerPath,
                 envs = environment,
                 workdir = workingDirectory,
-                argv = new List<string> ( args ),
+                argv = new List<string>(args),
             };
             var resp = Transact(req);
             if (resp != null)
@@ -357,12 +310,10 @@ namespace CClash
             }
 
             return -1;
-            
+
         }
 
-
-
-        public DataHash DeriveHashKey( ICompiler unused, IEnumerable<string> args)
+        public DataHash DeriveHashKey(ICompiler unused, IEnumerable<string> args)
         {
             throw new NotSupportedException();
         }
@@ -388,7 +339,6 @@ namespace CClash
         {
             if (disposing)
             {
-                if ( serverProcess != null ) serverProcess.Dispose();
                 Disconnect();
             }
         }

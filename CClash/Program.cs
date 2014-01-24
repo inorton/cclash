@@ -51,9 +51,11 @@ namespace CClash
                     typeof(Program).Assembly.GetName().Version.ToString());
 
                 var compiler = Compiler.Find();
+
                 if (Settings.ServiceMode)
                 {
-                    var cc = new CClashServerClient(Settings.CacheDirectory);
+                    CClashServerClientBase cc = new CClashServerClientFactory().GetClient();
+                    cc.Init(Settings.CacheDirectory);
 
                     if (args.Contains("--stop"))
                     {

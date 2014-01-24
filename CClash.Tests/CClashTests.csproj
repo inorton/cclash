@@ -49,6 +49,7 @@
     <Compile Include="CompilerTest.cs" />
     <Compile Include="FileCacheTest.cs" />
     <Compile Include="HashingTest.cs" />
+    <Compile Include="InetSettingsTest.cs" />
     <Compile Include="MessageTests.cs" />
     <Compile Include="NetworkTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

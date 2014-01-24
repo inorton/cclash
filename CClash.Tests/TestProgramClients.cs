@@ -8,7 +8,7 @@ namespace CClash.Tests
 {
     public class TestProgramClients
     {
-        public static void NormalSpeedTest()
+        public static void NormalSpeedTest( string srvmode )
         {
             var t = new CompilerCacheTest();
             t.Init();
@@ -17,7 +17,7 @@ namespace CClash.Tests
             var start = DateTime.Now;
 
             Environment.SetEnvironmentVariable("CCLASH_TRY_HARDLINKS", "yes");
-            Environment.SetEnvironmentVariable("CCLASH_SERVER", "yes");
+            Environment.SetEnvironmentVariable("CCLASH_SERVER", srvmode);
             CClash.Program.Main(new string[] { "--cclash" });
             t.RunEnabledDirect(times);
 
@@ -31,7 +31,7 @@ namespace CClash.Tests
             Console.ReadLine();
         }
 
-        public static void MissSpeedTest()
+        public static void MissSpeedTest( string srvmode )
         {
             var t = new CompilerCacheTest();
             t.Init();
@@ -40,7 +40,7 @@ namespace CClash.Tests
             var start = DateTime.Now;
 
             Environment.SetEnvironmentVariable("CCLASH_TRY_HARDLINKS", "yes");
-            Environment.SetEnvironmentVariable("CCLASH_SERVER", "yes");
+            Environment.SetEnvironmentVariable("CCLASH_SERVER", srvmode);
             CClash.Program.Main(new string[] { "--cclash" });
             t.RunEnabledDirectForcedMiss(times);
 

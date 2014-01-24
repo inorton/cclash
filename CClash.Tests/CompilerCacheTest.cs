@@ -35,6 +35,7 @@ namespace CClash.Tests
         public void Down()
         {
             Environment.SetEnvironmentVariable("CCLASH_DIR", null);
+            Environment.SetEnvironmentVariable("CCLASH_SERVER", null);
             if (System.IO.Directory.Exists(CacheFolderName))
             {
                 int attemps = 4;
@@ -110,21 +111,24 @@ namespace CClash.Tests
 
         [Test]
         [Explicit]
-        [TestCase(500)]
-        public void RunEnabledDirectServer(int times)
+        [TestCase(500, "pipe")]
+        [TestCase(500, "inet")]
+        public void RunEnabledDirectServer(int times, string srvmode)
         {
             Assert.IsFalse(Settings.Disabled);
             Assert.IsTrue(Settings.DirectMode);
             var comp = CompilerTest.CompilerPath;
             var fo = MakeOutfileArg();
-            Environment.SetEnvironmentVariable("CCLASH_SERVER", "yes");
+            Environment.SetEnvironmentVariable("CCLASH_SERVER", srvmode);
             Environment.SetEnvironmentVariable("PATH", System.IO.Path.GetDirectoryName(comp) + ";" + Environment.GetEnvironmentVariable("PATH"));
             for (int i = 0; i < times; i++)
             {
+                Console.Error.WriteLine("run {0}/{1}", i+1, times);
                 var rv = Program.Main(new string[] { "/nologo", "/c", @"test-sources\hello.c", fo, "/Itest-sources\\inc with spaces" });
                 Assert.AreEqual(0, rv);
             }
             Program.Main(new string[] { "--cclash", "--stop" });
+            
 
         }
 
