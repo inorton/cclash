@@ -617,18 +617,20 @@ namespace CClash
                 if (!string.IsNullOrEmpty(ObjectTarget))
                 {
                     bool missing = true;
-                    for (int i = 0; i < 10; i++)
+                    var sw = new Stopwatch();
+                    do
                     {
                         if (!FileUtils.Exists(ObjectTarget))
                         {
-                            System.Threading.Thread.Sleep(200);
+                            Logging.Emit("compiler slow to write object!");
+                            System.Threading.Thread.Sleep(50);
                         }
                         else
                         {
                             missing = false;
-                            break;
                         }
-                    }
+                    } while (missing && sw.ElapsedMilliseconds < 2000);
+
                     if (missing)
                     {
                         throw new CClashErrorException("compiler exited successfully but generated file '{0}' could not be not found", ObjectTarget);
