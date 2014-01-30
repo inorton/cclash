@@ -44,7 +44,7 @@ namespace CClash
                 try
                 {
                     if (!ncs.IsConnected)
-                        ncs.Connect(50);
+                        ncs.Connect(100);
                     ncs.ReadMode = PipeTransmissionMode.Message;
                     return;
                 }
@@ -79,7 +79,7 @@ namespace CClash
                     }
                 }
             }
-            throw new InvalidProgramException("server failed to start");
+            throw new CClashWarningException("failed to connect to server");
         }
 
         public ICacheInfo Stats

@@ -27,6 +27,12 @@ namespace CClash
             }
         }
 
+        public static void Warning(string fmt, params object[] args)
+        {
+            Console.Error.WriteLine(fmt, args);
+            Logging.Emit("warning: {0}", string.Format(fmt, args));
+        }
+
         public static void Error(string fmt, params object[] args)
         {
             Console.Error.WriteLine(fmt, args);

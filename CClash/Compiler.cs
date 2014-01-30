@@ -611,6 +611,30 @@ namespace CClash
             p.BeginOutputReadLine();
 
             p.WaitForExit();
+
+            if (p.ExitCode == 0)
+            {
+                if (!string.IsNullOrEmpty(ObjectTarget))
+                {
+                    bool missing = true;
+                    for (int i = 0; i < 10; i++)
+                    {
+                        if (!FileUtils.Exists(ObjectTarget))
+                        {
+                            System.Threading.Thread.Sleep(200);
+                        }
+                        else
+                        {
+                            missing = false;
+                            break;
+                        }
+                    }
+                    if (missing)
+                    {
+                        throw new CClashErrorException("compiler exited successfully but generated file '{0}' could not be not found", ObjectTarget);
+                    }
+                }
+            }
                         
             return p.ExitCode;
         }

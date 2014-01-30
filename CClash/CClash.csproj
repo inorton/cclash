@@ -50,9 +50,11 @@
     <Compile Include="CacheManifest.cs" />
     <Compile Include="CacheMode.cs" />
     <Compile Include="CacheInformation.cs" />
+    <Compile Include="CClashErrorException.cs" />
     <Compile Include="CClashMessage.cs" />
     <Compile Include="CClashServer.cs" />
     <Compile Include="CClashServerClient.cs" />
+    <Compile Include="CClashWarningException.cs" />
     <Compile Include="Compiler.cs" />
     <Compile Include="DirectCompilerCache.cs" />
     <Compile Include="CompilerCacheBase.cs" />

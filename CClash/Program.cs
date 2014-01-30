@@ -91,6 +91,10 @@ namespace CClash
                     Logging.Emit("disabled by environment");
                 }
             }
+            catch (CClashWarningException e)
+            {
+                Logging.Warning(e.Message);
+            }
             catch (Exception e)
             {
                 Logging.Emit("{0} after {1} ms", e.GetType().Name, DateTime.Now.Subtract(start).TotalMilliseconds);
@@ -100,11 +104,25 @@ namespace CClash
 #endif
             }
 
-            var rv = new Compiler()
+            int rv = -1;
+
+            try
             {
-                CompilerExe = Compiler.Find(),
-            }.InvokeCompiler(args, Console.Error.WriteLine, Console.Out.WriteLine, false, null);
-            Logging.Emit("exit {0} after {1} ms", rv, DateTime.Now.Subtract(start).TotalMilliseconds);
+                rv = new Compiler()
+                {
+                    CompilerExe = Compiler.Find(),
+                }.InvokeCompiler(args, Console.Error.WriteLine, Console.Out.WriteLine, false, null);
+                Logging.Emit("exit {0} after {1} ms", rv, DateTime.Now.Subtract(start).TotalMilliseconds);
+            }
+            catch (CClashErrorException e)
+            {
+                Logging.Error(e.Message);
+                throw;
+            }
+            catch (CClashWarningException e)
+            {
+                Logging.Warning(e.Message);
+            }
             return rv;
         }
     }
