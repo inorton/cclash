@@ -31,6 +31,7 @@ namespace CClash
 
         public override void Stop()
         {
+            quitnow = true;
             if (listener != null)
             {
                 try
@@ -48,10 +49,11 @@ namespace CClash
             Stream rv = null;
             do
             {
-                if (iar.AsyncWaitHandle.WaitOne(100))
+                if (iar.AsyncWaitHandle.WaitOne(500))
                 {
                     var sock = listener.EndAcceptSocket(iar);
                     rv = new NetworkStream(sock);
+                    break;
                 }
             } while (!quitnow && !iar.IsCompleted);
             return rv;
@@ -65,7 +67,7 @@ namespace CClash
         {
             do
             {
-                if (enqueued.WaitOne(50))
+                if (enqueued.WaitOne(500))
                 {
                     Stream con = null;
                     lock (incoming)

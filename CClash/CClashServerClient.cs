@@ -247,6 +247,8 @@ namespace CClash
 
             req.SerializeMessage(Stream);
 
+            Stream.Flush();
+
             var rxbuf = new StringBuilder();
             string line = string.Empty;
 

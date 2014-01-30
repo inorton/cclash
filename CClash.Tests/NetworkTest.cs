@@ -19,12 +19,13 @@ namespace CClash.Tests
             var srv = o as CClashServerBase;
             if (srv != null)
             {
+                if (!System.IO.Directory.Exists(cachedir))
+                    System.IO.Directory.CreateDirectory(cachedir);
                 srv.Listen(cachedir);
             }
             Console.Error.WriteLine("server thread exiting");
         }
 
-        CClashServerBase server = null;
         Thread serverThread = null;
 
         [SetUp]
@@ -40,37 +41,69 @@ namespace CClash.Tests
                 workdir = Environment.CurrentDirectory;
             }
 
-            if (server != null)
-                server.Stop();
+        }
+
+        [TearDown]
+        public void Stop()
+        {
             if (serverThread != null)
                 serverThread.Join();
         }
 
         [Test]
-        public void ServerNoOp()
+        public void PipeServerNoOp()
         {
             CompilerTest.SetEnvs();
 
-            var srv = new CClashPipeServer();
-            server = srv;
-
-            serverThread = new Thread(new ParameterizedThreadStart(ServerThread));
-            serverThread.Start(srv);
-
-            Thread.Sleep(1000);
-            
-            var req = new CClashRequest();
-            req.envs = new Dictionary<string, string>();
-            req.cmd = Command.NoOp;
-            req.argv = new List<string> { DateTime.Now.ToString() };
-            using (var cl = new CClashServerClientFactory().GetClient())
+            using (var srv = new CClashPipeServer())
             {
-                cl.Init(cachedir, false);
-                var resp = cl.Transact(req);
-                Assert.AreEqual(req.argv[0], resp.stdout);
-                Assert.IsNotNull(resp);
+                serverThread = new Thread(new ParameterizedThreadStart(ServerThread));
+                serverThread.Start(srv);
+
+                Thread.Sleep(1000);
+
+                var req = new CClashRequest();
+                req.envs = new Dictionary<string, string>();
+                req.cmd = Command.NoOp;
+                req.argv = new List<string> { DateTime.Now.ToString() };
+                using (var cl = new CClashPipeServerClient())
+                {
+                    cl.Init(cachedir, false);
+                    var resp = cl.Transact(req);
+                    Assert.AreEqual(req.argv[0], resp.stdout);
+                    Assert.IsNotNull(resp);
+                }
             }
         }
+
+        [Test]
+        public void InetServerNoOp()
+        {
+            CompilerTest.SetEnvs();
+
+            using (var srv = new CClashInetServer())
+            {
+
+                serverThread = new Thread(new ParameterizedThreadStart(ServerThread));
+                serverThread.Start(srv);
+
+                Thread.Sleep(1000);
+
+                var req = new CClashRequest();
+                req.envs = new Dictionary<string, string>();
+                req.cmd = Command.NoOp;
+                req.argv = new List<string> { DateTime.Now.ToString() };
+                using (var cl = new CClashInetServerClient())
+                {
+                    cl.Init(cachedir, false);
+                    var resp = cl.Transact(req);
+                    Assert.AreEqual(req.argv[0], resp.stdout);
+                    Assert.IsNotNull(resp);
+                }
+            }
+        }
+
+
 
         [Test]
         [TestCase(1,"inet")]

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Threading;
 
 namespace CClash
@@ -18,41 +19,43 @@ namespace CClash
         public string FolderPath { get; private set; }
         
         Mutex mtx = null;
-        bool ignoreLocks = false;
+        public bool HasLock { get; private set; }
+
         public void KeepLocks()
         {
             WaitOne();
-            ignoreLocks = true;
         }
 
         public void UnKeepLocks()
         {
-            ignoreLocks = false;
             ReleaseMutex();
         }
 
         public void WaitOne()
         {
-            if (!ignoreLocks)
-            {
-                Logging.Emit("WaitOne {0}", FolderPath);
-                if (!mtx.WaitOne()) throw new InvalidProgramException("mutex lock failed " + mtx.ToString());
-            }
+            if (!mtx.WaitOne())
+                throw new InvalidProgramException("mutex lock failed " + mtx.ToString());
+            HasLock = true;
         }
 
         public void ReleaseMutex()
         {
-            if (!ignoreLocks)
-            {
-                Logging.Emit("ReleaseMutex {0}", FolderPath);
-                mtx.ReleaseMutex();
-            }
+            Logging.Emit("ReleaseMutex {0}", FolderPath);
+            mtx.ReleaseMutex();
+            HasLock = false;
+        }
+
+        string getMutexName(string folder)
+        {
+            var name = new StringBuilder();
+            name.AppendFormat("cclash_mtx_{0}_{1}_{2}", Settings.ServiceMode, Environment.UserName, folder.GetHashCode());
+            return name.ToString();
         }
 
         FileCacheStore( string folderPath )
         {
             FolderPath = Path.GetFullPath(folderPath);
-            mtx = new Mutex(false, "cclash_mtx_" + FolderPath.ToLower().GetHashCode());
+            mtx = new Mutex(false, getMutexName(folderPath));
 
             WaitOne();
             
@@ -185,8 +188,8 @@ namespace CClash
         {
             if (mtx != null)
             {
-                if (ignoreLocks)
-                    UnKeepLocks();
+                if (HasLock)
+                    ReleaseMutex();
                 mtx.Dispose();
             }
         }

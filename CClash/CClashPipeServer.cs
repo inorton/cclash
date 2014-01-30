@@ -83,20 +83,11 @@ namespace CClash
         public override void Stop()
         {
             quitnow = true;
-            Dispose(true);
         }
 
         public void Dispose()
         {
-            Dispose(true);
-        }
-
-        private void Dispose(bool disposing)
-        {
-            if (disposing)
-            {
-                if (cache != null) cache.Dispose();
-            }
+            Stop();
         }
     }
 }
