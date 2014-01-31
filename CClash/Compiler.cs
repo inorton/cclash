@@ -618,12 +618,13 @@ namespace CClash
                 {
                     bool missing = true;
                     var sw = new Stopwatch();
+                    sw.Start();
                     do
                     {
                         if (!FileUtils.Exists(ObjectTarget))
                         {
                             Logging.Emit("compiler slow to write object!");
-                            System.Threading.Thread.Sleep(50);
+                            System.Threading.Thread.Sleep(100);
                         }
                         else
                         {
