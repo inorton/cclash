@@ -16,6 +16,7 @@ namespace CClash
             MaxOperations = 20000;
             Directory.SetCurrentDirectory(mydocs);
             LastConnection = DateTime.Now;
+            Settings.IsServer = true;
         }
 
         protected bool quitnow = false;
@@ -55,8 +56,13 @@ namespace CClash
             object server = null;
             try
             {
-                Logging.Emit("server listening..");
-                server = BindStream(cachedir);
+                Logging.Emit("server listening for {0}", cachedir);
+                try {
+                    server = BindStream(cachedir);
+                } catch (CClashServerStartedException) {
+                    Logging.Error("server already running for {0}", cachedir);
+                    return;
+                }
 
                 cache = new DirectCompilerCacheServer(cachedir);
                 do
@@ -66,7 +72,7 @@ namespace CClash
                     try
                     {
                         var con = AwaitConnection(server);
-                        DoRequest(con);
+                        this.DoRequest(con);
                     }
                     catch (Exception e)
                     {

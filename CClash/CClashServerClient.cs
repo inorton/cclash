@@ -169,8 +169,10 @@ namespace CClash
         {
             if (Settings.InetServiceMode)
             {
+                Logging.Emit("starting inet client");
                 return new CClashInetServerClient();
             }
+            Logging.Emit("starting pipe client");
             return new CClashPipeServerClient();
         }
     }
@@ -200,7 +202,14 @@ namespace CClash
                 ServerProcess = new Process();
                 var psi = new ProcessStartInfo(exe);
                 psi.CreateNoWindow = true;
-                psi.Arguments = "--cclash-server";
+                psi.Arguments = "--cclash --server";
+
+                if (Settings.InetServiceMode) {
+                    psi.Arguments += " --inet";
+                } else {
+                    psi.Arguments += " --pipes";
+                }
+
                 psi.ErrorDialog = false;
                 psi.WindowStyle = ProcessWindowStyle.Hidden;
                 ServerProcess.StartInfo = psi;

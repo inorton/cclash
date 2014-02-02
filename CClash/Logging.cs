@@ -35,16 +35,16 @@ namespace CClash
 
         public static void Emit(string fmt, params object[] args)
         {
+
             if (Settings.DebugEnabled)
             {
-                for (int i = 0; i < 4; i++)
-                {
-                    try
-                    {
-                        File.AppendAllLines(Settings.DebugFile, new string[] { pid + ":" + string.Format(fmt, args) });
-                        return;
+                lock (miss_log_sync) {
+                    for (int i = 0; i < 20; i++) {
+                        try {
+                            File.AppendAllLines(Settings.DebugFile, new string[] { pid + ":" + Settings.Actor + ":" + string.Format(fmt, args) });
+                            return;
+                        } catch { }
                     }
-                    catch {}
                 }
             }
         }

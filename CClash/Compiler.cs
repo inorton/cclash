@@ -644,6 +644,19 @@ namespace CClash
             p.BeginOutputReadLine();
 
             p.WaitForExit();
+
+            if (p.ExitCode == 0) {
+                if (!String.IsNullOrEmpty(ObjectTarget)) {
+                    var sw = new Stopwatch();
+                    sw.Start();
+                    bool saved = false;
+                    do {
+                        saved = FileUtils.Exists(ObjectTarget);
+                        if (!saved) System.Threading.Thread.Sleep(100);
+
+                    } while (!saved && sw.ElapsedMilliseconds < 2000);
+                }
+            }
                         
             return p.ExitCode;
         }

@@ -15,9 +15,8 @@ namespace CClash
             ICompilerCache rv;
             if (Settings.ServiceMode)
             {
-                CClashServerClientBase c = new CClashPipeServerClient();
-                c.Init(cachedir);
-                rv = c as ICompilerCache;
+                var f = new CClashServerClientFactory();
+                return f.GetClient() as ICompilerCache;
             }
             else
             {

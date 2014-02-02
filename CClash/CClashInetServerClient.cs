@@ -16,6 +16,7 @@ namespace CClash
 
         public override void Connect()
         {
+            Logging.Emit("connecting to inet server..");
             client = new TcpClient();
             int i;
             for (i = 0; i < 10; i++)
@@ -23,15 +24,19 @@ namespace CClash
                 int port = 0;
                 if (Settings.GetServicePort(cachefolder, out port))
                 {
+                    Logging.Emit("trying server at port {0}", port);
                     try
                     {
                         client.Connect(IPAddress.Loopback, port);
                         Stream = client.GetStream();
+                        Logging.Emit("client connected..");
                         return;
                     }
                     catch (SocketException)
                     {
                         port = 0;
+                        System.Threading.Thread.Sleep(500);
+                        
                     }
                 }
                 else
@@ -41,8 +46,14 @@ namespace CClash
 
                 if (port == 0)
                 {
+                    if (Settings.ExitOnInetError) {
+                        Console.Error.WriteLine("could not connect to service, quitting as configured");
+                        System.Environment.Exit(-1);
+                    }
+
+                    Logging.Emit("could not connect, starting server");
                     StartServer();
-                    System.Threading.Thread.Sleep(50);
+                    System.Threading.Thread.Sleep(200);
                 }
             }
             throw new InvalidProgramException(

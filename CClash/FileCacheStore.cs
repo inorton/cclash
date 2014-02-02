@@ -33,6 +33,7 @@ namespace CClash
 
         public void WaitOne()
         {
+            Logging.Emit("WaitOne {0}", FolderPath);
             if (!mtx.WaitOne())
                 throw new InvalidProgramException("mutex lock failed " + mtx.ToString());
             HasLock = true;
@@ -86,7 +87,7 @@ namespace CClash
 
         public string MakePath(string key, string contentFile)
         {
-            var tlf = key.Substring(0, 2);
+             var tlf = key.Substring(0, 2);
             return Path.Combine(FolderPath, tlf, key, contentFile);
         }
 

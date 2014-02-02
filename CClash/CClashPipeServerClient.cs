@@ -34,6 +34,7 @@ namespace CClash
 
         public override void Connect()
         {
+            Logging.Emit("connecting to pipe server..");
             var ncs = OpenPipe();
             int i;
             for (i = 0; i < 10; i++)

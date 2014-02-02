@@ -4,24 +4,18 @@ using System.Net;
 using System.IO;
 using System.Net.Sockets;
 using System.Threading;
+using System.Diagnostics;
 
 namespace CClash
 {
     public class CClashInetServer : CClashServerBase, IDisposable
     {
         TcpListener listener;
+        Mutex inetlock;
 
         public CClashInetServer()
             : base()
         {
-            var threadcount = Settings.HashThreadCount;
-            for (int i = 0; i < threadcount; i++)
-            {
-                var t = new Thread(new ThreadStart(RequestThreadFunc));
-                t.IsBackground = true;
-                t.Start();
-                threads.Add(t);
-            }
         }
 
         public override bool Connected(Stream s)
@@ -37,61 +31,42 @@ namespace CClash
                 try
                 {
                     listener.Stop();
-                }
-                catch { }
+                } catch { }
+
+                try {
+                    inetlock.ReleaseMutex();
+                } catch { }
+
             }
         }
+
 
         public override Stream AwaitConnection(object service)
         {
             var iar = listener.BeginAcceptSocket(null, null);
-
+            var idletimer = new Stopwatch();
+            idletimer.Start();
             Stream rv = null;
             do
             {
-                if (iar.AsyncWaitHandle.WaitOne(500))
-                {
+                if (iar.AsyncWaitHandle.WaitOne(500)) {
                     var sock = listener.EndAcceptSocket(iar);
                     rv = new NetworkStream(sock);
                     break;
+                } else {
+                    if (idletimer.ElapsedMilliseconds > base.ExitAfterIdleSec * 1000) {
+                        Logging.Emit("exiting.. server has been idle for {0} sec", idletimer.ElapsedMilliseconds / 1000);
+                        Stop();
+                    }
                 }
             } while (!quitnow && !iar.IsCompleted);
             return rv;
         }
 
-        Queue<Stream> incoming = new Queue<Stream>();
-
-        List<Thread> threads = new List<Thread>();
-        AutoResetEvent enqueued = new AutoResetEvent(false);
-        void RequestThreadFunc()
-        {
-            do
-            {
-                if (enqueued.WaitOne(500))
-                {
-                    Stream con = null;
-                    lock (incoming)
-                    {
-                        if (incoming.Count > 0)
-                        {
-                            con = incoming.Dequeue();
-                        }
-                    }
-                    if (con != null)
-                    {
-                        base.DoRequest(con);
-                    }
-                }
-            } while (!quitnow);
-        }
-
         public override void DoRequest(Stream client)
         {
-            lock (incoming)
-            {
-                incoming.Enqueue(client);
-                enqueued.Set();
-            }
+            Logging.Emit("got conenction");
+            base.DoRequest(client);
         }
 
         public override void FinishRequest(Stream clientStream)
@@ -102,11 +77,29 @@ namespace CClash
 
         public override object BindStream(string cachedir)
         {
-            listener = new TcpListener( IPAddress.Loopback, 0 );
-            listener.Start(10);
-            int port = ((IPEndPoint)listener.LocalEndpoint).Port;
-            Settings.SetServicePort(cachedir, port);
-            return listener;
+            inetlock = new Mutex(false, string.Format("cclash_inet_mtx_{0}", cachedir.GetHashCode()));
+            bool held = false;
+            try {
+                held = inetlock.WaitOne(100);
+            } catch (AbandonedMutexException) {
+                Logging.Emit("new server got inet lock unexpectidly");
+                held = true;
+            }
+
+            if (held) {
+
+                int portnumber = -1;
+                Settings.GetServicePort(cachedir, out portnumber);
+
+                listener = new TcpListener(IPAddress.Loopback, portnumber);
+                listener.Start(10);
+                int port = ((IPEndPoint)listener.LocalEndpoint).Port;
+                Logging.Emit("server listening on port {0}", port);
+                Settings.SetServicePort(cachedir, port);
+                return listener;
+            } else {
+                throw new CClashServerStartedException();
+            }
         }
 
         public void Dispose()

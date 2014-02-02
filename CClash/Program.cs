@@ -5,77 +5,81 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 
-namespace CClash
-{
-    public sealed class Program
-    {
+namespace CClash {
+    public sealed class Program {
 
-        public static int Main(string[] args)
-        {
+        public static int Main(string[] args) {
             var start = DateTime.Now;
 
             var dbg = Environment.GetEnvironmentVariable("CCLASH_DEBUG");
-            if (!string.IsNullOrEmpty(dbg))
-            {
+            if (!string.IsNullOrEmpty(dbg)) {
                 Settings.DebugFile = dbg;
                 Settings.DebugEnabled = true;
             }
             Compiler.FixEnv();
 
             var miss = Environment.GetEnvironmentVariable("CCLASH_MISSES");
-            if (!string.IsNullOrEmpty(miss))
-            {
+            if (!string.IsNullOrEmpty(miss)) {
                 Settings.MissLogFile = miss;
             }
 
-            if (Settings.DebugEnabled)
-            {
+            var aa = new CClashArgs();
+            aa.Parse(args);
+
+
+            if (Settings.DebugEnabled) {
                 Logging.Emit("command line args:");
-                foreach (var a in args)
-                {
+                foreach (var a in args) {
                     Logging.Emit("arg: {0}", a);
                 }
             }
 
-            if (args.Contains("--cclash-server"))
-            {
-                var server = new CClashPipeServer();
-                server.Listen(Settings.CacheDirectory);
-                return 0;
-            }
+            if (aa.Matched) {
+                if (aa.ServerMode != ServerMode.None) {
 
-            if (args.Contains("--cclash"))
-            {
+                    CClashServerBase server;
+
+                    switch (aa.ServerMode) {
+                        case ServerMode.Pipes:
+                            server = new CClashPipeServer();
+                            break;
+                        case ServerMode.Inet:
+                            server = new CClashInetServer();
+                            break;
+                        default:
+                            throw new InvalidOperationException("unknown server mode");
+                    }
+
+                    Logging.Emit("server starting");
+                    server.Listen(Settings.CacheDirectory);
+                    return 0;
+                }
+
+
                 Logging.Emit("maint mode");
                 Console.Error.WriteLine("cclash {0} (c) Ian Norton, November 2013",
                     typeof(Program).Assembly.GetName().Version.ToString());
 
                 var compiler = Compiler.Find();
 
-                if (Settings.ServiceMode)
-                {
+                if (Settings.ServiceMode) {
                     CClashServerClientBase cc = new CClashServerClientFactory().GetClient();
                     cc.Init(Settings.CacheDirectory);
 
-                    if (args.Contains("--stop"))
-                    {
+                    if (aa.StopServer) {
                         cc.Transact(new CClashRequest() { cmd = Command.Quit });
-                    }
-                    else
-                    {
+                    } else {
                         Console.Out.WriteLine(cc.GetStats(compiler));
                     }
-                }
-                else
-                {
+                } else {
                     Console.Out.WriteLine(StatOutputs.GetStatsString(compiler));
                 }
                 return 0;
+
             }
-            try
-            {
-                if (!Settings.Disabled)
-                {
+
+            try {
+                if (!Settings.Disabled) {
                     string compiler = Compiler.Find();
                     if (compiler == null)
                         throw new System.IO.FileNotFoundException("cant find real cl compiler");
@@ -83,19 +87,14 @@ namespace CClash
                     var cachedir = Settings.CacheDirectory;
                     Logging.Emit("compiler: {0}", compiler);
 
-                    using (ICompilerCache cc = CompilerCacheFactory.Get(Settings.DirectMode, cachedir))
-                    {
+                    using (ICompilerCache cc = CompilerCacheFactory.Get(Settings.DirectMode, cachedir)) {
                         var comp = cc.GetCompiler(compiler, Environment.CurrentDirectory, Compiler.GetEnvs());
-                        return cc.CompileOrCache( comp, args, Console.Error.Write, Console.Out.Write );
+                        return cc.CompileOrCache(comp, args, Console.Error.Write, Console.Out.Write);
                     }
-                }
-                else
-                {
+                } else {
                     Logging.Emit("disabled by environment");
                 }
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 Logging.Emit("{0} after {1} ms", e.GetType().Name, DateTime.Now.Subtract(start).TotalMilliseconds);
                 Logging.Emit("{0} {1}", e.GetType().Name + " message: " + e.Message);
 #if DEBUG

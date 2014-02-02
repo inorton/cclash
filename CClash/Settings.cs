@@ -10,6 +10,8 @@ namespace CClash
 {
     public sealed class Settings
     {
+        public const ushort DefaultInetPort = 33333;
+
         public static bool DebugEnabled { get; set; }
         public static string DebugFile { get; set; }
 
@@ -131,7 +133,17 @@ namespace CClash
             get
             {
                 var sm = Environment.GetEnvironmentVariable("CCLASH_SERVER");
-                return (sm == "inet");
+                if (sm == null) return false;
+                //Console.Error.WriteLine("=== CCLASH_SERVER={0};", sm);
+                var rv = sm.Equals("inet",StringComparison.InvariantCultureIgnoreCase);
+                //Console.Error.WriteLine("=== CCLASH_SERVER={0} {1};", sm, rv);
+                return rv;
+            }
+        }
+
+        public static bool ExitOnInetError {
+            get {
+                return Environment.GetEnvironmentVariable("CCLASH_EXIT_ON_INETERROR") != null;
             }
         }
 
@@ -166,52 +178,39 @@ namespace CClash
             }
         }
 
-        public static bool GetServicePort(string cachedir, out int portnumber)
+        public static bool GetServicePortEnv( out int portnumber )
         {
             portnumber = -1;
-            var r = GetCClashDirRegKey();
+            var ev = Environment.GetEnvironmentVariable("CCLASH_SERVER_PORT");
+            if (ev != null) {
+                return Int32.TryParse(ev, out portnumber);
+            }
+            return false; 
+        }
 
-            var portkey = HashCacheDir(cachedir);
-
-            portnumber = (int)r.GetValue(portkey, portnumber);
-            r.Close();
-            return portnumber > 0;
+        public static bool GetServicePort(string cachedir, out int portnumber)
+        {
+            if (!GetServicePortEnv(out portnumber)) {
+                portnumber = DefaultInetPort;
+            }
+            return true;
         }
 
         public static void SetServicePort(string cachedir, int portnumber)
         {
-            var r = GetCClashDirRegKey();
-            var portkey = HashCacheDir(cachedir);
-            r.SetValue(portkey, portnumber, RegistryValueKind.DWord);
-            r.Close();
+            if (portnumber < 1024 || portnumber > ushort.MaxValue) {
+                throw new ArgumentOutOfRangeException("portnumber", "port must be between 1024 and " + ushort.MaxValue);
+            }
+            Environment.SetEnvironmentVariable("CCLASH_SERVER_PORT", portnumber.ToString());
         }
 
-        const string CClashRegKeyName = "cclash";
+        public static bool IsServer { get; set; }
 
-        static string HashCacheDir(string cachedir)
-        {
-            var md5 = new System.Security.Cryptography.MD5CryptoServiceProvider();
-            var lower = cachedir.ToLower();
-            var bb = md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes(lower));
-            var sb = new System.Runtime.Remoting.Metadata.W3cXsd2001.SoapHexBinary(bb);
-            return sb.ToString();
-        }
-
-        static RegistryKey GetCClashDirRegKey()
-        {
-            var soft = Registry.CurrentUser.OpenSubKey("Software",true);
-
-            var cc = soft.OpenSubKey(CClashRegKeyName,true);
-            if (cc == null)
-            {
-                cc = soft.CreateSubKey(CClashRegKeyName);
+        public static string Actor {
+            get {
+                if (IsServer) return "server";
+                return "client";
             }
-            var cdir = cc.OpenSubKey("cachedirs",true);
-            if (cdir == null)
-            {
-                cdir = cc.CreateSubKey("cachedirs");
-            }
-            return cdir;
         }
     }
 }

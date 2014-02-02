@@ -45,7 +45,7 @@ namespace CClash
             manifest = null;
             outputCache.WaitOne();
             manifest = GetCachedManifestLocked(commonkey);
-            if (manifest != null)
+            if (manifest != null && !string.IsNullOrEmpty(manifest.ObjectHash))
             {
                 if (manifest.Disable)
                 {

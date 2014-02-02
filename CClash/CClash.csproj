@@ -47,10 +47,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CClashArgs.cs" />
     <Compile Include="CClashInetServer.cs" />
     <Compile Include="CClashInetServerClient.cs" />
     <Compile Include="CClashPipeServer.cs" />
     <Compile Include="CClashPipeServerClient.cs" />
+    <Compile Include="CClashServerStartedException.cs" />
+    <Compile Include="Options.cs" />
     <Compile Include="ThreadedExistsUtil.cs" />
     <Compile Include="CacheManifest.cs" />
     <Compile Include="CacheMode.cs" />
