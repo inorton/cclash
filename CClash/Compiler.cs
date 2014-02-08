@@ -331,6 +331,7 @@ namespace CClash
 
                         case "/Z7":
                             GeneratePdb = false;
+                            PdbFile = null;
                             break;
 
                         case "/Yu":
@@ -442,22 +443,11 @@ namespace CClash
                         var f = Path.GetFileNameWithoutExtension(SingleSourceFile) + ".obj";
                         ObjectTarget = Path.Combine(Environment.CurrentDirectory, f);
                     }
-                    if (GeneratePdb && PdbFile == null)
-                    {
-                        for ( int x = 14; x > 8; x-- )
-                        {
-                            if ( CompilerExe.Contains(string.Format("Microsoft Visual Studio {0}.0",x)) )
-                            {
-                                var f = string.Format("vc{0}0.pdb", x); 
-                                PdbFile = Path.Combine(Environment.CurrentDirectory, f);
-                                break;
-                            }
-                        }
-                        if ( PdbFile == null ) {
-                            Logging.Emit("could not work out compiler version for auto generated pdb");
-                            return false;
-                        }
+
+                    if (GeneratePdb) {
+                        return false;
                     }
+                    
                 }   
                      
             }

@@ -89,23 +89,23 @@ namespace CClash.Tests
         [TestCase("/c", "test-sources\\exists.c", "/Zi", "/Fowhatever.obj")]
         [TestCase("/c", "test-sources\\exists.c", "/Zi", "/Fotest-sources")]
         [TestCase("/c", "test-sources\\exists.c", "/Zi", "/Fdtest-sources\\stuff.pdb")]
-        public void ParseSupportedPdbArgs(params string[] argv)
+        public void ParseUnSupportedPdbArgs(params string[] argv)
         {
             var c = new Compiler();
             c.CompilerExe = CompilerPath;
+            Assert.IsFalse(c.ProcessArguments(argv));
+        }
+
+        [Test]
+        [TestCase("/c", "test-sources\\exists.c", "/Zi","/Z7")]
+        [TestCase("/c", "test-sources\\exists.c", "/Zi", "/Fowhatever.obj", "/Z7")]
+        [TestCase("/c", "test-sources\\exists.c", "/Zi", "/Fotest-sources", "/Z7")]
+        [TestCase("/c", "test-sources\\exists.c", "/Zi", "/Fdtest-sources\\stuff.pdb", "/Z7")]
+        public void ParseSupportedPdbArgs(params string[] argv) {
+            var c = new Compiler();
+            c.CompilerExe = CompilerPath;
             Assert.IsTrue(c.ProcessArguments(argv));
-            Assert.IsTrue(c.GeneratePdb);
-            Assert.IsNotNullOrEmpty(c.PdbFile);
-            EnsureDeleted(c.PdbFile);
-            EnsureDeleted(c.ObjectTarget);
-            var stderr = new StringBuilder();
-            var stdout = new StringBuilder();
-            var ec = c.InvokeCompiler(c.CommandLine,
-                x => stderr.AppendLine(x),
-                x => stdout.AppendLine(x), false, null);
-            Assert.AreEqual(0, ec);
-            Assert.IsTrue(File.Exists(c.ObjectTarget));
-            Assert.IsTrue(File.Exists(c.PdbFile));
+            Assert.IsFalse(c.GeneratePdb);
         }
 
         [Test]
