@@ -125,9 +125,14 @@ namespace CClash
             {
                 using (var stdoutfs = new StreamWriter(stdoutfile))
                 {
-                    int rv = comp.InvokeCompiler(args, (x) => WriteIO(stderrfs, x, Console.Error, echoConsole),
-                        (y) => WriteIO(stdoutfs, y, Console.Out, echoConsole), includes != null, includes);
-                    return rv;
+                    outputCache.ReleaseMutex();
+                    try {
+                        int rv = comp.InvokeCompiler(args, (x) => WriteIO(stderrfs, x, Console.Error, echoConsole),
+                            (y) => WriteIO(stdoutfs, y, Console.Out, echoConsole), includes != null, includes);
+                        return rv;
+                    } finally {
+                        outputCache.WaitOne();
+                    }
                 }
             }
         }

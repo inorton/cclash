@@ -143,7 +143,7 @@ namespace CClash
                 var cachedobj = objectCache.MakePath(hm.ObjectHash, F_Object);
                 CopyOrHardLink(cachedobj, objpath);
                 
-                if (!string.IsNullOrWhiteSpace(pdbpath))
+                if (!string.IsNullOrWhiteSpace(pdbpath) && !string.IsNullOrEmpty(hm.PdbHash))
                 {
                     var cachedpdb = objectCache.MakePath(hm.PdbHash, F_Pdb);
                     CopyOrHardLink(cachedpdb, pdbpath);

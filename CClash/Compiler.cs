@@ -244,7 +244,8 @@ namespace CClash
                     SingleSource &&
                     !String.IsNullOrWhiteSpace(SingleSourceFile) &&
                     !String.IsNullOrWhiteSpace(ObjectTarget) &&
-                    FileUtils.Exists(SingleSourceFile)
+                    FileUtils.Exists(SingleSourceFile) &&
+                    !GeneratePdb
                     );
             }
         }
@@ -361,6 +362,7 @@ namespace CClash
 
                         case "/Z7":
                             GeneratePdb = false;
+                            PdbFile = null;
                             break;
 
                         case "/Yu":

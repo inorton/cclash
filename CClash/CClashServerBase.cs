@@ -31,7 +31,11 @@ namespace CClash
         protected string mydocs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
 
         DateTime lastYield = DateTime.Now;
-        protected void YieldLocks()
+
+        /// <summary>
+        /// Briefly unlock the cache locks to let other instances do updates.
+        /// </summary>
+        protected virtual void YieldLocks()
         {
             if (DateTime.Now.Subtract(lastYield).TotalSeconds > 5)
             {

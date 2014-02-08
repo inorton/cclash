@@ -17,14 +17,22 @@ namespace CClash
         {
             StdErrorText = new StringBuilder();
             StdOutText = new StringBuilder();
-            base.includeCache.KeepLocks();
-            base.outputCache.KeepLocks();
+
+            base.outputCache.WaitOne();
             SetupStats();
+            base.outputCache.ReleaseMutex();
+
+            if (!Settings.InetServiceMode) {
+                base.includeCache.KeepLocks();
+                base.outputCache.KeepLocks();
+            }
+
             base.includeCache.CacheEntryChecksInMemory = true;
         }
 
         public override void Setup()
         {
+            
         }
 
         public override void Finished()

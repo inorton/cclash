@@ -13,9 +13,26 @@ namespace CClash
         TcpListener listener;
         Mutex inetlock;
 
+        AutoResetEvent incoming = new AutoResetEvent(false);
+        Queue<Stream> incomingClients = new Queue<Stream>();
+        List<Thread> threads = new List<Thread>();
+
         public CClashInetServer()
             : base()
         {
+            var tcount = Settings.HashThreadCount;
+            do {
+                var t = new Thread(ServeRequestThreadFunc);
+                t.IsBackground = true;
+                threads.Add(t);
+                t.Start();
+            } while (threads.Count < tcount);
+
+            
+        }
+
+        protected override void YieldLocks() {
+            // do nothing, we need the locks as we are multi-threaded.
         }
 
         public override bool Connected(Stream s)
@@ -66,7 +83,26 @@ namespace CClash
         public override void DoRequest(Stream client)
         {
             Logging.Emit("got conenction");
-            base.DoRequest(client);
+            
+            lock (incomingClients) {
+                incomingClients.Enqueue(client);
+            }
+            incoming.Set();
+        }
+
+        void ServeRequestThreadFunc(object unused) {
+            do {
+                if (incoming.WaitOne(1000)) {
+                    Stream c = null;
+                    lock (incomingClients) {
+                        if (incomingClients.Count > 0)
+                            c = incomingClients.Dequeue();
+                    }
+                    if (c != null) {
+                        base.DoRequest(c);
+                    }
+                }
+            } while (!quitnow);
         }
 
         public override void FinishRequest(Stream clientStream)
