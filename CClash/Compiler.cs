@@ -14,8 +14,8 @@ namespace CClash
     public sealed class Compiler
     {
         static Regex findLineInclude = new Regex("#line\\s+\\d+\\s+\"([^\"]+)\"");
-        
-        [DllImport("kernel32.dll",  CharSet = CharSet.Auto)]
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
         static unsafe extern IntPtr GetEnvironmentStringsA();
 
 
@@ -31,66 +31,88 @@ namespace CClash
             return !FileUtils.Exists(to) && (CreateHardLink(to, from, IntPtr.Zero) != 0);
         }
 
+        static Compiler()
+        {
+            cygwinEnvFixup();
+        }
+
+        public static Dictionary<string, string> GetEnvironmentDictionary()
+        {
+            var rv = new Dictionary<string, string>();
+            var envs = Environment.GetEnvironmentVariables();
+            foreach (string name in envs.Keys)
+            {
+                rv[name.ToUpper()] = string.Format("{0}", envs[(object)name]);
+            }
+
+            return rv;
+        }
+
+        public static Dictionary<string, string> FixEnvironmentDictionary(Dictionary<string, string> envs)
+        {
+            if (envs == null) throw new ArgumentNullException("envs");
+            var rv = new Dictionary<string,string>();
+            foreach (var row in envs)
+            {
+                rv[row.Key.ToUpper()] = row.Value;
+            }
+
+            return rv;
+        }
+
         static void cygwinEnvFixup()
         {
-            var ost = Environment.GetEnvironmentVariable("OSTYPE");
-            if (Environment.GetEnvironmentVariable("CCLASH_CYGWIN_FIX") != null)
-                ost = "cygwin";
+            if (Environment.GetEnvironmentVariable("NO_CCLASH_CYGWIN_FIX") == null)
+                return;
 
-            Logging.Emit("OSTYPE={0}", ost);
-
-            if (ost == "cygwin")
+            List<string> lines = new List<string>();
+            unsafe
             {
-                Logging.Emit("doing ghastly cygwin environment repair");
-                List<string> lines = new List<string>();
-                unsafe
+                var ppenvs = GetEnvironmentStringsA();
+                List<byte> buf = new List<byte>();
+
+                byte* envs = (byte*)ppenvs.ToPointer();
+
+                for (int i = 0; true; i++)
                 {
-                    var ppenvs = GetEnvironmentStringsA();
-                    List<byte> buf = new List<byte>();
-                    
-                    byte* envs = (byte*)ppenvs.ToPointer();
-                    
-                    for (int i = 0; true; i++)
+                    if (envs[i] == (byte)0)
                     {
-                        if (envs[i] == (byte)0)
+                        lines.Add(System.Text.Encoding.ASCII.GetString(buf.ToArray()));
+                        buf.Clear();
+                        if (envs[i + 1] == (byte)0)
                         {
-                            lines.Add(System.Text.Encoding.ASCII.GetString(buf.ToArray()));
-                            buf.Clear();
-                            if (envs[i + 1] == (byte)0)
-                            {
-                                break; // end of buffer. yuk..
-                            }
-                        }
-                        else
-                        {
-                            buf.Add(envs[i]);
+                            break; // end of buffer. yuk..
                         }
                     }
-                    Marshal.FreeHGlobal(ppenvs);
+                    else
+                    {
+                        buf.Add(envs[i]);
+                    }
+                }
+                Marshal.FreeHGlobal(ppenvs);
+            }
+
+            foreach (var e in lines)
+            {
+                var pair = e.Split(new char[] { '=' }, 2);
+                var haslow = false;
+                foreach (var c in pair[0])
+                {
+                    if (char.IsLower(c))
+                    {
+                        haslow = true;
+                        break;
+                    }
                 }
 
-                
-                foreach (var e in lines)
+                if (haslow)
                 {
-                    var pair = e.Split(new char[] { '=' }, 2);
-                    var haslow = false;
-                    foreach (var c in pair[0])
-                    {
-                        if (char.IsLower(c))
-                        {
-                            haslow = true;
-                            break;
-                        }
-                    }
-
-                    if (haslow)
-                    {
-                        Logging.Emit("cwfix {0}={1}", pair[0], pair[1]);
-                        Environment.SetEnvironmentVariable(pair[0], null);
-                        Environment.SetEnvironmentVariable(pair[0].ToUpper(), pair[1]);
-                    }
+                    Logging.Emit("cwfix {0}={1}", pair[0], pair[1]);
+                    Environment.SetEnvironmentVariable(pair[0], null);
+                    Environment.SetEnvironmentVariable(pair[0].ToUpper(), pair[1]);
                 }
             }
+
         }
 
         public static string Find()
@@ -132,7 +154,6 @@ namespace CClash
         public Compiler()
         {
             compilerExe = "cl";
-            cygwinEnvFixup();
         }
 
         private string compilerExe;
@@ -143,8 +164,9 @@ namespace CClash
         public string CompilerExe
         {
             get { return compilerExe; }
-            set {
-                compilerExe = FileUtils.ToLongPathName(value);        
+            set
+            {
+                compilerExe = FileUtils.ToLongPathName(value);
                 Logging.Emit("real compiler is: {0}", compilerExe);
             }
         }
@@ -157,9 +179,27 @@ namespace CClash
         /// <summary>
         /// The first source file.
         /// </summary>
-        public string SingleSourceFile { 
-            get {
+        public string SingleSourceFile
+        {
+            get
+            {
                 return srcs.FirstOrDefault();
+            }
+        }
+
+        public string AbsoluteSourceFile
+        {
+            get
+            {
+                var single = SingleSourceFile;
+                if (!string.IsNullOrWhiteSpace(single))
+                {
+                    if (!Path.IsPathRooted(single))
+                    {
+                        single = Path.Combine(WorkingDirectory, single);
+                    }
+                }
+                return single;
             }
         }
 
@@ -212,16 +252,18 @@ namespace CClash
                 return (!Linking &&
                     !PrecompiledHeaders &&
                     SingleSource &&
+                    !GeneratePdb &&
                     !String.IsNullOrWhiteSpace(SingleSourceFile) &&
                     !String.IsNullOrWhiteSpace(ObjectTarget) &&
-                    FileUtils.Exists(SingleSourceFile)
+                    FileUtils.Exists(AbsoluteSourceFile)
                     );
             }
         }
 
-        string getOption( string arg )
+        string getOption(string arg)
         {
-            if ( arg.StartsWith("-") || arg.StartsWith("/") ){
+            if (arg.StartsWith("-") || arg.StartsWith("/"))
+            {
                 var rv = "/" + arg.Substring(1);
                 if (rv.Length > 2) rv = rv.Substring(0, 3);
                 return rv;
@@ -259,11 +301,11 @@ namespace CClash
             return args;
         }
 
-        public IEnumerable<string> FixupArgs(IEnumerable<string>args)
+        public IEnumerable<string> FixupArgs(IEnumerable<string> args)
         {
             var rv = new List<string>();
             var aa = args.ToArray();
-            for( int i =0; i < aa.Length; i++ )
+            for (int i = 0; i < aa.Length; i++)
             {
                 var a = aa[i];
                 if (a.StartsWith("/D") || a.StartsWith("-D"))
@@ -279,10 +321,12 @@ namespace CClash
                     }
                     if (val.Contains("=\""))
                     {
-                        val = Regex.Replace(val, "\"", "\"\"\""); 
+                        val = Regex.Replace(val, "\"", "\"\"\"");
                     }
                     rv.Add("/D" + val);
-                } else {
+                }
+                else
+                {
                     rv.Add(a);
                 }
             }
@@ -290,6 +334,37 @@ namespace CClash
             return rv;
         }
 
+        private Dictionary<string, string> compenvs;
+
+        public void SetEnvironment(Dictionary<string, string> envs)
+        {
+            compenvs = FixEnvironmentDictionary(envs);
+        }
+
+        public Dictionary<string, string> EnvironmentVariables 
+        {
+            get
+            {
+                return compenvs;
+            }
+        }
+
+        string compworkdir;
+
+        public void SetWorkingDirectory(string path)
+        {
+            if (path == null) throw new ArgumentNullException("path");
+            if (!Directory.Exists(path)) throw new DirectoryNotFoundException("path");
+            compworkdir = path;
+        }
+
+        public string WorkingDirectory
+        {
+            get
+            {
+                return compworkdir;
+            }
+        }
 
         public bool ProcessArguments(string[] args)
         {
@@ -301,7 +376,7 @@ namespace CClash
                     Logging.Emit("process arg '{0}'", args[i]);
                     var opt = getOption(args[i]);
                     var full = getFullOption(args[i]);
-                    
+
                     switch (opt)
                     {
                         case "/o":
@@ -345,13 +420,11 @@ namespace CClash
                             GeneratePdb = true;
                             break;
                         case "/Fd":
-                            PdbFile = Path.Combine(System.IO.Directory.GetCurrentDirectory(), full.Substring(3));
-                            if (!Path.GetFileName(PdbFile).Contains("."))
-                                PdbFile += ".pdb";
+                            GeneratePdb = true;
                             break;
-                        
+
                         case "/Fo":
-                            ObjectTarget = Path.Combine(System.IO.Directory.GetCurrentDirectory(), full.Substring(3));
+                            ObjectTarget = Path.Combine(WorkingDirectory, full.Substring(3));
                             if (!Path.GetFileName(ObjectTarget).Contains("."))
                                 ObjectTarget += ".obj";
                             break;
@@ -361,7 +434,7 @@ namespace CClash
                             var srcfile = full.Substring(3);
                             if (FileUtils.Exists(srcfile))
                             {
-                                srcs.Add( Path.GetFullPath(srcfile) );
+                                srcs.Add(Path.GetFullPath(srcfile));
                             }
                             else
                             {
@@ -421,9 +494,9 @@ namespace CClash
                             {
                                 var d = full.Substring(2);
                                 if (d == ".")
-                                    d = Environment.CurrentDirectory;
+                                    d = WorkingDirectory;
                                 if (d == "..")
-                                    d = Path.GetDirectoryName(Environment.CurrentDirectory);
+                                    d = Path.GetDirectoryName(WorkingDirectory);
 
                                 if (Directory.Exists(d))
                                 {
@@ -441,17 +514,25 @@ namespace CClash
                     if (ObjectTarget == null)
                     {
                         var f = Path.GetFileNameWithoutExtension(SingleSourceFile) + ".obj";
-                        ObjectTarget = Path.Combine(Environment.CurrentDirectory, f);
+                        if (Path.IsPathRooted(f))
+                        {
+                            ObjectTarget = f;
+                        }
+                        else
+                        {
+                            ObjectTarget = Path.Combine(WorkingDirectory, f);
+                        }
                     }
 
-                    if (GeneratePdb) {
+                    if (GeneratePdb)
+                    {
                         return false;
                     }
-                    
-                }   
-                     
+
+                }
+
             }
-            catch ( Exception e )
+            catch (Exception e)
             {
                 Console.Error.WriteLine(e);
                 return false;
@@ -485,7 +566,7 @@ namespace CClash
             var fullSrc = Path.GetFullPath(SingleSourceFile);
             foreach (var d in incdirs)
             {
-                foreach (var f in ( from x in incfiles where x.StartsWith(d, StringComparison.CurrentCultureIgnoreCase) select x ) )
+                foreach (var f in (from x in incfiles where x.StartsWith(d, StringComparison.CurrentCultureIgnoreCase) select x))
                 {
                     if (f != fullSrc)
                     {
@@ -495,12 +576,12 @@ namespace CClash
                 }
             }
 
-            HashSet<string> tmp = new HashSet<string>( includelines );
+            HashSet<string> tmp = new HashSet<string>(includelines);
             foreach (var y in tmp)
             {
                 foreach (var x in incdirs)
                 {
-                    var p = Path.Combine( x, y );
+                    var p = Path.Combine(x, y);
                     if (FileUtils.FileMissing(p))
                     {
                         possibles.Add(p);
@@ -534,47 +615,59 @@ namespace CClash
             }
             var srcfolder = Path.GetDirectoryName(SingleSourceFile);
             if (string.IsNullOrEmpty(srcfolder))
-                srcfolder = Environment.CurrentDirectory;
+                srcfolder = WorkingDirectory;
             Logging.Emit("notice source folder: {0}", srcfolder);
             incdirs.Add(Path.GetFullPath(srcfolder));
             return incdirs;
         }
 
-        public int InvokePreprocessor(StreamWriter stdout )
+        public int InvokePreprocessor(StreamWriter stdout)
         {
             var xargs = new List<string>();
             xargs.Add("/EP");
-            xargs.AddRange( from x in CommandLine where (x != "/c" || x != "-c") select x );
+            xargs.AddRange(from x in CommandLine where (x != "/c" || x != "-c") select x);
             return InvokeCompiler(xargs, (x) => { }, stdout.WriteLine, false, null);
         }
 
         public int InvokeCompiler(IEnumerable<string> args, Action<string> onStdErr, Action<string> onStdOut, bool showIncludes, List<string> foundIncludes)
         {
-            Logging.Emit("invoking real compiler: [{0}]", string.Join( " ", args.ToArray() ));
-            
+            Logging.Emit("invoking real compiler: [{0}]", string.Join(" ", args.ToArray()));
+
             if (string.IsNullOrWhiteSpace(CompilerExe) || !FileUtils.Exists(CompilerExe))
                 throw new FileNotFoundException("cant find cl.exe");
 
-            var cla = JoinAguments( FixupArgs( args) );
+            if (string.IsNullOrWhiteSpace(compworkdir))
+                throw new InvalidOperationException("no working directory set");
+
+            if (compenvs == null || compenvs.Count == 0 )
+                throw new InvalidOperationException("no environment set");
+
+            var cla = JoinAguments(FixupArgs(args));
             if (showIncludes) cla += " /showIncludes";
             var psi = new ProcessStartInfo(CompilerExe, cla)
             {
                 UseShellExecute = false,
                 RedirectStandardError = true,
-                RedirectStandardOutput = true, 
-                WorkingDirectory = Environment.CurrentDirectory,
+                RedirectStandardOutput = true,
+                WorkingDirectory = compworkdir,
             };
 
+            psi.EnvironmentVariables.Clear();
+            foreach (var row in compenvs)
+            {
+                psi.EnvironmentVariables[row.Key] = row.Value;
+            }
             psi.EnvironmentVariables["PATH"] = Path.GetDirectoryName(CompilerExe) + ";" + psi.EnvironmentVariables["PATH"];
             psi.ErrorDialog = true;
             var p = Process.Start(psi);
 
             p.OutputDataReceived += (o, a) =>
             {
-                if ( a.Data != null ) {
+                if (a.Data != null)
+                {
                     if (showIncludes && a.Data.StartsWith("Note: including file:"))
                     {
-                        var inc = a.Data.Substring("Note: including file:".Length+1).TrimStart(' ');
+                        var inc = a.Data.Substring("Note: including file:".Length + 1).TrimStart(' ');
                         if (inc.Contains('/'))
                         {
                             inc = inc.Replace('/', '\\');
@@ -586,18 +679,18 @@ namespace CClash
                         if (onStdOut != null) onStdOut(a.Data);
                     }
                 }
-                    
+
             };
 
             p.ErrorDataReceived += (o, a) =>
             {
-                if ( onStdErr != null )
-                    if (a.Data != null) 
+                if (onStdErr != null)
+                    if (a.Data != null)
                         onStdErr(a.Data);
             };
 
             p.BeginErrorReadLine();
-            
+
             p.BeginOutputReadLine();
 
             p.WaitForExit();
@@ -628,9 +721,9 @@ namespace CClash
                     }
                 }
             }
-                        
+
             return p.ExitCode;
         }
-             
+
     }
 }

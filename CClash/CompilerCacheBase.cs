@@ -10,12 +10,13 @@ namespace CClash
 {
     public class CompilerCacheFactory
     {
-        public static ICompilerCache Get(bool direct, string cachedir, string compiler )
+        public static ICompilerCache Get(bool direct, string cachedir, string compiler, string workdir, Dictionary<string,string> envs )
         {
             ICompilerCache rv;
             if (Settings.ServiceMode)
             {
-                return new CClashServerClient(cachedir);
+                rv = new CClashServerClient(cachedir);
+                rv.SetCompiler(compiler, workdir, envs);
             }
 
             if (direct)
@@ -27,7 +28,7 @@ namespace CClash
             {
                 throw new NotSupportedException("ppmode is not supported yet");
             }
-            rv.SetCompiler(compiler);
+            rv.SetCompiler(compiler, workdir, envs);
             return rv;
         }
     }
@@ -68,7 +69,7 @@ namespace CClash
         public abstract void Setup();
         public abstract void Finished();
 
-        public void SetCompiler(string compiler)
+        public void SetCompiler(string compiler, string workdir, Dictionary<string,string> envs)
         {
             if (string.IsNullOrEmpty(compiler)) throw new ArgumentNullException("compiler");
             
@@ -77,6 +78,8 @@ namespace CClash
             {
                 CompilerExe = compilerPath
             };
+            comp.SetWorkingDirectory(workdir);
+            comp.SetEnvironment(envs);
         }
 
         public virtual bool IsSupported(IEnumerable<string> args)
@@ -104,16 +107,17 @@ namespace CClash
             return DigestBinaryFile(compilerPath);
         }
 
-        public DataHash DeriveHashKey(IEnumerable<string> args)
+        public DataHash DeriveHashKey( IEnumerable<string> args)
         {
             var comphash = DigestCompiler(compilerPath);
             if (comphash.Result == DataHashResult.Ok)
             {
                 var buf = new StringBuilder();
                 buf.AppendLine(this.GetType().FullName.ToString());
-                var incs = Environment.GetEnvironmentVariable("INCLUDE");
-                if (incs != null)
-                    buf.AppendLine(incs);
+                string incs = null;
+                comp.EnvironmentVariables.TryGetValue("INCLUDE", out incs);
+                if ( incs != null ) buf.AppendLine(incs);
+                
                 foreach (var a in args)
                     buf.AppendLine(a);
                 buf.AppendLine(comphash.Hash);

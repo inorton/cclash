@@ -61,6 +61,8 @@ namespace CClash.Tests
         public void ParseSupportedArgs(params string[] argv)
         {
             var c = new Compiler();
+            c.SetWorkingDirectory(Environment.CurrentDirectory);
+            c.SetEnvironment(Compiler.GetEnvironmentDictionary());
             var sbo = new StringBuilder();
             var sbe = new StringBuilder();
             Assert.IsTrue(c.ProcessArguments(argv));
@@ -74,7 +76,8 @@ namespace CClash.Tests
             EnsureDeleted(c.PdbFile);
             
             c.CompilerExe = CompilerPath;
-
+            c.SetWorkingDirectory(Environment.CurrentDirectory);
+            c.SetEnvironment(Compiler.GetEnvironmentDictionary());
             var ec = c.InvokeCompiler(
                 c.CommandLine,
                 Console.Error.WriteLine, Console.Error.WriteLine, false, null);
@@ -92,6 +95,7 @@ namespace CClash.Tests
         public void ParseUnSupportedPdbArgs(params string[] argv)
         {
             var c = new Compiler();
+            c.SetWorkingDirectory(Environment.CurrentDirectory);
             c.CompilerExe = CompilerPath;
             Assert.IsFalse(c.ProcessArguments(argv));
         }
@@ -101,8 +105,9 @@ namespace CClash.Tests
         [TestCase("/c", "test-sources\\exists.c", "/Zi", "/Fowhatever.obj", "/Z7")]
         [TestCase("/c", "test-sources\\exists.c", "/Zi", "/Fotest-sources", "/Z7")]
         [TestCase("/c", "test-sources\\exists.c", "/Zi", "/Fdtest-sources\\stuff.pdb", "/Z7")]
-        public void ParseSupportedPdbArgs(params string[] argv) {
+        public void ParseSupportedDebugArgs(params string[] argv) {
             var c = new Compiler();
+            c.SetWorkingDirectory(Environment.CurrentDirectory);
             c.CompilerExe = CompilerPath;
             Assert.IsTrue(c.ProcessArguments(argv));
             Assert.IsFalse(c.GeneratePdb);
@@ -111,9 +116,12 @@ namespace CClash.Tests
         [Test]
         [TestCase("/c", "test-sources\\doesnotexist.c")]
         [TestCase("/c", "test-sources\\exists.c", "/Yu")]
+        [TestCase("/c", "test-sources\\exists.c", "/Zi")]
+        [TestCase("/c", "test-sources\\exists.c", "/Zi", "/Fowhatever.obj")]
         public void ParseUnSupportedArgs(params string[] argv)
         {
             var c = new Compiler();
+            c.SetWorkingDirectory(Environment.CurrentDirectory);
             Assert.IsFalse(c.ProcessArguments(argv));
         }
 
@@ -123,7 +131,8 @@ namespace CClash.Tests
         {
             var c = new Compiler() { CompilerExe = CompilerPath };
             var hv = new List<string>();
-
+            c.SetWorkingDirectory(Environment.CurrentDirectory);
+            c.SetEnvironment(Compiler.GetEnvironmentDictionary());
             Assert.IsTrue(c.ProcessArguments(argv));
             hv.Add(Path.GetFullPath(c.SingleSourceFile));
             List<string> incfiles = new List<string>();
@@ -141,8 +150,9 @@ namespace CClash.Tests
         public void PreprocessorTest(params string[] argv)
         {
             var c = new Compiler() { CompilerExe = CompilerPath };
+            c.SetWorkingDirectory(Environment.CurrentDirectory);
             var supported = c.ProcessArguments(argv);
-
+            c.SetEnvironment(Compiler.GetEnvironmentDictionary());
             Assert.IsTrue(supported);
             Assert.AreEqual(1, c.CliIncludePaths.Count);
             Assert.AreEqual("test-sources\\inc with spaces", c.CliIncludePaths[0]);
@@ -162,7 +172,8 @@ namespace CClash.Tests
         public void CompileObjectTest(params string[] argv)
         {
             var c = new Compiler() { CompilerExe = CompilerPath };
-            
+            c.SetWorkingDirectory(Environment.CurrentDirectory);
+            c.SetEnvironment(Compiler.GetEnvironmentDictionary());
             Assert.IsTrue(c.ProcessArguments(argv));
             Assert.AreEqual(1, c.CliIncludePaths.Count);
             Assert.AreEqual("test-sources\\inc with spaces", c.CliIncludePaths[0]);
@@ -181,7 +192,8 @@ namespace CClash.Tests
         public void DetectNotSupported(params string[] argv)
         {
             var c = new Compiler() { CompilerExe = CompilerPath };
-
+            c.SetWorkingDirectory(Environment.CurrentDirectory);
+            c.SetEnvironment(Compiler.GetEnvironmentDictionary());
             Assert.IsFalse(c.ProcessArguments(argv));
         }
 

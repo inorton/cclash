@@ -187,16 +187,11 @@ namespace CClash
             StdErrorText.Append(str);
         }
 
-        public int CompileOrCacheEnvs( string workdir, IDictionary<string,string> envs, IEnumerable<string> args)
+        public override int CompileOrCache(IEnumerable<string> args)
         {
             StdErrorText.Clear();
             StdOutText.Clear();
-            // not entirely sure why i need to do both of these..
-            Directory.SetCurrentDirectory(workdir);
-            foreach (var e in envs)
-            {
-                Environment.SetEnvironmentVariable(e.Key, e.Value);
-            }
+
             return base.CompileOrCache(args);
         }
 

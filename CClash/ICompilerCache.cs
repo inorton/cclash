@@ -12,7 +12,7 @@ namespace CClash
 
         bool IsSupported(IEnumerable<string> args);
         int CompileOrCache(IEnumerable<string> args);
-        void SetCompiler(string compiler);
+        void SetCompiler(string compiler, string workdir, Dictionary<string, string> envs);
         DataHash DeriveHashKey(IEnumerable<string> args);
     }
 }

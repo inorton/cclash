@@ -58,7 +58,6 @@ namespace CClash.Tests
         }
 
         [Test]
-        [Explicit]
         [TestCase(10)]
         public void RunEnabledDirectServer(int times)
         {
