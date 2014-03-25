@@ -62,7 +62,7 @@ namespace CClash
 
         static void cygwinEnvFixup()
         {
-            if (Environment.GetEnvironmentVariable("NO_CCLASH_CYGWIN_FIX") == null)
+            if (Environment.GetEnvironmentVariable("NO_CCLASH_CYGWIN_FIX") != null)
                 return;
 
             List<string> lines = new List<string>();

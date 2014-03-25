@@ -44,7 +44,7 @@ namespace CClash
                 try
                 {
                     if (!ncs.IsConnected)
-                        ncs.Connect(100);
+                        ncs.Connect(300);
                     ncs.ReadMode = PipeTransmissionMode.Message;
                     return;
                 }
