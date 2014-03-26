@@ -78,29 +78,31 @@ namespace CClash
 
         public int CompileOrCache(IEnumerable<string> args)
         {
-            var req = new CClashRequest()
-            {
-                cmd = Command.Run,
-                compiler = compilerPath,
-                envs = environment,
-                workdir = workingdir,
-                argv = new List<string> ( args ),
-            };
+            try {
+                var req = new CClashRequest() {
+                    cmd = Command.Run,
+                    compiler = compilerPath,
+                    envs = environment,
+                    workdir = workingdir,
+                    argv = new List<string>(args),
+                };
 
-            Logging.Emit("client args: {0}", string.Join(" ", args.ToArray()));
+                Logging.Emit("client args: {0}", string.Join(" ", args.ToArray()));
 
-            var resp = Transact(req);
-            if (resp != null)
-            {
-                
-                Console.Error.Write(resp.stderr);
-                Console.Out.Write(resp.stdout);
+                var resp = Transact(req);
+                if (resp != null) {
 
-                return resp.exitcode;
+                    Console.Error.Write(resp.stderr);
+                    Console.Out.Write(resp.stdout);
+
+                    return resp.exitcode;
+                }
+
+                return -1;
+            } catch (Exception e) {
+                Logging.Emit("server error! {0}", e);
+                throw new CClashWarningException("server error");
             }
-
-            return -1;
-            
         }
 
         public CClashResponse Transact(CClashRequest req)
