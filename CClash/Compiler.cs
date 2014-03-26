@@ -365,6 +365,11 @@ namespace CClash
             }
         }
 
+        bool NotSupported(string fmt, params object[] args) {
+            Logging.Emit("argument not supported : {0}", string.Format( fmt, args));
+            return false;
+        }
+
         public bool ProcessArguments(string[] args)
         {
             try
@@ -379,8 +384,7 @@ namespace CClash
                     switch (opt)
                     {
                         case "/o":
-                            return false;
-
+                            return NotSupported("/o");
                         case "/D":
                             if (opt == full)
                             {
@@ -396,7 +400,7 @@ namespace CClash
                                 i++;
                                 if (i > args.Length)
                                 {
-                                    return false;
+                                    return NotSupported("-I has not path!");
                                 }
                                 full = "/I" + args[i];
                                 goto default;
@@ -410,10 +414,10 @@ namespace CClash
 
                         case "/Yu":
                             PrecompiledHeaders = true;
-                            return false;
+                            return NotSupported("pre-compiler headers {0}", opt);
 
                         case "/FI":
-                            return false;
+                            return NotSupported(opt);
 
                         case "/Zi":
                             GeneratePdb = true;
@@ -437,7 +441,7 @@ namespace CClash
                             }
                             else
                             {
-                                return false;
+                                return NotSupported("cant find file for {0}", full);
                             }
                             break;
 
@@ -445,13 +449,13 @@ namespace CClash
 
                             if (full.StartsWith("/E"))
                             {
-                                return false;
+                                return NotSupported("/E");
                             }
 
                             if (full == "/link")
                             {
                                 Linking = true;
-                                return false;
+                                return NotSupported("/link");
                             }
 
                             if (opt.StartsWith("@"))
@@ -478,7 +482,7 @@ namespace CClash
                                     Logging.Emit("response file too large");
                                 }
 
-                                return false;
+                                return NotSupported("response file error");
                             }
 
                             if (!full.StartsWith("/"))
@@ -525,7 +529,7 @@ namespace CClash
 
                     if (GeneratePdb)
                     {
-                        return false;
+                        return NotSupported("PDB file requested");
                     }
 
                 }
@@ -534,7 +538,7 @@ namespace CClash
             catch (Exception e)
             {
                 Console.Error.WriteLine(e);
-                return false;
+                return NotSupported("option parser exception '{0}'", e);
             }
 
             return IsSupported;

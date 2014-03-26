@@ -86,10 +86,13 @@ namespace CClash
                 workdir = workingdir,
                 argv = new List<string> ( args ),
             };
+
+            Logging.Emit("client args: {0}", string.Join(" ", args.ToArray()));
+
             var resp = Transact(req);
             if (resp != null)
             {
-
+                
                 Console.Error.Write(resp.stderr);
                 Console.Out.Write(resp.stdout);
 

@@ -47,7 +47,11 @@ namespace CClash
                 {
                     try
                     {
-                        File.AppendAllLines(Settings.DebugFile, new string[] { pid + ":" + string.Format(fmt, args) });
+                        if (Settings.DebugFile == "Console") {
+                            Console.Error.WriteLine("{0}:{1}", pid, string.Format(fmt, args));
+                        } else {
+                            File.AppendAllLines(Settings.DebugFile, new string[] { pid + ":" + string.Format(fmt, args) });
+                        }
                         return;
                     }
                     catch {}

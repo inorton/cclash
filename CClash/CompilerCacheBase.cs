@@ -92,7 +92,7 @@ namespace CClash
                 var rv = comp.ProcessArguments(args.ToArray());
                 if (!rv)
                 {
-                    Logging.Emit("args not supported");
+                    Logging.Emit("args not supported {0}", GetType().Name);
                 }
                 return rv;
             }

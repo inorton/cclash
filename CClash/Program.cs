@@ -39,6 +39,14 @@ namespace CClash
             if (args.Contains("--cclash-server"))
             {
                 var server = new CClashServer();
+
+                if (args.Contains("--debug")) {
+                    if (Settings.DebugFile == null) {
+                        Settings.DebugFile = "Console";
+                        Settings.DebugEnabled = true;
+                    }
+                }
+
                 server.Listen(Settings.CacheDirectory);
                 return 0;
             }
