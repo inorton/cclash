@@ -15,16 +15,10 @@ namespace CClash
 
         int connections = 0;
 
-        public int ExitAfterIdleSec { get; set; }
-
-        public int MaxOperations { get; set; }
-
         string mydocs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
 
         public CClashServer()
         {
-            ExitAfterIdleSec = 60;
-            MaxOperations = 20000;
             Directory.SetCurrentDirectory(mydocs);
         }
 
@@ -58,13 +52,8 @@ namespace CClash
                         Logging.Emit("server waiting..");
                         YieldLocks();
                         try
-                        {
+                        { 
                             connections++;
-                            if (connections > MaxOperations || (DateTime.Now.Subtract(lastConnection).TotalSeconds > ExitAfterIdleSec))
-                            {
-                                Stop();
-                                break;
-                            }
 
                             if (!nss.IsConnected)
                             {
@@ -116,6 +105,7 @@ namespace CClash
 
                             nss.WaitForPipeDrain();
                             nss.Disconnect();
+                            Logging.Emit("server disconnected..");
                         }
                         catch (Exception e)
                         {

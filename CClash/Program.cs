@@ -69,6 +69,9 @@ namespace CClash
                 }
                 return 0;
             }
+
+            Logging.Emit("client mode = {0}", Settings.ServiceMode);
+
             try
             {
                 if (!Settings.Disabled)
@@ -109,7 +112,7 @@ namespace CClash
 
             try
             {
-
+               
                 var c = new Compiler()
                 {
                     CompilerExe = Compiler.Find(),

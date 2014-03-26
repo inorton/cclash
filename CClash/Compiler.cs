@@ -107,7 +107,6 @@ namespace CClash
 
                 if (haslow)
                 {
-                    Logging.Emit("cwfix {0}={1}", pair[0], pair[1]);
                     Environment.SetEnvironmentVariable(pair[0], null);
                     Environment.SetEnvironmentVariable(pair[0].ToUpper(), pair[1]);
                 }
