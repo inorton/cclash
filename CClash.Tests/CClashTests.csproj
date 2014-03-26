@@ -45,6 +45,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ArgumentsTest.cs" />
+    <Compile Include="CClashTestsFixtureSetup.cs" />
     <Compile Include="CompilerCacheTest.cs" />
     <Compile Include="CompilerTest.cs" />
     <Compile Include="FileCacheTest.cs" />

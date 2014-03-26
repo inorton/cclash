@@ -21,18 +21,20 @@ namespace CClash.Tests
             Environment.SetEnvironmentVariable("CCLASH_SERVER", null);
             Environment.SetEnvironmentVariable("CCLASH_HARDLINK", null);
 
-            Environment.SetEnvironmentVariable("CCLASH_DIR", CacheFolderName);
+            Environment.SetEnvironmentVariable("CCLASH_DIR", System.IO.Path.Combine(CClashTestsFixtureSetup.InitialDir, CacheFolderName));
+            Environment.CurrentDirectory = CClashTestsFixtureSetup.InitialDir;
         }
 
         [TearDown]
         public void Down()
         {
             Environment.SetEnvironmentVariable("CCLASH_DIR", null);
-            if (System.IO.Directory.Exists(CacheFolderName))
+            Environment.CurrentDirectory = "c:\\";
+            if (System.IO.Directory.Exists(System.IO.Path.Combine( CClashTestsFixtureSetup.InitialDir, CacheFolderName)))
             {
-                System.IO.Directory.Delete(CacheFolderName, true);
+                System.IO.Directory.Delete(System.IO.Path.Combine(CClashTestsFixtureSetup.InitialDir, CacheFolderName), true);
             }
-                
+                        
         }
 
         [Test]

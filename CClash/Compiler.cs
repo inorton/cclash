@@ -353,7 +353,7 @@ namespace CClash
         public void SetWorkingDirectory(string path)
         {
             if (path == null) throw new ArgumentNullException("path");
-            if (!Directory.Exists(path)) throw new DirectoryNotFoundException("path");
+            if (!Directory.Exists(path)) throw new DirectoryNotFoundException("path " + path);
             compworkdir = path;
         }
 
@@ -436,9 +436,12 @@ namespace CClash
                         case "/Tp":
                         case "/Tc":
                             var srcfile = full.Substring(3);
+                            if (!Path.IsPathRooted(srcfile))
+                                srcfile = Path.Combine(WorkingDirectory, srcfile);
+
                             if (FileUtils.Exists(srcfile))
                             {
-                                srcs.Add(Path.GetFullPath(srcfile));
+                                srcs.Add(srcfile);
                             }
                             else
                             {
@@ -462,7 +465,9 @@ namespace CClash
                             if (opt.StartsWith("@"))
                             {
                                 ResponseFile = full.Substring(1);
-                                var rsptxt = File.ReadAllText(opt.Substring(1));
+                                if (!Path.IsPathRooted(ResponseFile))
+                                    ResponseFile = Path.Combine(WorkingDirectory, ResponseFile);
+                                var rsptxt = File.ReadAllText(ResponseFile);
                                 if (rsptxt.Length < 2047)
                                 // windows max command line, this is why they invented response files
                                 {
@@ -488,6 +493,7 @@ namespace CClash
 
                             if (!full.StartsWith("/"))
                             {
+                                // NOTE, if we ever cache -link calls this will also match input objects and libs
                                 var file = full;
                                 if (!Path.IsPathRooted(file))
                                     file = Path.Combine(WorkingDirectory, file);
@@ -506,9 +512,15 @@ namespace CClash
                                 if (d == "..")
                                     d = Path.GetDirectoryName(WorkingDirectory);
 
+                                if (!Path.IsPathRooted(d)) {
+                                    d = Path.Combine(WorkingDirectory, d);
+                                }
+
                                 if (Directory.Exists(d))
                                 {
                                     Logging.Emit("cli include '{0}' => {1}", full, d);
+                                    
+
                                     cliincs.Add(d);
                                     continue;
                                 }
@@ -608,7 +620,9 @@ namespace CClash
         {
             var incdirs = new List<string>();
             var tmplist = new List<string>(1000);
-            var iinc = Environment.GetEnvironmentVariable("INCLUDE");
+            string iinc = null;
+
+            EnvironmentVariables.TryGetValue("INCLUDE", out iinc);
             Logging.Emit("INCLUDE={0}", iinc);
             if (iinc != null)
             {
