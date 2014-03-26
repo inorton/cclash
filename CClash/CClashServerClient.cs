@@ -46,6 +46,21 @@ namespace CClash
                 } catch (TimeoutException) {
                 }
             }
+
+            // start the server, but lets not try to use it here, the next instance can
+            try {
+                var p = new Process();
+                p.StartInfo = new ProcessStartInfo(GetType().Assembly.Location, "--cclash-server");
+                p.StartInfo.UseShellExecute = false;
+                p.StartInfo.CreateNoWindow = true;
+                p.StartInfo.Arguments = "--cclash-server";
+                p.StartInfo.ErrorDialog = false;
+                p.StartInfo.WorkingDirectory = Environment.CurrentDirectory;
+                p.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+                p.Start();
+            } catch (Exception e) {
+                Logging.Emit("error starting cclash server process", e.Message);
+            }
             throw new CClashWarningException("failed to connect to server");
         }
 
