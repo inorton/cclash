@@ -38,11 +38,12 @@ namespace CClash
             try
             {
                 Logging.Emit("server listening..");
+
                 using (var nss = new NamedPipeServerStream(MakePipeName(cachedir), PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.WriteThrough | PipeOptions.Asynchronous))
                 {
                     cache = new DirectCompilerCacheServer(cachedir);
                     var msgbuf = new List<byte>();
-                    var rxbuf = new byte[16384];
+                    var rxbuf = new byte[256*1024];
                     DateTime lastConnection = DateTime.Now;
                     
                     do
@@ -51,21 +52,16 @@ namespace CClash
                         System.IO.Directory.SetCurrentDirectory(mydocs);
                         Logging.Emit("server waiting..");
                         YieldLocks();
-                        try
-                        { 
+                        try {
                             connections++;
 
-                            if (!nss.IsConnected)
-                            {
+                            if (!nss.IsConnected) {
                                 var w = nss.BeginWaitForConnection(null, null);
-                                while (!w.AsyncWaitHandle.WaitOne(5000))
-                                {
+                                while (!w.AsyncWaitHandle.WaitOne(5000)) {
                                     try {
-                                        YieldLocks();     
-                                    }
-                                    catch { }
-                                    if (quitnow)
-                                    {
+                                        YieldLocks();
+                                    } catch { }
+                                    if (quitnow) {
                                         return;
                                     }
                                     if (DateTime.Now.Subtract(lastConnection).TotalSeconds > 90)
@@ -79,11 +75,9 @@ namespace CClash
 
                             msgbuf.Clear();
                             int count = 0;
-                            do
-                            {
+                            do {
                                 count = nss.Read(rxbuf, msgbuf.Count, rxbuf.Length);
-                                if (count > 0)
-                                {
+                                if (count > 0) {
                                     msgbuf.AddRange(rxbuf.Take(count));
                                 }
 
@@ -101,14 +95,16 @@ namespace CClash
 
                             // don't hog folders
                             cache.Finished();
-                            
+
 
                             nss.WaitForPipeDrain();
                             nss.Disconnect();
                             Logging.Emit("server disconnected..");
-                        }
-                        catch (Exception e)
-                        {
+                        } catch (IOException) {
+                            Logging.Warning("error on client pipe");
+                            nss.Disconnect();
+                            
+                        } catch (Exception e) {
                             Logging.Error("server exception {0}", e);
                             Stop();
                         }

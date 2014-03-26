@@ -365,7 +365,8 @@ namespace CClash
             }
         }
 
-        bool NotSupported(string fmt, params object[] args) {
+        bool NotSupported(string fmt, params object[] args)
+        {
             Logging.Emit("argument not supported : {0}", string.Format( fmt, args));
             return false;
         }
@@ -487,9 +488,13 @@ namespace CClash
 
                             if (!full.StartsWith("/"))
                             {
-                                if (FileUtils.Exists(full))
+                                var file = full;
+                                if (!Path.IsPathRooted(file))
+                                    file = Path.Combine(WorkingDirectory, file);
+
+                                if (FileUtils.Exists(file))
                                 {
-                                    srcs.Add(full);
+                                    srcs.Add(file);
                                     continue;
                                 }
                             }
@@ -700,27 +705,23 @@ namespace CClash
 
             if (p.ExitCode == 0)
             {
-                if (!string.IsNullOrEmpty(ObjectTarget))
-                {
-                    bool missing = true;
-                    var sw = new Stopwatch();
-                    sw.Start();
-                    do
-                    {
-                        if (!FileUtils.Exists(ObjectTarget))
-                        {
-                            Logging.Emit("compiler slow to write object!");
-                            System.Threading.Thread.Sleep(100);
-                        }
-                        else
-                        {
-                            missing = false;
-                        }
-                    } while (missing && sw.ElapsedMilliseconds < 2000);
+                if (IsSupported) {
+                    if (!string.IsNullOrEmpty(ObjectTarget)) {
+                        bool missing = true;
+                        var sw = new Stopwatch();
+                        sw.Start();
+                        do {
+                            if (!FileUtils.Exists(ObjectTarget)) {
+                                Logging.Emit("compiler slow to write object!");
+                                System.Threading.Thread.Sleep(100);
+                            } else {
+                                missing = false;
+                            }
+                        } while (missing && sw.ElapsedMilliseconds < 2000);
 
-                    if (missing)
-                    {
-                        throw new CClashErrorException("compiler exited successfully but generated file '{0}' could not be not found", ObjectTarget);
+                        if (missing) {
+                            throw new CClashErrorException("compiler exited successfully but generated file '{0}' could not be not found", ObjectTarget);
+                        }
                     }
                 }
             }
