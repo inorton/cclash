@@ -3752,7 +3752,7 @@
 		<row><td>ID_STRING2</td><td>1033</td><td>https://github.com/inorton/cclash</td><td>0</td><td/><td>-643678445</td></row>
 		<row><td>ID_STRING3</td><td>1033</td><td>Ian Norton</td><td>0</td><td/><td>-643643661</td></row>
 		<row><td>ID_STRING4</td><td>1033</td><td>*=-XMSVC</td><td>0</td><td/><td>-643688300</td></row>
-		<row><td>ID_STRING5</td><td>1033</td><td>[INSTALLDIR]bin</td><td>0</td><td/><td>-643682156</td></row>
+		<row><td>ID_STRING5</td><td>1033</td><td>[INSTALLDIR]</td><td>0</td><td/><td>-643681196</td></row>
 		<row><td>IIDS_UITEXT_FeatureUninstalled</td><td>1033</td><td>This feature will remain uninstalled.</td><td>0</td><td/><td>-643664141</td></row>
 	</table>
 
@@ -3993,7 +3993,7 @@ UwBpAG4AZwBsAGUASQBtAGEAZwBlAAEARQB4AHAAcgBlAHMAcwA=
 		<row><td>ISTheme</td><td>InstallShield Blue.theme</td></row>
 		<row><td>ISUSLock</td><td>{B159D175-BA91-4E08-AB4D-6A6DB4103F48}</td></row>
 		<row><td>ISUSSignature</td><td>{9EBF535B-CFC8-4E5D-B72F-8EE07556E24D}</td></row>
-		<row><td>ISVisitedViews</td><td>viewAssistant,viewAppFiles,viewSetupTypes,viewSetupDesign,viewRealSetupDesign,viewProject,viewISToday,viewEnvironmentVariables</td></row>
+		<row><td>ISVisitedViews</td><td>viewAssistant,viewAppFiles,viewSetupTypes,viewSetupDesign,viewRealSetupDesign,viewProject,viewISToday,viewEnvironmentVariables,viewShortcuts</td></row>
 		<row><td>Limited</td><td>1</td></row>
 		<row><td>LockPermissionMode</td><td>1</td></row>
 		<row><td>MsiExecCmdLineOptions</td><td/></row>
