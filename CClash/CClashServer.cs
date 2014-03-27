@@ -5,6 +5,7 @@ using System.Text;
 using System.IO;
 using System.IO.Pipes;
 using System.Web.Script.Serialization;
+using System.Threading;
 
 namespace CClash
 {
@@ -35,19 +36,26 @@ namespace CClash
         public void Listen(string cachedir)
         {
             
-            try
-            {
+            var mtx = new Mutex(false, "cclash_serv_" + cachedir.ToLower().GetHashCode());
+
+            try {
+                if (!mtx.WaitOne(500)) {
+                    return; // some other process is holding it
+                }
+            } catch (AbandonedMutexException) {
+                // past server must have died!
+            }
+
+            try {
                 Logging.Emit("server listening..");
 
-                using (var nss = new NamedPipeServerStream(MakePipeName(cachedir), PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.WriteThrough | PipeOptions.Asynchronous))
-                {
+                using (var nss = new NamedPipeServerStream(MakePipeName(cachedir), PipeDirection.InOut, 1, PipeTransmissionMode.Message, PipeOptions.WriteThrough | PipeOptions.Asynchronous)) {
                     cache = new DirectCompilerCacheServer(cachedir);
                     var msgbuf = new List<byte>();
-                    var rxbuf = new byte[256*1024];
+                    var rxbuf = new byte[256 * 1024];
                     DateTime lastConnection = DateTime.Now;
-                    
-                    do
-                    {
+
+                    do {
                         // don't hog folders
                         System.IO.Directory.SetCurrentDirectory(mydocs);
                         Logging.Emit("server waiting..");
@@ -103,7 +111,7 @@ namespace CClash
                         } catch (IOException) {
                             Logging.Warning("error on client pipe");
                             nss.Disconnect();
-                            
+
                         } catch (Exception e) {
                             Logging.Error("server exception {0}", e);
                             Stop();
@@ -111,11 +119,11 @@ namespace CClash
                     } while (!quitnow);
                     Logging.Emit("server quitting");
                 }
-            }
-            catch (IOException ex)
-            {
+            } catch (IOException ex) {
                 Logging.Emit("{0}", ex);
                 return;
+            } finally {
+                mtx.ReleaseMutex();
             }
         }
 
