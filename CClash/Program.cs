@@ -60,15 +60,17 @@ namespace CClash
                 var compiler = Compiler.Find();
                 if (Settings.ServiceMode)
                 {
-                    var cc = new CClashServerClient(Settings.CacheDirectory);
-
-                    if (args.Contains("--stop"))
-                    {
-                        cc.Transact(new CClashRequest() { cmd = Command.Quit });
-                    }
-                    else
-                    {
-                        Console.Out.WriteLine(cc.GetStats(compiler));
+                    for (int i = 0; i < 3; i++ ) {
+                        try {
+                            var cc = new CClashServerClient(Settings.CacheDirectory);
+                            if (args.Contains("--stop")) {
+                                cc.Transact(new CClashRequest() { cmd = Command.Quit });
+                            } else {
+                                Console.Out.WriteLine(cc.GetStats(compiler));
+                            }
+                        } catch (CClashWarningException) {
+                            System.Threading.Thread.Sleep(2000);
+                        }
                     }
                 }
                 else
