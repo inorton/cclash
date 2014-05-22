@@ -123,5 +123,13 @@ namespace CClash
                 hashThreadCount = value;
             }
         }
+
+        public static bool NoAutoRebuild
+        {
+            get
+            {
+                return Environment.GetEnvironmentVariable("CCLASH_AUTOREBUILD") == "no";
+            }
+        }
     }
 }

@@ -9,6 +9,8 @@ namespace CClash
 {
     public sealed class Program
     {
+        public static StringBuilder MainStdErr = new StringBuilder();
+        public static StringBuilder MainStdOut = new StringBuilder();
 
         public static int Main(string[] args)
         {
@@ -69,6 +71,45 @@ namespace CClash
                 }
                 return 0;
             }
+
+
+            var rv = RunBuild(args, start, AppendStdout, AppendStderr);
+            if (rv != 0)
+            {
+                if (Settings.NoAutoRebuild)
+                {
+                    Console.Error.Write(MainStdErr.ToString());
+                    Console.Out.Write(MainStdOut.ToString());
+                }
+                else
+                {
+                    for (int i = 1; i < 4; i++)
+                    {
+                        MainStdErr.Clear();
+                        MainStdOut.Clear();
+                        rv = RunBuild(args, start, AppendStdout, AppendStderr);
+                        if (rv == 0) break;
+                        Logging.Emit("compiler returned non-zero, doing auto-retry {0}", i);
+                        System.Threading.Thread.Sleep(50);
+                    }
+                }
+            }
+
+            return rv;
+        }
+
+        static void AppendStderr(string str)
+        {
+            MainStdErr.AppendLine(str);
+        }
+
+        static void AppendStdout(string str)
+        {
+            MainStdOut.AppendLine(str);
+        }
+
+        private static int RunBuild(string[] args, DateTime start, Action<string> stdout, Action<string> stderr)
+        {
             try
             {
                 if (!Settings.Disabled)
@@ -80,10 +121,11 @@ namespace CClash
                     var cachedir = Settings.CacheDirectory;
                     Logging.Emit("compiler: {0}", compiler);
 
-                    using (ICompilerCache cc = 
+                    using (ICompilerCache cc =
                         CompilerCacheFactory.Get(Settings.DirectMode, cachedir, compiler, Environment.CurrentDirectory, Compiler.GetEnvironmentDictionary()
                         ))
                     {
+                        cc.SetCaptureCallback(stdout, stderr);
                         return cc.CompileOrCache(args);
                     }
                 }
@@ -116,7 +158,7 @@ namespace CClash
                 };
                 c.SetEnvironment(Compiler.GetEnvironmentDictionary());
                 c.SetWorkingDirectory(Environment.CurrentDirectory);
-                rv = c.InvokeCompiler(args, Console.Error.WriteLine, Console.Out.WriteLine, false, null);
+                rv = c.InvokeCompiler(args, stderr, stdout, false, null);
                 Logging.Emit("exit {0} after {1} ms", rv, DateTime.Now.Subtract(start).TotalMilliseconds);
             }
             catch (CClashErrorException e)

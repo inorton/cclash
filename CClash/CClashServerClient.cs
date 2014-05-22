@@ -108,6 +108,14 @@ namespace CClash
             compilerPath = System.IO.Path.GetFullPath(compiler);
         }
 
+        Action<string> stdOutCallback = null;
+        Action<string> stdErrCallback = null;
+        public void SetCaptureCallback(Action<string> onOutput, Action<string> onError)
+        {
+            stdOutCallback = onOutput;
+            stdErrCallback = onError;
+        }
+
         public int CompileOrCache(IEnumerable<string> args)
         {
             var req = new CClashRequest()
@@ -121,9 +129,22 @@ namespace CClash
             var resp = Transact(req);
             if (resp != null)
             {
-
-                Console.Error.Write(resp.stderr);
-                Console.Out.Write(resp.stdout);
+                if (stdErrCallback != null)
+                {
+                    stdErrCallback(resp.stderr);
+                }
+                else
+                {
+                    Console.Error.Write(resp.stderr);
+                }
+                if (stdOutCallback != null)
+                {
+                    stdOutCallback(resp.stdout);
+                }
+                else
+                {
+                    Console.Out.Write(resp.stdout);
+                }
 
                 return resp.exitcode;
             }
@@ -185,7 +206,11 @@ namespace CClash
         {
             if (disposing)
             {
-                if ( serverProcess != null ) serverProcess.Dispose();
+                if (serverProcess != null)
+                {
+                    Logging.Emit("disposing server process");
+                    serverProcess.Dispose();
+                }
                 ncs.Dispose();
             }
         }

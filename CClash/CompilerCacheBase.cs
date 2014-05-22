@@ -303,14 +303,37 @@ namespace CClash
             }
         }
 
+
+        Action<string> stdOutCallback = null;
+        Action<string> stdErrCallback = null;
+        public void SetCaptureCallback(Action<string> onOutput, Action<string> onError)
+        {
+            stdOutCallback = onOutput;
+            stdErrCallback = onError;
+        }
+
         public virtual void ErrorWriteLine(string str)
         {
-            Console.Error.WriteLine(str);
+            if (stdErrCallback != null)
+            {
+                stdErrCallback(str);
+            }
+            else
+            {
+                Console.Error.WriteLine(str);
+            }
         }
 
         public virtual void OutputWriteLine(string str)
         {
-            Console.Out.WriteLine(str);
+            if (stdOutCallback != null)
+            {
+                stdOutCallback(str);
+            }
+            else
+            {
+                Console.Out.WriteLine(str);
+            }
         }
 
         public virtual void OutputWrite(string str)

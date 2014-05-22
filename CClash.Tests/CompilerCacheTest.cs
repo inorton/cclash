@@ -11,17 +11,21 @@ namespace CClash.Tests
     public class CompilerCacheTest
     {
         public const string CacheFolderName = "cclash-unittest";
+        public static string cachesuffix = null;
+
         [SetUp]
         public void Init()
         {
-            
+            if ( cachesuffix == null ) {
+                cachesuffix = Guid.NewGuid().ToString().Substring(0, 5);
+            }
             CompilerTest.SetEnvs();
             
             Environment.SetEnvironmentVariable("CCLASH_DEBUG", null);
             Environment.SetEnvironmentVariable("CCLASH_SERVER", null);
             Environment.SetEnvironmentVariable("CCLASH_HARDLINK", null);
 
-            Environment.SetEnvironmentVariable("CCLASH_DIR", CacheFolderName);
+            Environment.SetEnvironmentVariable("CCLASH_DIR", CacheFolderName + cachesuffix);
         }
 
         [TearDown]
@@ -74,7 +78,7 @@ namespace CClash.Tests
         }
 
         [Test]
-        [TestCase(10)]
+        [TestCase(100)]
         public void RunDisabled(int times)
         {
             Assert.IsFalse(Settings.Disabled);
@@ -82,6 +86,7 @@ namespace CClash.Tests
             Assert.IsTrue(Settings.Disabled);
             for (int i = 0; i < times; i++)
             {
+                Console.Error.WriteLine("{0}/{1}", i, times);
                 var rv = Program.Main(new string[] { "/nologo", "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
                 Assert.AreEqual(0, rv);
             }

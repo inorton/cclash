@@ -695,7 +695,9 @@ namespace CClash
 
             p.WaitForExit();
 
-            if (p.ExitCode == 0)
+            int rv = p.ExitCode;
+
+            if (rv == 0)
             {
                 if (!string.IsNullOrEmpty(ObjectTarget))
                 {
@@ -707,7 +709,7 @@ namespace CClash
                         if (!FileUtils.Exists(ObjectTarget))
                         {
                             Logging.Emit("compiler slow to write object!");
-                            System.Threading.Thread.Sleep(100);
+                            System.Threading.Thread.Sleep(50);
                         }
                         else
                         {
@@ -717,12 +719,27 @@ namespace CClash
 
                     if (missing)
                     {
-                        throw new CClashErrorException("compiler exited successfully but generated file '{0}' could not be not found", ObjectTarget);
+                        string logmsg = string.Format("cclash: cl exited with zero cclash could not find the object file! {0}", ObjectTarget);
+                        // let the retry system have a go with this
+                        if (onStdErr != null)
+                        {
+                            onStdErr(logmsg);
+                        }
+                        else
+                        {
+                            Logging.Warning("{0}",logmsg);
+                        }
+                        rv = 42;
                     }
                 }
             }
+            
+            if ( rv != 0 )
+            {
+                Logging.Emit("non-zero exit");
+            }
 
-            return p.ExitCode;
+            return rv;
         }
 
     }
