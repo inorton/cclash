@@ -14,6 +14,7 @@ namespace CClash
         Run = 0,
         GetStats = 1,
         Quit = 2,
+        GetResult = 3,
     }
 
     [Serializable]
@@ -58,6 +59,7 @@ namespace CClash
         public IDictionary<string, string> envs;
         public IList<string> argv;
         public string compiler;
+        public int tag;
     }
 
     [Serializable]
@@ -67,6 +69,7 @@ namespace CClash
         public int exitcode;
         public string stderr;
         public string stdout;
+        public int tag;
     }
 
 

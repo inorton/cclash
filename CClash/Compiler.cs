@@ -107,7 +107,6 @@ namespace CClash
 
                 if (haslow)
                 {
-                    Logging.Emit("cwfix {0}={1}", pair[0], pair[1]);
                     Environment.SetEnvironmentVariable(pair[0], null);
                     Environment.SetEnvironmentVariable(pair[0].ToUpper(), pair[1]);
                 }
@@ -354,7 +353,7 @@ namespace CClash
         public void SetWorkingDirectory(string path)
         {
             if (path == null) throw new ArgumentNullException("path");
-            if (!Directory.Exists(path)) throw new DirectoryNotFoundException("path");
+            if (!Directory.Exists(path)) throw new DirectoryNotFoundException("path " + path);
             compworkdir = path;
         }
 
@@ -364,6 +363,12 @@ namespace CClash
             {
                 return compworkdir;
             }
+        }
+
+        bool NotSupported(string fmt, params object[] args)
+        {
+            Logging.Emit("argument not supported : {0}", string.Format( fmt, args));
+            return false;
         }
 
         public bool ProcessArguments(string[] args)
@@ -380,8 +385,7 @@ namespace CClash
                     switch (opt)
                     {
                         case "/o":
-                            return false;
-
+                            return NotSupported("/o");
                         case "/D":
                             if (opt == full)
                             {
@@ -397,7 +401,7 @@ namespace CClash
                                 i++;
                                 if (i > args.Length)
                                 {
-                                    return false;
+                                    return NotSupported("-I has not path!");
                                 }
                                 full = "/I" + args[i];
                                 goto default;
@@ -411,10 +415,10 @@ namespace CClash
 
                         case "/Yu":
                             PrecompiledHeaders = true;
-                            return false;
+                            return NotSupported("pre-compiler headers {0}", opt);
 
                         case "/FI":
-                            return false;
+                            return NotSupported(opt);
 
                         case "/Zi":
                             GeneratePdb = true;
@@ -432,13 +436,16 @@ namespace CClash
                         case "/Tp":
                         case "/Tc":
                             var srcfile = full.Substring(3);
+                            if (!Path.IsPathRooted(srcfile))
+                                srcfile = Path.Combine(WorkingDirectory, srcfile);
+
                             if (FileUtils.Exists(srcfile))
                             {
-                                srcs.Add(Path.GetFullPath(srcfile));
+                                srcs.Add(srcfile);
                             }
                             else
                             {
-                                return false;
+                                return NotSupported("cant find file for {0}", full);
                             }
                             break;
 
@@ -446,19 +453,21 @@ namespace CClash
 
                             if (full.StartsWith("/E"))
                             {
-                                return false;
+                                return NotSupported("/E");
                             }
 
                             if (full == "/link")
                             {
                                 Linking = true;
-                                return false;
+                                return NotSupported("/link");
                             }
 
                             if (opt.StartsWith("@"))
                             {
                                 ResponseFile = full.Substring(1);
-                                var rsptxt = File.ReadAllText(opt.Substring(1));
+                                if (!Path.IsPathRooted(ResponseFile))
+                                    ResponseFile = Path.Combine(WorkingDirectory, ResponseFile);
+                                var rsptxt = File.ReadAllText(ResponseFile);
                                 if (rsptxt.Length < 2047)
                                 // windows max command line, this is why they invented response files
                                 {
@@ -479,14 +488,19 @@ namespace CClash
                                     Logging.Emit("response file too large");
                                 }
 
-                                return false;
+                                return NotSupported("response file error");
                             }
 
                             if (!full.StartsWith("/"))
                             {
-                                if (FileUtils.Exists(full))
+                                // NOTE, if we ever cache -link calls this will also match input objects and libs
+                                var file = full;
+                                if (!Path.IsPathRooted(file))
+                                    file = Path.Combine(WorkingDirectory, file);
+
+                                if (FileUtils.Exists(file))
                                 {
-                                    srcs.Add(full);
+                                    srcs.Add(file);
                                     continue;
                                 }
                             }
@@ -498,9 +512,15 @@ namespace CClash
                                 if (d == "..")
                                     d = Path.GetDirectoryName(WorkingDirectory);
 
+                                if (!Path.IsPathRooted(d)) {
+                                    d = Path.Combine(WorkingDirectory, d);
+                                }
+
                                 if (Directory.Exists(d))
                                 {
                                     Logging.Emit("cli include '{0}' => {1}", full, d);
+                                    
+
                                     cliincs.Add(d);
                                     continue;
                                 }
@@ -526,7 +546,7 @@ namespace CClash
 
                     if (GeneratePdb)
                     {
-                        return false;
+                        return NotSupported("PDB file requested");
                     }
 
                 }
@@ -535,7 +555,7 @@ namespace CClash
             catch (Exception e)
             {
                 Console.Error.WriteLine(e);
-                return false;
+                return NotSupported("option parser exception '{0}'", e);
             }
 
             return IsSupported;
@@ -600,7 +620,9 @@ namespace CClash
         {
             var incdirs = new List<string>();
             var tmplist = new List<string>(1000);
-            var iinc = Environment.GetEnvironmentVariable("INCLUDE");
+            string iinc = null;
+
+            EnvironmentVariables.TryGetValue("INCLUDE", out iinc);
             Logging.Emit("INCLUDE={0}", iinc);
             if (iinc != null)
             {
@@ -699,37 +721,40 @@ namespace CClash
 
             if (rv == 0)
             {
-                if (!string.IsNullOrEmpty(ObjectTarget))
+                if (IsSupported)
                 {
-                    bool missing = true;
-                    var sw = new Stopwatch();
-                    sw.Start();
-                    do
+                    if (!string.IsNullOrEmpty(ObjectTarget))
                     {
-                        if (!FileUtils.Exists(ObjectTarget))
+                        bool missing = true;
+                        var sw = new Stopwatch();
+                        sw.Start();
+                        do
                         {
-                            Logging.Emit("compiler slow to write object!");
-                            System.Threading.Thread.Sleep(50);
-                        }
-                        else
-                        {
-                            missing = false;
-                        }
-                    } while (missing && sw.ElapsedMilliseconds < 2000);
+                            if (!FileUtils.Exists(ObjectTarget))
+                            {
+                                Logging.Emit("compiler slow to write object!");
+                                System.Threading.Thread.Sleep(50);
+                            }
+                            else
+                            {
+                                missing = false;
+                            }
+                        } while (missing && sw.ElapsedMilliseconds < 2000);
 
-                    if (missing)
-                    {
-                        string logmsg = string.Format("cclash: cl exited with zero cclash could not find the object file! {0}", ObjectTarget);
-                        // let the retry system have a go with this
-                        if (onStdErr != null)
+                        if (missing)
                         {
-                            onStdErr(logmsg);
+                            string logmsg = string.Format("cclash: cl exited with zero cclash could not find the object file! {0}", ObjectTarget);
+                            // let the retry system have a go with this
+                            if (onStdErr != null)
+                            {
+                                onStdErr(logmsg);
+                            }
+                            else
+                            {
+                                Logging.Warning("{0}", logmsg);
+                            }
+                            rv = 42;
                         }
-                        else
-                        {
-                            Logging.Warning("{0}",logmsg);
-                        }
-                        rv = 42;
                     }
                 }
             }

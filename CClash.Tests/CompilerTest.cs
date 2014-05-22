@@ -16,6 +16,12 @@ namespace CClash.Tests
         public const string CompilerPath = "C:\\Program Files (x86)\\Microsoft Visual Studio 11.0\\VC\\bin\\cl.exe";
         static bool setpaths = false;
 
+        public static string InitialDir {
+            get {
+                return CClashTestsFixtureSetup.InitialDir;
+            }
+        }
+
         public static void SetEnvs()
         {
             Environment.SetEnvironmentVariable("CCLASH_DISABLED", null);
@@ -40,12 +46,14 @@ namespace CClash.Tests
         public void Init()
         {
             SetEnvs();
+            Environment.CurrentDirectory = "c:\\";
         }
 
         [TearDown]
         public void Down()
         {
             SetEnvs();
+            Environment.CurrentDirectory = "c:\\";
         }
 
         void EnsureDeleted(string file)
@@ -61,7 +69,7 @@ namespace CClash.Tests
         public void ParseSupportedArgs(params string[] argv)
         {
             var c = new Compiler();
-            c.SetWorkingDirectory(Environment.CurrentDirectory);
+            c.SetWorkingDirectory(InitialDir);
             c.SetEnvironment(Compiler.GetEnvironmentDictionary());
             var sbo = new StringBuilder();
             var sbe = new StringBuilder();
@@ -76,7 +84,7 @@ namespace CClash.Tests
             EnsureDeleted(c.PdbFile);
             
             c.CompilerExe = CompilerPath;
-            c.SetWorkingDirectory(Environment.CurrentDirectory);
+            c.SetWorkingDirectory(InitialDir);
             c.SetEnvironment(Compiler.GetEnvironmentDictionary());
             var ec = c.InvokeCompiler(
                 c.CommandLine,
@@ -95,7 +103,7 @@ namespace CClash.Tests
         public void ParseUnSupportedPdbArgs(params string[] argv)
         {
             var c = new Compiler();
-            c.SetWorkingDirectory(Environment.CurrentDirectory);
+            c.SetWorkingDirectory(InitialDir);
             c.CompilerExe = CompilerPath;
             Assert.IsFalse(c.ProcessArguments(argv));
         }
@@ -107,7 +115,7 @@ namespace CClash.Tests
         [TestCase("/c", "test-sources\\exists.c", "/Zi", "/Fdtest-sources\\stuff.pdb", "/Z7")]
         public void ParseSupportedDebugArgs(params string[] argv) {
             var c = new Compiler();
-            c.SetWorkingDirectory(Environment.CurrentDirectory);
+            c.SetWorkingDirectory(InitialDir);
             c.CompilerExe = CompilerPath;
             Assert.IsTrue(c.ProcessArguments(argv));
             Assert.IsFalse(c.GeneratePdb);
@@ -121,7 +129,7 @@ namespace CClash.Tests
         public void ParseUnSupportedArgs(params string[] argv)
         {
             var c = new Compiler();
-            c.SetWorkingDirectory(Environment.CurrentDirectory);
+            c.SetWorkingDirectory(InitialDir);
             Assert.IsFalse(c.ProcessArguments(argv));
         }
 
@@ -131,7 +139,7 @@ namespace CClash.Tests
         {
             var c = new Compiler() { CompilerExe = CompilerPath };
             var hv = new List<string>();
-            c.SetWorkingDirectory(Environment.CurrentDirectory);
+            c.SetWorkingDirectory(InitialDir);
             c.SetEnvironment(Compiler.GetEnvironmentDictionary());
             Assert.IsTrue(c.ProcessArguments(argv));
             hv.Add(Path.GetFullPath(c.SingleSourceFile));
@@ -150,13 +158,15 @@ namespace CClash.Tests
         public void PreprocessorTest(params string[] argv)
         {
             var c = new Compiler() { CompilerExe = CompilerPath };
-            c.SetWorkingDirectory(Environment.CurrentDirectory);
-            var supported = c.ProcessArguments(argv);
+            c.SetWorkingDirectory(InitialDir);
             c.SetEnvironment(Compiler.GetEnvironmentDictionary());
+
+            var supported = c.ProcessArguments(argv);
+            
             Assert.IsTrue(supported);
             Assert.AreEqual(1, c.CliIncludePaths.Count);
-            Assert.AreEqual("test-sources\\inc with spaces", c.CliIncludePaths[0]);
-            Assert.AreEqual("test-sources\\hello.c", c.SingleSourceFile);
+            Assert.AreEqual( Path.Combine(InitialDir, "test-sources\\inc with spaces"), c.CliIncludePaths[0]);
+            Assert.AreEqual( Path.Combine(InitialDir, "test-sources\\hello.c"), c.SingleSourceFile);
             using (var sw = new StreamWriter(new MemoryStream()))
             {
                 var rv = c.InvokePreprocessor(sw);
@@ -172,12 +182,13 @@ namespace CClash.Tests
         public void CompileObjectTest(params string[] argv)
         {
             var c = new Compiler() { CompilerExe = CompilerPath };
-            c.SetWorkingDirectory(Environment.CurrentDirectory);
+            c.SetWorkingDirectory(InitialDir);
             c.SetEnvironment(Compiler.GetEnvironmentDictionary());
+            
             Assert.IsTrue(c.ProcessArguments(argv));
             Assert.AreEqual(1, c.CliIncludePaths.Count);
-            Assert.AreEqual("test-sources\\inc with spaces", c.CliIncludePaths[0]);
-            Assert.AreEqual("test-sources\\hello.c", c.SingleSourceFile);
+            Assert.AreEqual( Path.Combine(InitialDir, "test-sources\\inc with spaces"), c.CliIncludePaths[0]);
+            Assert.AreEqual( Path.Combine(InitialDir, "test-sources\\hello.c"), c.SingleSourceFile);
             var stderr = new StringBuilder();
             var stdout = new StringBuilder();
             var rv = c.InvokeCompiler(c.CommandLine, x => stderr.AppendLine(x), x => stdout.AppendLine(x), false, null);
@@ -191,8 +202,9 @@ namespace CClash.Tests
         [TestCase("/link")]
         public void DetectNotSupported(params string[] argv)
         {
-            var c = new Compiler() { CompilerExe = CompilerPath };
-            c.SetWorkingDirectory(Environment.CurrentDirectory);
+            var c = new Compiler() { 
+                CompilerExe = CompilerPath };
+            c.SetWorkingDirectory(InitialDir);
             c.SetEnvironment(Compiler.GetEnvironmentDictionary());
             Assert.IsFalse(c.ProcessArguments(argv));
         }
@@ -200,9 +212,9 @@ namespace CClash.Tests
         [Test]
         public void TestHardLinking()
         {
-            var src = Path.Combine(Environment.CurrentDirectory, "test.old");
+            var src = Path.Combine(InitialDir, "test.old");
             FileUtils.WriteTextFile(src, "test");
-            var target = Path.Combine(Environment.CurrentDirectory, "test.txt");
+            var target = Path.Combine(InitialDir, "test.txt");
             if (File.Exists(target)) File.Delete(target);
             Assert.AreEqual( true, Compiler.MakeHardLink(target, src) );
         }

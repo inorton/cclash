@@ -14,19 +14,12 @@ namespace CClash
     {
         NamedPipeClientStream ncs;
         string pipename = null;
-        bool spawnServer = true;
-
-        Process serverProcess = null;
 
         public CClashServerClient(string cachedir)
         {
             pipename = CClashServer.MakePipeName(cachedir);
         }
 
-        public CClashServerClient(string cachedir, bool startServer) : this(cachedir)
-        {
-            spawnServer = startServer;
-        }
 
         void Open()
         {      
@@ -35,49 +28,40 @@ namespace CClash
 
         void Connect()
         {
+            Logging.Emit("connecting to service...");
             var exe = GetType().Assembly.Location;
             if (ncs == null)
                 Open();
 
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < 2; i++)
             {
-                try
-                {
+                try {
                     if (!ncs.IsConnected)
-                        ncs.Connect(300);
+                        ncs.Connect(100);
                     ncs.ReadMode = PipeTransmissionMode.Message;
                     return;
+                } catch (IOException ex) {
+                    Logging.Emit("error connecting {0}", ex.Message);
+                    try { ncs.Dispose(); Open(); } catch { }
+                } catch (TimeoutException) {
                 }
-                catch (IOException)
-                {
-                    try { ncs.Dispose(); Open(); }
-                    catch { }
-                }
-                catch (TimeoutException)
-                {
-                    if (spawnServer)
-                    {
-                        Logging.Emit("starting background service");
-                        serverProcess = new Process();
-                        var psi = new ProcessStartInfo(exe);
-                        psi.CreateNoWindow = true;
-                        psi.Arguments = "--cclash-server";
-                        psi.ErrorDialog = false;
-                        psi.WorkingDirectory = Environment.CurrentDirectory;
-                        psi.WindowStyle = ProcessWindowStyle.Hidden;
-                        serverProcess.StartInfo = psi;
-                        serverProcess.Start();
-                        serverProcess.Exited += (o,a) =>
-                        {
-                            Logging.Emit("server exited with status {0}", serverProcess.ExitCode);
-                        };
-                        System.Threading.Thread.Sleep(500);
-                    }
-                    else
-                    {
-                        throw new DirectoryNotFoundException("cclash server");
-                    }
-                }
+            }
+
+            // start the server, but lets not try to use it here, the next instance can
+            try {
+
+                var p = new Process();
+                p.StartInfo = new ProcessStartInfo(GetType().Assembly.Location, "--cclash-server");
+                p.StartInfo.UseShellExecute = false;
+                p.StartInfo.CreateNoWindow = true;
+                p.StartInfo.Arguments = "--cclash-server";
+                p.StartInfo.ErrorDialog = false;
+                p.StartInfo.WorkingDirectory = Environment.CurrentDirectory;
+                p.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+                p.Start();
+                
+            } catch (Exception e) {
+                Logging.Emit("error starting cclash server process", e.Message);
             }
             throw new CClashWarningException("failed to connect to server");
         }
@@ -106,6 +90,7 @@ namespace CClash
             environment = envs;
             workingdir = workdir;
             compilerPath = System.IO.Path.GetFullPath(compiler);
+            Connect();
         }
 
         Action<string> stdOutCallback = null;
@@ -118,39 +103,46 @@ namespace CClash
 
         public int CompileOrCache(IEnumerable<string> args)
         {
-            var req = new CClashRequest()
-            {
-                cmd = Command.Run,
-                compiler = compilerPath,
-                envs = environment,
-                workdir = workingdir,
-                argv = new List<string> ( args ),
-            };
-            var resp = Transact(req);
-            if (resp != null)
-            {
-                if (stdErrCallback != null)
+            Logging.Emit("client args: {0}", string.Join(" ", args.ToArray()));
+            try {
+                var req = new CClashRequest()
                 {
-                    stdErrCallback(resp.stderr);
-                }
-                else
+                    cmd = Command.Run,
+                    compiler = compilerPath,
+                    envs = environment,
+                    workdir = workingdir,
+                    argv = new List<string> ( args ),
+                };
+                var resp = Transact(req);
+                if (resp != null)
                 {
-                    Console.Error.Write(resp.stderr);
-                }
-                if (stdOutCallback != null)
-                {
-                    stdOutCallback(resp.stdout);
-                }
-                else
-                {
-                    Console.Out.Write(resp.stdout);
-                }
+                    if (stdErrCallback != null)
+                    {
+                        stdErrCallback(resp.stderr);
+                    }
+                    else
+                    {
+                        Console.Error.Write(resp.stderr);
+                    }
+                    if (stdOutCallback != null)
+                    {
+                        stdOutCallback(resp.stdout);
+                    }
+                    else
+                    {
+                        Console.Out.Write(resp.stdout);
+                    }
 
-                return resp.exitcode;
+                    return resp.exitcode;
+                }
+                else
+                {
+                    throw new CClashErrorException("server returned no response");
+                }
+            } catch (Exception e) {
+                Logging.Emit("server error! {0}", e);
+                throw new CClashWarningException("server error");
             }
-
-            return -1;
-            
         }
 
         public CClashResponse Transact(CClashRequest req)
@@ -206,11 +198,6 @@ namespace CClash
         {
             if (disposing)
             {
-                if (serverProcess != null)
-                {
-                    Logging.Emit("disposing server process");
-                    serverProcess.Dispose();
-                }
                 ncs.Dispose();
             }
         }

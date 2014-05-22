@@ -41,6 +41,14 @@ namespace CClash
             if (args.Contains("--cclash-server"))
             {
                 var server = new CClashServer();
+
+                if (args.Contains("--debug")) {
+                    if (Settings.DebugFile == null) {
+                        Settings.DebugFile = "Console";
+                        Settings.DebugEnabled = true;
+                    }
+                }
+
                 server.Listen(Settings.CacheDirectory);
                 return 0;
             }
@@ -54,15 +62,17 @@ namespace CClash
                 var compiler = Compiler.Find();
                 if (Settings.ServiceMode)
                 {
-                    var cc = new CClashServerClient(Settings.CacheDirectory);
-
-                    if (args.Contains("--stop"))
-                    {
-                        cc.Transact(new CClashRequest() { cmd = Command.Quit });
-                    }
-                    else
-                    {
-                        Console.Out.WriteLine(cc.GetStats(compiler));
+                    for (int i = 0; i < 3; i++ ) {
+                        try {
+                            var cc = new CClashServerClient(Settings.CacheDirectory);
+                            if (args.Contains("--stop")) {
+                                cc.Transact(new CClashRequest() { cmd = Command.Quit });
+                            } else {
+                                Console.Out.WriteLine(cc.GetStats(compiler));
+                            }
+                        } catch (CClashWarningException) {
+                            System.Threading.Thread.Sleep(2000);
+                        }
                     }
                 }
                 else
@@ -71,7 +81,6 @@ namespace CClash
                 }
                 return 0;
             }
-
 
             var rv = RunBuild(args, start, AppendStdout, AppendStderr);
             if (rv != 0)
@@ -110,6 +119,7 @@ namespace CClash
 
         private static int RunBuild(string[] args, DateTime start, Action<string> stdout, Action<string> stderr)
         {
+            Logging.Emit("client mode = {0}", Settings.ServiceMode);
             try
             {
                 if (!Settings.Disabled)
@@ -151,7 +161,7 @@ namespace CClash
 
             try
             {
-
+               
                 var c = new Compiler()
                 {
                     CompilerExe = Compiler.Find(),

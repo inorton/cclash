@@ -12,21 +12,23 @@ namespace CClash
     {
         public static ICompilerCache Get(bool direct, string cachedir, string compiler, string workdir, Dictionary<string,string> envs )
         {
-            ICompilerCache rv;
-            if (Settings.ServiceMode)
-            {
-                rv = new CClashServerClient(cachedir);
-                rv.SetCompiler(compiler, workdir, envs);
+            ICompilerCache rv = null;
+            if (Settings.ServiceMode) {
+                try {
+                    rv = new CClashServerClient(cachedir);
+                } catch (CClashWarningException) {
+                    rv = new NullCompilerCache(cachedir);
+                }
             }
 
-            if (direct)
+            if ( rv == null )
             {
-                Logging.Emit("use direct mode");
-                rv = new DirectCompilerCache(cachedir);
-            }
-            else
-            {
-                throw new NotSupportedException("ppmode is not supported yet");
+                if (direct) {
+                    Logging.Emit("use direct mode");
+                    rv = new DirectCompilerCache(cachedir);
+                } else {
+                    throw new NotSupportedException("ppmode is not supported yet");
+                }
             }
             rv.SetCompiler(compiler, workdir, envs);
             return rv;
@@ -90,7 +92,7 @@ namespace CClash
                 var rv = comp.ProcessArguments(args.ToArray());
                 if (!rv)
                 {
-                    Logging.Emit("args not supported");
+                    Logging.Emit("args not supported {0}", GetType().Name);
                 }
                 return rv;
             }
