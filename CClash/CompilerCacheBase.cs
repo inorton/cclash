@@ -16,7 +16,9 @@ namespace CClash
             if (Settings.ServiceMode)
             {
                 var f = new CClashServerClientFactory();
-                return f.GetClient() as ICompilerCache;
+                var c = f.GetClient();
+                c.Init(cachedir);
+                return c as ICompilerCache;
             }
             else
             {

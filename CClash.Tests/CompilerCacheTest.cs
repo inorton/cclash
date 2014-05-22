@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using NUnit.Framework;
 
@@ -96,6 +97,7 @@ namespace CClash.Tests
         [TestCase(500)]
         public void RunEnabledDirect(int times)
         {
+            Environment.SetEnvironmentVariable("CCLASH_DIR", CacheFolderName + "direct");
             Assert.IsFalse(Settings.Disabled);
             Assert.IsTrue(Settings.DirectMode);
             var comp = CompilerTest.CompilerPath;
@@ -111,10 +113,66 @@ namespace CClash.Tests
 
         [Test]
         [Explicit]
+        [TestCase(500, "pipe", 1)]
+        [TestCase(500, "inet", 1)]
+        [TestCase(500, "pipe", 2)]
+        [TestCase(500, "inet", 2)]
+        [TestCase(500, "pipe", 4)]
+        [TestCase(500, "inet", 4)]
+        [TestCase(500, "inet", 5)]
+        public void RunEnabledDirectServerJobs(int times, string srvmode, int paralleljobs )
+        {
+            Environment.SetEnvironmentVariable("CCLASH_DIR", CacheFolderName + srvmode);
+            Assert.IsFalse(Settings.Disabled);
+            Assert.IsTrue(Settings.DirectMode);
+            var comp = CompilerTest.CompilerPath;
+            Environment.SetEnvironmentVariable("CCLASH_SERVER", srvmode);
+            Environment.SetEnvironmentVariable("PATH", System.IO.Path.GetDirectoryName(comp) + ";" + Environment.GetEnvironmentVariable("PATH"));
+            
+            var tl = new List<Thread>();
+            var rvl = new List<int>();
+            for (int job = 1; job <= paralleljobs; job++)
+            {
+                var t = new Thread((object jobnum) =>
+                {
+                    string srcfile = string.Format("test-sources\\hello{0}.c", (int)jobnum);
+                    string objfile = string.Format("test-sources\\hello{0}.o", (int)jobnum);
+
+                    for (int i = 0; i < times/paralleljobs; i++)
+                    {
+                        Console.Error.WriteLine("run {0}/{1}", i + 1, times/paralleljobs);
+                        var rv = Program.Main(new string[] { "/nologo", "/c", srcfile, "/Fo" + objfile, "/Itest-sources\\inc with spaces" });
+                        lock (rvl)
+                        {
+                            rvl.Add(rv);
+                            if (rv != 0) break;
+                        }
+                    }
+                    
+                });
+                tl.Add(t);
+                t.Start(job);
+            }
+
+            foreach (var thr in tl)
+            {
+                thr.Join();
+            }
+            Program.Main(new string[] { "--cclash", "--stop" });
+            foreach (var rv in rvl)
+            {
+                Assert.AreEqual(0, rv);
+            }
+            Console.Out.WriteLine("ran {0} compilations", rvl.Count);
+        }
+
+        [Test]
+        [Explicit]
         [TestCase(500, "pipe")]
         [TestCase(500, "inet")]
         public void RunEnabledDirectServer(int times, string srvmode)
         {
+            Environment.SetEnvironmentVariable("CCLASH_DIR", CacheFolderName + srvmode);
             Assert.IsFalse(Settings.Disabled);
             Assert.IsTrue(Settings.DirectMode);
             var comp = CompilerTest.CompilerPath;
@@ -128,8 +186,6 @@ namespace CClash.Tests
                 Assert.AreEqual(0, rv);
             }
             Program.Main(new string[] { "--cclash", "--stop" });
-            
-
         }
 
         [Test]

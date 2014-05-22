@@ -50,8 +50,15 @@ namespace CClash
         {
             if (client != null)
             {
-                ServeRequest(client);
-                FinishRequest(client);
+                try
+                {
+                    ServeRequest(client);
+                    FinishRequest(client);
+                }
+                catch (IOException e)
+                {
+                    Logging.Emit("client error {0}", e.Message);
+                }
             }
         }
 

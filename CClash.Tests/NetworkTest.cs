@@ -56,7 +56,8 @@ namespace CClash.Tests
         public void PipeServerNoOp()
         {
             CompilerTest.SetEnvs();
-
+            cachedir += "pipe";
+            Environment.SetEnvironmentVariable("CCLASH_DIR", cachedir);
             using (var srv = new CClashPipeServer())
             {
                 serverThread = new Thread(new ParameterizedThreadStart(ServerThread));
@@ -82,7 +83,8 @@ namespace CClash.Tests
         public void InetServerNoOp()
         {
             CompilerTest.SetEnvs();
-
+            cachedir += "inet";
+            Environment.SetEnvironmentVariable("CCLASH_DIR", cachedir);
             using (var srv = new CClashInetServer())
             {
 
@@ -113,8 +115,10 @@ namespace CClash.Tests
         public void ServerCompile(int times, string srvmode)
         {
             CompilerTest.SetEnvs();
+            cachedir += srvmode;
+            Environment.SetEnvironmentVariable("CCLASH_DIR", cachedir);
             Environment.SetEnvironmentVariable("CCLASH_SERVER", srvmode);
-
+            cachedir = cachedirprefix + "." + srvmode;
             CClashServerBase srv;
             if (Settings.InetServiceMode)
             {

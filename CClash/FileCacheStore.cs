@@ -42,8 +42,9 @@ namespace CClash
         public void ReleaseMutex()
         {
             Logging.Emit("ReleaseMutex {0}", FolderPath);
-            mtx.ReleaseMutex();
             HasLock = false;
+            mtx.ReleaseMutex();
+
         }
 
         string getMutexName(string folder)

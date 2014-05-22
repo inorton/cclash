@@ -17,7 +17,7 @@ namespace CClash.Tests
             var rng = new System.Security.Cryptography.RNGCryptoServiceProvider();
             var bb = new byte[2];
             rng.GetNonZeroBytes(bb);
-            int port = (bb[0] | (bb[1] * 2));
+            int port = 1024 + (bb[0] | (bb[1] * 2));
 
             Assert.IsTrue(port > 0);
 

@@ -11,12 +11,17 @@ namespace CClash
         string cachefolder;
         public override void Init(string cachedir)
         {
+            if (cachedir == null) throw new ArgumentNullException("cachedir");
             cachefolder = cachedir;
         }
 
         public override void Connect()
         {
             Logging.Emit("connecting to inet server..");
+            if (cachefolder == null)
+            {
+                throw new InvalidProgramException("Init() not called");
+            }
             client = new TcpClient();
             int i;
             for (i = 0; i < 10; i++)

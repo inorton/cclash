@@ -119,8 +119,18 @@ namespace CClash
             w.WriteLine(str);
         }
 
+
+        HashSet<string> busy = new HashSet<string>();
+        System.Threading.AutoResetEvent busymonitor = new System.Threading.AutoResetEvent(false);
+
         protected int Compile(ICompiler comp, IEnumerable<string> args, string stderrfile, string stdoutfile, List<string> includes, bool echoConsole)
         {
+            while (busy.Contains(stderrfile))
+            {
+                busymonitor.WaitOne();
+            }
+            busy.Add(stderrfile);
+            
             using (var stderrfs = new StreamWriter(stderrfile))
             {
                 using (var stdoutfs = new StreamWriter(stdoutfile))
@@ -132,6 +142,8 @@ namespace CClash
                         return rv;
                     } finally {
                         outputCache.WaitOne();
+                        busy.Remove(stderrfile);
+                        busymonitor.Set();
                     }
                 }
             }
@@ -210,70 +222,72 @@ namespace CClash
 
         protected virtual void DoCacheMiss( ICompiler c, DataHash hc, IEnumerable<string> args, CacheManifest m, List<string> ifiles)
         {
-
-            var idirs = c.GetUsedIncludeDirs(ifiles);
-            if (idirs.Count < 1)
+            try
             {
-                outputCache.ReleaseMutex();
-                throw new InvalidDataException(
-                    string.Format("could not find any include folders?! [{0}]",
-                    string.Join(" ", args)));
-            }
-            else
-            {
-                #region process includes folders
-                // save manifest and other things to cache
-
-                List<string> others;
-                if (Settings.BypassPotentialIncludeChecks)
+                var idirs = c.GetUsedIncludeDirs(ifiles);
+                if (idirs.Count < 1)
                 {
-                    others = new List<string>();
+                    throw new InvalidDataException(
+                        string.Format("could not find any include folders?! [{0}]",
+                        string.Join(" ", args)));
                 }
                 else
                 {
-                    others = c.GetPotentialIncludeFiles(idirs, ifiles);
-                }
+                    #region process includes folders
+                    // save manifest and other things to cache
 
-
-                m = new CacheManifest();
-                m.PotentialNewIncludes = others;
-                m.IncludeFiles = new Dictionary<string, string>();
-                m.TimeStamp = DateTime.Now.ToString("s");
-                m.CommonHash = hc.Hash;
-
-                #endregion
-
-                bool good = true;
-
-                var hashes = GetHashes(ifiles);
-
-                #region check include files
-
-                foreach (var x in hashes)
-                {
-                    if (x.Value.Result == DataHashResult.Ok)
+                    List<string> others;
+                    if (Settings.BypassPotentialIncludeChecks)
                     {
-                        m.IncludeFiles[x.Key] = x.Value.Hash;
+                        others = new List<string>();
                     }
                     else
                     {
-                        Logging.Emit("input hash error {0} {1}", x.Key, x.Value.Result);
-                        good = false;
-                        m.Disable = true;
-                        break;
+                        others = c.GetPotentialIncludeFiles(idirs, ifiles);
+                    }
+
+
+                    m = new CacheManifest();
+                    m.PotentialNewIncludes = others;
+                    m.IncludeFiles = new Dictionary<string, string>();
+                    m.TimeStamp = DateTime.Now.ToString("s");
+                    m.CommonHash = hc.Hash;
+
+                    #endregion
+
+                    bool good = true;
+
+                    var hashes = GetHashes(ifiles);
+
+                    #region check include files
+
+                    foreach (var x in hashes)
+                    {
+                        if (x.Value.Result == DataHashResult.Ok)
+                        {
+                            m.IncludeFiles[x.Key] = x.Value.Hash;
+                        }
+                        else
+                        {
+                            Logging.Emit("input hash error {0} {1}", x.Key, x.Value.Result);
+                            good = false;
+                            m.Disable = true;
+                            break;
+                        }
+                    }
+
+                    #endregion
+
+                    if (good)
+                    {
+                        SaveOutputsLocked(c, m);
                     }
                 }
-
-                #endregion
-
-                if (good)
-                {
-                    SaveOutputsLocked(c, m);
-                }
-                outputCache.ReleaseMutex();
-
             }
-
+            finally
+            {
+                outputCache.ReleaseMutex();
+            }
         }
 
     }
