@@ -172,8 +172,9 @@ namespace CClash
                 Logging.Emit("starting inet client");
                 return new CClashInetServerClient();
             }
-            Logging.Emit("starting pipe client");
-            return new CClashPipeServerClient();
+            throw new CClashWarningException("pipe server mode not supported - disabling");
+            //Logging.Emit("starting pipe client");
+            // return new CClashPipeServerClient();
         }
     }
 

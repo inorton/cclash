@@ -158,7 +158,8 @@ namespace CClash.Tests
             {
                 thr.Join();
             }
-            Program.Main(new string[] { "--cclash", "--stop" });
+            if ( Settings.InetServiceMode )
+                Program.Main(new string[] { "--cclash", "--stop" });
             foreach (var rv in rvl)
             {
                 Assert.AreEqual(0, rv);
@@ -168,8 +169,8 @@ namespace CClash.Tests
 
         [Test]
         [Explicit]
-        [TestCase(500, "pipe")]
-        [TestCase(500, "inet")]
+        [TestCase(50, "pipe")]
+        [TestCase(50, "inet")]
         public void RunEnabledDirectServer(int times, string srvmode)
         {
             Environment.SetEnvironmentVariable("CCLASH_DIR", CacheFolderName + srvmode);
@@ -185,7 +186,8 @@ namespace CClash.Tests
                 var rv = Program.Main(new string[] { "/nologo", "/c", @"test-sources\hello.c", fo, "/Itest-sources\\inc with spaces" });
                 Assert.AreEqual(0, rv);
             }
-            Program.Main(new string[] { "--cclash", "--stop" });
+            if ( Settings.InetServiceMode )
+                Program.Main(new string[] { "--cclash", "--stop" });
         }
 
         [Test]

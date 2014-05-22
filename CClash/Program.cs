@@ -85,12 +85,7 @@ namespace CClash
             var rv = RunBuild(args, start, AppendStdout, AppendStderr);
             if (rv != 0)
             {
-                if (Settings.NoAutoRebuild)
-                {
-                    Console.Error.Write(MainStdErr.ToString());
-                    Console.Out.Write(MainStdOut.ToString());
-                }
-                else
+                if (!Settings.NoAutoRebuild)
                 {
                     for (int i = 1; i < 4; i++)
                     {
@@ -103,7 +98,8 @@ namespace CClash
                     }
                 }
             }
-
+            Console.Error.Write(MainStdErr.ToString());
+            Console.Out.Write(MainStdOut.ToString());
             return rv;
         }
 
@@ -124,6 +120,7 @@ namespace CClash
             {
                 if (!Settings.Disabled)
                 {
+
                     string compiler = Compiler.Find();
                     if (compiler == null)
                         throw new System.IO.FileNotFoundException("cant find real cl compiler");

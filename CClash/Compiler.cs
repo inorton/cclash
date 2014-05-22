@@ -133,17 +133,6 @@ namespace CClash
 
         public string WorkingDirectory { get; private set; }
 
-        public static string[] UsedEnvNames = new string[] {
-            "INCLUDE",
-            "PATH",
-            "LINK",
-            "LIB",
-            "LIBPATH",
-            "TMP",
-            "CL",
-            "_CL_",
-        };
-
         /// <summary>
         /// Create a new instance of the Compiler class.
         /// </summary>
