@@ -206,10 +206,20 @@ namespace CClash
 
         public static bool IsServer { get; set; }
 
-        public static string Actor {
-            get {
+        public static string Actor
+        {
+            get
+            {
                 if (IsServer) return "server";
                 return "client";
+            }
+        }
+
+        public static bool NoAutoRebuild
+        {
+            get
+            {
+                return Environment.GetEnvironmentVariable("CCLASH_AUTOREBUILD") == "no";
             }
         }
     }

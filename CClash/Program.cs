@@ -5,8 +5,12 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 
-namespace CClash {
-    public sealed class Program {
+namespace CClash
+{
+    public sealed class Program
+    {
+        public static StringBuilder MainStdErr = new StringBuilder();
+        public static StringBuilder MainStdOut = new StringBuilder();
 
         public static int Main(string[] args) {
             var start = DateTime.Now;
@@ -57,7 +61,7 @@ namespace CClash {
 
 
                 Logging.Emit("maint mode");
-                Console.Error.WriteLine("cclash {0} (c) Ian Norton, November 2013",
+                Console.Error.WriteLine("cclash {0} (c) Ian Norton, April 2014",
                     typeof(Program).Assembly.GetName().Version.ToString());
 
                 var compiler = Compiler.Find();
@@ -78,8 +82,48 @@ namespace CClash {
 
             }
 
-            try {
-                if (!Settings.Disabled) {
+            var rv = RunBuild(args, start, AppendStdout, AppendStderr);
+            if (rv != 0)
+            {
+                if (Settings.NoAutoRebuild)
+                {
+                    Console.Error.Write(MainStdErr.ToString());
+                    Console.Out.Write(MainStdOut.ToString());
+                }
+                else
+                {
+                    for (int i = 1; i < 4; i++)
+                    {
+                        MainStdErr.Clear();
+                        MainStdOut.Clear();
+                        rv = RunBuild(args, start, AppendStdout, AppendStderr);
+                        if (rv == 0) break;
+                        Logging.Emit("compiler returned non-zero, doing auto-retry {0}", i);
+                        System.Threading.Thread.Sleep(50);
+                    }
+                }
+            }
+
+            return rv;
+        }
+
+        static void AppendStderr(string str)
+        {
+            MainStdErr.AppendLine(str);
+        }
+
+        static void AppendStdout(string str)
+        {
+            MainStdOut.AppendLine(str);
+        }
+
+        private static int RunBuild(string[] args, DateTime start, Action<string> stdout, Action<string> stderr)
+        {
+            Logging.Emit("client mode = {0}", Settings.ServiceMode);
+            try
+            {
+                if (!Settings.Disabled)
+                {
                     string compiler = Compiler.Find();
                     if (compiler == null)
                         throw new System.IO.FileNotFoundException("cant find real cl compiler");
@@ -87,14 +131,23 @@ namespace CClash {
                     var cachedir = Settings.CacheDirectory;
                     Logging.Emit("compiler: {0}", compiler);
 
-                    using (ICompilerCache cc = CompilerCacheFactory.Get(Settings.DirectMode, cachedir)) {
+                    using (ICompilerCache cc =
+                        CompilerCacheFactory.Get(Settings.DirectMode, cachedir))
+                    {
                         var comp = cc.GetCompiler(compiler, Environment.CurrentDirectory, Compiler.GetEnvs());
-                        return cc.CompileOrCache(comp, args, Console.Error.Write, Console.Out.Write);
+                        return cc.CompileOrCache(comp, args, stderr, stdout);
                     }
                 } else {
                     Logging.Emit("disabled by environment");
                 }
-            } catch (Exception e) {
+            }
+            catch (CClashWarningException e)
+            {
+                Logging.Warning(e.Message);
+            }
+            catch (Exception e)
+            {
+
                 Logging.Emit("{0} after {1} ms", e.GetType().Name, DateTime.Now.Subtract(start).TotalMilliseconds);
                 Logging.Emit("{0} {1}", e.GetType().Name + " message: " + e.Message);
 #if DEBUG
@@ -102,9 +155,24 @@ namespace CClash {
 #endif
             }
 
-            var c = new Compiler(Compiler.Find(), Environment.CurrentDirectory, Compiler.GetEnvs());
-            var rv = c.InvokeCompiler(args, Console.Error.WriteLine, Console.Out.WriteLine, false, null);
-            Logging.Emit("exit {0} after {1} ms", rv, DateTime.Now.Subtract(start).TotalMilliseconds);
+            int rv = -1;
+
+            try
+            {
+                var c = new Compiler(Compiler.Find(), Environment.CurrentDirectory, Compiler.GetEnvs());
+                rv = c.InvokeCompiler(args, stderr, stdout, false, null);
+                Logging.Emit("exit {0} after {1} ms", rv, DateTime.Now.Subtract(start).TotalMilliseconds);
+            }
+            catch (CClashErrorException e)
+            {
+                Logging.Error(e.Message);
+                throw;
+            }
+            catch (CClashWarningException e)
+            {
+                Logging.Warning(e.Message);
+            }
+
             return rv;
         }
     }

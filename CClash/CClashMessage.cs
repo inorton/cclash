@@ -215,6 +215,4 @@ namespace CClash
             }
         }
     }
-
-
 }

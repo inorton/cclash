@@ -8,16 +8,13 @@ using System.Threading;
 namespace CClash
 {
 
-    public sealed class DirectCompilerCacheServer : DirectCompilerCache
+    public class DirectCompilerCacheServer : DirectCompilerCache
     {
         Dictionary<string, DirectoryWatcher> dwatchers = new Dictionary<string, DirectoryWatcher>();
 
         public DirectCompilerCacheServer(string cachedir)
             : base(cachedir)
         {
-            StdErrorText = new StringBuilder();
-            StdOutText = new StringBuilder();
-
             base.outputCache.WaitOne();
             SetupStats();
             base.outputCache.ReleaseMutex();
@@ -191,29 +188,6 @@ namespace CClash
                 return base.CheckPotentialIncludes(ml, comp);
             }
             return true;
-        }
-
-        public StringBuilder StdErrorText { get; private set; }
-        public StringBuilder StdOutText { get; private set; }
-
-        public override void OutputWriteLine(string str)
-        {
-            StdOutText.AppendLine(str);
-        }
-
-        public override void ErrorWriteLine(string str)
-        {
-            StdErrorText.AppendLine(str);
-        }
-
-        public override void OutputWrite(string str)
-        {
-            StdOutText.Append(str);
-        }
-
-        public override void ErrorWrite(string str)
-        {
-            StdErrorText.Append(str);
         }
 
         protected override void Dispose( bool disposing)

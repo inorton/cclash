@@ -101,9 +101,11 @@ namespace CClash
             {
                 var buf = new StringBuilder();
                 buf.AppendLine(this.GetType().FullName.ToString());
+
                 var incs = comp.Envs["INCLUDE"];
                 if (incs != null)
                     buf.AppendLine(incs);
+
                 foreach (var a in args)
                 {
                     if ( !(Settings.ExcludeOutputObjectPathFromCommonHash && a.StartsWith("/Fo")) )
@@ -285,14 +287,37 @@ namespace CClash
             return comp.InvokeCompiler(args, stderr, stdout, false, null);
         }
 
+
+        Action<string> stdOutCallback = null;
+        Action<string> stdErrCallback = null;
+        public void SetCaptureCallback(Action<string> onOutput, Action<string> onError)
+        {
+            stdOutCallback = onOutput;
+            stdErrCallback = onError;
+        }
+
         public virtual void ErrorWriteLine(string str)
         {
-            Console.Error.WriteLine(str);
+            if (stdErrCallback != null)
+            {
+                stdErrCallback(str);
+            }
+            else
+            {
+                Console.Error.WriteLine(str);
+            }
         }
 
         public virtual void OutputWriteLine(string str)
         {
-            Console.Out.WriteLine(str);
+            if (stdOutCallback != null)
+            {
+                stdOutCallback(str);
+            }
+            else
+            {
+                Console.Out.WriteLine(str);
+            }
         }
 
         public virtual void OutputWrite(string str)

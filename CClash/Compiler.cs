@@ -15,8 +15,8 @@ namespace CClash
     public sealed class Compiler : ICompiler
     {
         static Regex findLineInclude = new Regex("#line\\s+\\d+\\s+\"([^\"]+)\"");
-        
-        [DllImport("kernel32.dll",  CharSet = CharSet.Auto)]
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
         static unsafe extern IntPtr GetEnvironmentStringsA();
 
         public static IDictionary<string, string> GetEnvs()
@@ -35,7 +35,7 @@ namespace CClash
         static bool fixedenvs = false;
         public static void FixEnv()
         {
-            if ( fixedenvs ) return;
+            if (fixedenvs) return;
             var ost = Environment.GetEnvironmentVariable("OSTYPE");
             if (Environment.GetEnvironmentVariable("CCLASH_CYGWIN_FIX") != null)
                 ost = "cygwin";
@@ -50,9 +50,9 @@ namespace CClash
                 {
                     var ppenvs = GetEnvironmentStringsA();
                     List<byte> buf = new List<byte>();
-                    
+
                     byte* envs = (byte*)ppenvs.ToPointer();
-                    
+
                     for (int i = 0; true; i++)
                     {
                         if (envs[i] == (byte)0)
@@ -72,7 +72,7 @@ namespace CClash
                     Marshal.FreeHGlobal(ppenvs);
                 }
 
-                
+
                 foreach (var e in lines)
                 {
                     var pair = e.Split(new char[] { '=' }, 2);
@@ -147,7 +147,7 @@ namespace CClash
         /// <summary>
         /// Create a new instance of the Compiler class.
         /// </summary>
-        public Compiler( string clpath, string workdir, IDictionary<string,string> envs )
+        public Compiler(string clpath, string workdir, IDictionary<string, string> envs)
         {
             if (string.IsNullOrWhiteSpace(clpath)) throw new ArgumentNullException("clpath");
             if (!FileUtils.Exists(clpath)) throw new FileNotFoundException(clpath);
@@ -173,8 +173,9 @@ namespace CClash
         public string CompilerExe
         {
             get { return compilerExe; }
-            set {
-                compilerExe = FileUtils.ToLongPathName(value);        
+            set
+            {
+                compilerExe = FileUtils.ToLongPathName(value);
                 Logging.Emit("real compiler is: {0}", compilerExe);
             }
         }
@@ -187,8 +188,10 @@ namespace CClash
         /// <summary>
         /// The first source file.
         /// </summary>
-        public string SingleSourceFile { 
-            get {
+        public string SingleSourceFile
+        {
+            get
+            {
                 return srcs.FirstOrDefault();
             }
         }
@@ -250,9 +253,10 @@ namespace CClash
             }
         }
 
-        string getOption( string arg )
+        string getOption(string arg)
         {
-            if ( arg.StartsWith("-") || arg.StartsWith("/") ){
+            if (arg.StartsWith("-") || arg.StartsWith("/"))
+            {
                 var rv = "/" + arg.Substring(1);
                 if (rv.Length > 2) rv = rv.Substring(0, 3);
                 return rv;
@@ -290,11 +294,11 @@ namespace CClash
             return args;
         }
 
-        public IEnumerable<string> FixupArgs(IEnumerable<string>args)
+        public IEnumerable<string> FixupArgs(IEnumerable<string> args)
         {
             var rv = new List<string>();
             var aa = args.ToArray();
-            for( int i =0; i < aa.Length; i++ )
+            for (int i = 0; i < aa.Length; i++)
             {
                 var a = aa[i];
                 if (a.StartsWith("/D") || a.StartsWith("-D"))
@@ -310,10 +314,12 @@ namespace CClash
                     }
                     if (val.Contains("=\""))
                     {
-                        val = Regex.Replace(val, "\"", "\"\"\""); 
+                        val = Regex.Replace(val, "\"", "\"\"\"");
                     }
                     rv.Add("/D" + val);
-                } else {
+                }
+                else
+                {
                     rv.Add(a);
                 }
             }
@@ -332,7 +338,7 @@ namespace CClash
                     Logging.Emit("process arg '{0}'", args[i]);
                     var opt = getOption(args[i]);
                     var full = getFullOption(args[i]);
-                    
+
                     switch (opt)
                     {
                         case "/o":
@@ -380,7 +386,7 @@ namespace CClash
                             if (!Path.GetFileName(PdbFile).Contains("."))
                                 PdbFile += ".pdb";
                             break;
-                        
+
                         case "/Fo":
                             ObjectTarget = GetPath(full.Substring(3));
                             if (!Path.GetFileName(ObjectTarget).Contains("."))
@@ -392,7 +398,7 @@ namespace CClash
                             var srcfile = GetPath(full.Substring(3));
                             if (FileUtils.Exists(srcfile))
                             {
-                                srcs.Add( srcfile );
+                                srcs.Add(srcfile);
                             }
                             else
                             {
@@ -477,24 +483,25 @@ namespace CClash
                     }
                     if (GeneratePdb && PdbFile == null)
                     {
-                        for ( int x = 14; x > 8; x-- )
+                        for (int x = 14; x > 8; x--)
                         {
-                            if ( CompilerExe.Contains(string.Format("Microsoft Visual Studio {0}.0",x)) )
+                            if (CompilerExe.Contains(string.Format("Microsoft Visual Studio {0}.0", x)))
                             {
-                                var f = string.Format("vc{0}0.pdb", x); 
+                                var f = string.Format("vc{0}0.pdb", x);
                                 PdbFile = GetPath(f);
                                 break;
                             }
                         }
-                        if ( PdbFile == null ) {
+                        if (PdbFile == null)
+                        {
                             Logging.Emit("could not work out compiler version for auto generated pdb");
                             return false;
                         }
                     }
-                }   
-                     
+                }
+
             }
-            catch ( Exception e )
+            catch (Exception e)
             {
                 Console.Error.WriteLine(e);
                 return false;
@@ -527,7 +534,7 @@ namespace CClash
             List<string> includelines = new List<string>();
             foreach (var d in incdirs)
             {
-                foreach (var f in ( from x in incfiles where x.StartsWith(d, StringComparison.CurrentCultureIgnoreCase) select x ) )
+                foreach (var f in (from x in incfiles where x.StartsWith(d, StringComparison.CurrentCultureIgnoreCase) select x))
                 {
                     if (f != SingleSourceFile)
                     {
@@ -537,12 +544,12 @@ namespace CClash
                 }
             }
 
-            HashSet<string> tmp = new HashSet<string>( includelines );
+            HashSet<string> tmp = new HashSet<string>(includelines);
             foreach (var y in tmp)
             {
                 foreach (var x in incdirs)
                 {
-                    var p = Path.Combine( x, y );
+                    var p = Path.Combine(x, y);
                     if (FileUtils.FileMissing(p))
                     {
                         possibles.Add(p);
@@ -582,31 +589,31 @@ namespace CClash
             return incdirs;
         }
 
-        public int InvokePreprocessor(StreamWriter stdout )
+        public int InvokePreprocessor(StreamWriter stdout)
         {
             var xargs = new List<string>();
             xargs.Add("/EP");
-            xargs.AddRange( from x in CommandLine where (x != "/c" || x != "-c") select x );
+            xargs.AddRange(from x in CommandLine where (x != "/c" || x != "-c") select x);
             return InvokeCompiler(xargs, (x) => { }, stdout.WriteLine, false, null);
         }
 
         public int InvokeCompiler(IEnumerable<string> args, Action<string> onStdErr, Action<string> onStdOut, bool showIncludes, List<string> foundIncludes)
         {
-            Logging.Emit("invoking real compiler: [{0}]", string.Join( " ", args.ToArray() ));
-            
+            Logging.Emit("invoking real compiler: [{0}]", string.Join(" ", args.ToArray()));
+
             if (string.IsNullOrWhiteSpace(CompilerExe) || !FileUtils.Exists(CompilerExe))
                 throw new FileNotFoundException("cant find cl.exe");
 
-            var cla = JoinAguments( FixupArgs( args) );
+            var cla = JoinAguments(FixupArgs(args));
             if (showIncludes) cla += " /showIncludes";
             var psi = new ProcessStartInfo(CompilerExe, cla)
             {
                 UseShellExecute = false,
                 RedirectStandardError = true,
-                RedirectStandardOutput = true, 
+                RedirectStandardOutput = true,
                 WorkingDirectory = WorkingDirectory,
             };
-            
+
             foreach (var kv in Envs)
                 psi.EnvironmentVariables[kv.Key] = kv.Value;
 
@@ -616,10 +623,11 @@ namespace CClash
 
             p.OutputDataReceived += (o, a) =>
             {
-                if ( a.Data != null ) {
+                if (a.Data != null)
+                {
                     if (showIncludes && a.Data.StartsWith("Note: including file:"))
                     {
-                        var inc = a.Data.Substring("Note: including file:".Length+1).TrimStart(' ');
+                        var inc = a.Data.Substring("Note: including file:".Length + 1).TrimStart(' ');
                         if (inc.Contains('/'))
                         {
                             inc = inc.Replace('/', '\\');
@@ -631,37 +639,40 @@ namespace CClash
                         if (onStdOut != null) onStdOut(a.Data);
                     }
                 }
-                    
+
             };
 
             p.ErrorDataReceived += (o, a) =>
             {
-                if ( onStdErr != null )
-                    if (a.Data != null) 
+                if (onStdErr != null)
+                    if (a.Data != null)
                         onStdErr(a.Data);
             };
 
             p.BeginErrorReadLine();
-            
+
             p.BeginOutputReadLine();
 
             p.WaitForExit();
 
-            if (p.ExitCode == 0) {
-                if (!String.IsNullOrEmpty(ObjectTarget)) {
+            if (p.ExitCode == 0)
+            {
+                if (!String.IsNullOrEmpty(ObjectTarget))
+                {
                     var sw = new Stopwatch();
                     sw.Start();
                     bool saved = false;
-                    do {
+                    do
+                    {
                         saved = FileUtils.Exists(ObjectTarget);
                         if (!saved) System.Threading.Thread.Sleep(100);
 
                     } while (!saved && sw.ElapsedMilliseconds < 2000);
                 }
             }
-                        
+
             return p.ExitCode;
         }
-             
+
     }
 }

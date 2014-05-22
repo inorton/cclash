@@ -50,7 +50,7 @@ namespace CClash.Tests
 
         void EnsureDeleted(string file)
         {
-            if ( !string.IsNullOrEmpty(file) && FileUtils.Exists(file)) 
+            if (!string.IsNullOrEmpty(file) && FileUtils.Exists(file))
                 File.Delete(file);
         }
 
@@ -60,9 +60,9 @@ namespace CClash.Tests
         }
 
         [Test]
-        [TestCase("/c","test-sources\\exists.c")]
-        [TestCase("/c","test-sources\\exists.c", "/Fowhatever.obj")]
-        [TestCase("/c","test-sources\\exists.c", "/Fotest-sources")]
+        [TestCase("/c", "test-sources\\exists.c")]
+        [TestCase("/c", "test-sources\\exists.c", "/Fowhatever.obj")]
+        [TestCase("/c", "test-sources\\exists.c", "/Fotest-sources")]
         public void ParseSupportedArgs(params string[] argv)
         {
             var c = GetCompiler();
@@ -136,8 +136,8 @@ namespace CClash.Tests
 
             Assert.IsTrue(supported);
             Assert.AreEqual(1, c.CliIncludePaths.Count);
-            Assert.AreEqual(Path.Combine(Environment.CurrentDirectory,"test-sources\\inc with spaces"), c.CliIncludePaths[0]);
-            Assert.AreEqual(Path.Combine(Environment.CurrentDirectory,"test-sources\\hello.c"), c.SingleSourceFile);
+            Assert.AreEqual(Path.Combine(Environment.CurrentDirectory, "test-sources\\inc with spaces"), c.CliIncludePaths[0]);
+            Assert.AreEqual(Path.Combine(Environment.CurrentDirectory, "test-sources\\hello.c"), c.SingleSourceFile);
             using (var sw = new StreamWriter(new MemoryStream()))
             {
                 var rv = c.InvokePreprocessor(sw);
@@ -147,7 +147,7 @@ namespace CClash.Tests
 
         [Test]
         [TestCase("/c", "test-sources\\hello.c", "/Itest-sources\\inc with spaces")]
-        [TestCase("/c", "test-sources\\hello.c", "/I","test-sources\\inc with spaces","/D","a_hash_define")]
+        [TestCase("/c", "test-sources\\hello.c", "/I", "test-sources\\inc with spaces", "/D", "a_hash_define")]
         [TestCase("@test-sources\\compiler1.resp")]
         [TestCase("@test-sources\\compiler2.resp")]
         public void CompileObjectTest(params string[] argv)
@@ -155,8 +155,8 @@ namespace CClash.Tests
             var c = GetCompiler();
             Assert.IsTrue(c.ProcessArguments(argv));
             Assert.AreEqual(1, c.CliIncludePaths.Count);
-            Assert.AreEqual(Path.Combine( Environment.CurrentDirectory, "test-sources\\inc with spaces"), c.CliIncludePaths[0]);
-            Assert.AreEqual(Path.Combine( Environment.CurrentDirectory, "test-sources\\hello.c"), c.SingleSourceFile);
+            Assert.AreEqual(Path.Combine(Environment.CurrentDirectory, "test-sources\\inc with spaces"), c.CliIncludePaths[0]);
+            Assert.AreEqual(Path.Combine(Environment.CurrentDirectory, "test-sources\\hello.c"), c.SingleSourceFile);
             var stderr = new StringBuilder();
             var stdout = new StringBuilder();
             var rv = c.InvokeCompiler(c.CommandLine, x => stderr.AppendLine(x), x => stdout.AppendLine(x), false, null);
@@ -169,8 +169,8 @@ namespace CClash.Tests
         }
 
         [Test]
-        [TestCase("/o","foo.exe")]
-        [TestCase("/c","test-sources\\exists.c","test-sources\\hello.c")]
+        [TestCase("/o", "foo.exe")]
+        [TestCase("/c", "test-sources\\exists.c", "test-sources\\hello.c")]
         [TestCase("/link")]
         public void DetectNotSupported(params string[] argv)
         {
@@ -185,7 +185,7 @@ namespace CClash.Tests
             FileUtils.WriteTextFile(src, "test");
             var target = Path.Combine(Environment.CurrentDirectory, "test.txt");
             if (File.Exists(target)) File.Delete(target);
-            Assert.AreEqual( true, FileUtils.TryHardLink( src, target ) );
+            Assert.AreEqual(true, FileUtils.TryHardLink(src, target));
         }
     }
 }

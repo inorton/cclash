@@ -24,7 +24,7 @@ namespace CClash.Tests
 
             CacheFolderName = String.Format("{0}_{1}", CacheFolderNamePrefix, Guid.NewGuid().ToString().Substring(0, 6));
             OutDir = String.Format("{0}_{1}", OutDirPrefix, Guid.NewGuid().ToString().Substring(0, 6));
-            
+
             Environment.SetEnvironmentVariable("CCLASH_DEBUG", null);
             Environment.SetEnvironmentVariable("CCLASH_SERVER", null);
             Environment.SetEnvironmentVariable("CCLASH_HARDLINK", null);
@@ -56,14 +56,14 @@ namespace CClash.Tests
                     throw;
                 }
             }
-                
+
         }
 
         public static string MakeOutfileArg()
         {
             if (!System.IO.Directory.Exists(OutDir))
                 System.IO.Directory.CreateDirectory(OutDir);
-            var fo = string.Format("/Fo{0}.obj", System.IO.Path.Combine( OutDir, Guid.NewGuid().ToString().Substring(0, 5)) );
+            var fo = string.Format("/Fo{0}.obj", System.IO.Path.Combine(OutDir, Guid.NewGuid().ToString().Substring(0, 5)));
             return fo;
         }
 
@@ -85,10 +85,10 @@ namespace CClash.Tests
             for (int i = 0; i < times; i++)
             {
                 Console.Error.WriteLine("# {0}", i);
-                var srcfile = System.IO.Path.Combine( "test-sources", Guid.NewGuid().ToString() + ".c" );
+                var srcfile = System.IO.Path.Combine("test-sources", Guid.NewGuid().ToString() + ".c");
                 var fo = MakeOutfileArg();
-                System.IO.File.Copy( @"test-sources\hello.c", srcfile, true );
-                var rv = Program.Main(new string[] { "/nologo", "/c", srcfile, fo , "/Itest-sources\\inc with spaces" });
+                System.IO.File.Copy(@"test-sources\hello.c", srcfile, true);
+                var rv = Program.Main(new string[] { "/nologo", "/c", srcfile, fo, "/Itest-sources\\inc with spaces" });
                 Assert.AreEqual(0, rv);
             }
         }
@@ -102,7 +102,7 @@ namespace CClash.Tests
             Assert.IsTrue(Settings.DirectMode);
             var comp = CompilerTest.CompilerPath;
             var fo = MakeOutfileArg();
-            Environment.SetEnvironmentVariable("PATH", System.IO.Path.GetDirectoryName( comp ) + ";" + Environment.GetEnvironmentVariable("PATH"));
+            Environment.SetEnvironmentVariable("PATH", System.IO.Path.GetDirectoryName(comp) + ";" + Environment.GetEnvironmentVariable("PATH"));
             for (int i = 0; i < times; i++)
             {
                 Console.Error.WriteLine("# {0}", i);
@@ -120,7 +120,7 @@ namespace CClash.Tests
         [TestCase(500, "pipe", 4)]
         [TestCase(500, "inet", 4)]
         [TestCase(500, "inet", 5)]
-        public void RunEnabledDirectServerJobs(int times, string srvmode, int paralleljobs )
+        public void RunEnabledDirectServerJobs(int times, string srvmode, int paralleljobs)
         {
             Environment.SetEnvironmentVariable("CCLASH_DIR", CacheFolderName + srvmode);
             Assert.IsFalse(Settings.Disabled);
@@ -128,7 +128,7 @@ namespace CClash.Tests
             var comp = CompilerTest.CompilerPath;
             Environment.SetEnvironmentVariable("CCLASH_SERVER", srvmode);
             Environment.SetEnvironmentVariable("PATH", System.IO.Path.GetDirectoryName(comp) + ";" + Environment.GetEnvironmentVariable("PATH"));
-            
+
             var tl = new List<Thread>();
             var rvl = new List<int>();
             for (int job = 1; job <= paralleljobs; job++)
@@ -138,9 +138,9 @@ namespace CClash.Tests
                     string srcfile = string.Format("test-sources\\hello{0}.c", (int)jobnum);
                     string objfile = string.Format("test-sources\\hello{0}.o", (int)jobnum);
 
-                    for (int i = 0; i < times/paralleljobs; i++)
+                    for (int i = 0; i < times / paralleljobs; i++)
                     {
-                        Console.Error.WriteLine("run {0}/{1}", i + 1, times/paralleljobs);
+                        Console.Error.WriteLine("run {0}/{1}", i + 1, times / paralleljobs);
                         var rv = Program.Main(new string[] { "/nologo", "/c", srcfile, "/Fo" + objfile, "/Itest-sources\\inc with spaces" });
                         lock (rvl)
                         {
@@ -148,7 +148,7 @@ namespace CClash.Tests
                             if (rv != 0) break;
                         }
                     }
-                    
+
                 });
                 tl.Add(t);
                 t.Start(job);
@@ -181,7 +181,7 @@ namespace CClash.Tests
             Environment.SetEnvironmentVariable("PATH", System.IO.Path.GetDirectoryName(comp) + ";" + Environment.GetEnvironmentVariable("PATH"));
             for (int i = 0; i < times; i++)
             {
-                Console.Error.WriteLine("run {0}/{1}", i+1, times);
+                Console.Error.WriteLine("run {0}/{1}", i + 1, times);
                 var rv = Program.Main(new string[] { "/nologo", "/c", @"test-sources\hello.c", fo, "/Itest-sources\\inc with spaces" });
                 Assert.AreEqual(0, rv);
             }

@@ -27,6 +27,12 @@ namespace CClash
             }
         }
 
+        public static void Warning(string fmt, params object[] args)
+        {
+            Console.Error.WriteLine(fmt, args);
+            Logging.Emit("warning: {0}", string.Format(fmt, args));
+        }
+
         public static void Error(string fmt, params object[] args)
         {
             Console.Error.WriteLine(fmt, args);
@@ -38,12 +44,23 @@ namespace CClash
 
             if (Settings.DebugEnabled)
             {
-                lock (miss_log_sync) {
-                    for (int i = 0; i < 20; i++) {
-                        try {
-                            File.AppendAllLines(Settings.DebugFile, new string[] { pid + ":" + Settings.Actor + ":" + string.Format(fmt, args) });
+                lock (miss_log_sync)
+                {
+                    for (int i = 0; i < 4; i++)
+                    {
+                        try
+                        {
+                            if (Settings.DebugFile == "Console")
+                            {
+                                Console.Error.WriteLine("{0}:{1}", pid, string.Format(fmt, args));
+                            }
+                            else
+                            {
+                                File.AppendAllLines(Settings.DebugFile, new string[] { pid + ":" + string.Format(fmt, args) });
+                            }
                             return;
-                        } catch { }
+                        }
+                        catch { }
                     }
                 }
             }
