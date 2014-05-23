@@ -111,7 +111,8 @@ namespace CClash.Tests
         [Repeat(2)]
         public void RunEnabledByCondition()
         {
-            Assert.IsFalse(Settings.Disabled);
+            Environment.SetEnvironmentVariable("CCLASH_DISABLED", "1");
+            Assert.IsTrue(Settings.Disabled);
             Environment.SetEnvironmentVariable("CCLASH_ENABLE_WHEN_VAR", "TESTTEST");
             Environment.SetEnvironmentVariable("CCLASH_ENABLE_WHEN_VALUES", "X,RED,GREEN");
             Environment.SetEnvironmentVariable("TESTTEST", "RED");
