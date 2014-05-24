@@ -88,9 +88,32 @@ namespace CClash
                     }
                 }
 
+                if (comp.AttemptPdb && comp.PdbFile != null)
+                {
+                    var cachedpdb = outputCache.MakePath(commonkey.Hash, F_Pdb);
+                    if (!FileUtils.Exists(cachedpdb))
+                    {
+                        Logging.Miss(DataHashResult.CacheCorrupt, commonkey.Hash, comp.PdbFile, "");
+                        return false;
+                    }
+
+                    // check if the target pdb exists already and it's contents differs from our cached copy.
+                    // If so, fail the cache hit as pdbs get merged not overwritten :(
+                    if (FileUtils.Exists(comp.PdbFile))
+                    {
+
+                        var pdbhash = hasher.DigestBinaryFile(comp.PdbFile);
+                        if (pdbhash.Hash != manifest.PdbHash)
+                        {
+                            Logging.Miss(DataHashResult.FileChanged, comp.WorkingDirectory, comp.PdbFile, "");
+                            return false;
+                        }
+                    }
+                }
+
                 return true; // cache hit, all includes match and no new files added
             }
-            Logging.Miss(DataHashResult.NoPreviousBuild, Directory.GetCurrentDirectory(), comp.SingleSourceFile, "");
+            Logging.Miss(DataHashResult.NoPreviousBuild, comp.WorkingDirectory, comp.SingleSourceFile, "");
             return false;
         }
 
@@ -117,6 +140,8 @@ namespace CClash
             outputCache.AddFile(m.CommonHash, comp.ObjectTarget, F_Object);
             if (c.GeneratePdb)
             {
+                var pdbhash = hasher.DigestBinaryFile(comp.PdbFile);
+                m.PdbHash = pdbhash.Hash;
                 outputCache.AddFile(m.CommonHash, comp.PdbFile, F_Pdb);
                 Stats.LockStatsCall(() => Stats.CacheSize += new FileInfo(c.PdbFile).Length);
             }

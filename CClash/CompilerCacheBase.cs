@@ -148,7 +148,7 @@ namespace CClash
             try
             {
                 CopyFile(outputCache.MakePath(hc.Hash, F_Object), comp.ObjectTarget);
-                if (comp.GeneratePdb)
+                if (comp.GeneratePdb && comp.AttemptPdb && comp.PdbFile != null)
                     CopyFile(outputCache.MakePath(hc.Hash, F_Pdb), comp.PdbFile);
             }
             catch (Exception e)

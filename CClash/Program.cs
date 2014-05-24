@@ -69,6 +69,7 @@ namespace CClash
                                 cc.Transact(new CClashRequest() { cmd = Command.Quit });
                             } else {
                                 Console.Out.WriteLine(cc.GetStats(compiler));
+                                return 0;
                             }
                         } catch (CClashWarningException) {
                             System.Threading.Thread.Sleep(2000);

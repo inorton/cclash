@@ -26,11 +26,6 @@ namespace CClash
         IntPtr lpSecurityAttributes
         );
 
-        public static bool MakeHardLink(string to, string from)
-        {
-            return !FileUtils.Exists(to) && (CreateHardLink(to, from, IntPtr.Zero) != 0);
-        }
-
         static Compiler()
         {
             cygwinEnvFixup();
@@ -222,6 +217,7 @@ namespace CClash
         public bool Linking { get; set; }
         public bool PrecompiledHeaders { get; set; }
         public bool GeneratePdb { get; set; }
+        public bool AttemptPdb { get; set; }
         public string ResponseFile { get; set; }
 
         List<string> srcs = new List<string>();
@@ -251,7 +247,7 @@ namespace CClash
                 return (!Linking &&
                     !PrecompiledHeaders &&
                     SingleSource &&
-                    !GeneratePdb &&
+                    ((!GeneratePdb) || AttemptPdb ) &&
                     !String.IsNullOrWhiteSpace(SingleSourceFile) &&
                     !String.IsNullOrWhiteSpace(ObjectTarget) &&
                     FileUtils.Exists(AbsoluteSourceFile)
@@ -423,8 +419,10 @@ namespace CClash
                         case "/Zi":
                             GeneratePdb = true;
                             break;
+
                         case "/Fd":
                             GeneratePdb = true;
+                            PdbFile = Path.Combine(WorkingDirectory, full.Substring(3));
                             break;
 
                         case "/Fo":
@@ -477,7 +475,6 @@ namespace CClash
                                         // this only works if it is the one and only arg!
                                         args = CommandLineToArgs(rsptxt).Skip(1).ToArray();
                                         i = 0;
-
                                         // replace the command line with the response file content 
                                         // and restart parsing. This does go wrong if the response text is huge
                                         continue;
@@ -546,7 +543,21 @@ namespace CClash
 
                     if (GeneratePdb)
                     {
-                        return NotSupported("PDB file requested");
+                        if (Settings.AttemptPDBCaching)
+                        {
+                            if (PdbFile != null)
+                            {
+                                AttemptPdb = true;
+                            }
+                            else
+                            {
+                                return NotSupported("Implicit PDB file requested");
+                            }
+                        }
+                        else
+                        {
+                            return NotSupported("PDB file requested");
+                        }
                     }
 
                 }

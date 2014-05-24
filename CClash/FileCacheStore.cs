@@ -61,8 +61,29 @@ namespace CClash
             {
                 if (!Directory.Exists(FolderPath))
                 {
-                     Directory.CreateDirectory(FolderPath);
+                    Directory.CreateDirectory(FolderPath);
                 }
+                else
+                {
+                    bool bad_cache_format = true;
+                    if (File.Exists(Path.Combine(FolderPath, CacheInfo.F_CacheVersion)))
+                    {
+                        var cdv = File.ReadAllText(Path.Combine(FolderPath, CacheInfo.F_CacheVersion));
+                        bad_cache_format = cdv != CacheInfo.CacheFormat;
+                    }
+
+                    if (bad_cache_format)
+                    {
+                        // cache is too old, wiping
+                        Directory.Delete(FolderPath, true);
+                        Directory.CreateDirectory(FolderPath);
+                        File.WriteAllText(Path.Combine(FolderPath, CacheInfo.F_CacheVersion), CacheInfo.CacheFormat);
+                    }
+                }
+            }
+            catch (UnauthorizedAccessException uae)
+            {
+                throw new CClashWarningException("cache access error: " + uae.Message);
             }
             finally
             {

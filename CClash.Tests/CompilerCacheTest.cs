@@ -48,6 +48,44 @@ namespace CClash.Tests
 
 
         [Test]
+        [TestCase(100)]
+        public void RunEnabledDirectPdb(int times)
+        {
+            Assert.IsFalse(Settings.Disabled);
+            Assert.IsTrue(Settings.DirectMode);
+            var comp = CompilerTest.CompilerPath;
+            Environment.SetEnvironmentVariable("PATH", System.IO.Path.GetDirectoryName(comp) + ";" + Environment.GetEnvironmentVariable("PATH"));
+            var sw = new System.Diagnostics.Stopwatch();
+            
+            string pdb = string.Format("pdbtest.pdb");
+            // test that the pdb gets created
+            if (FileUtils.Exists(pdb)) System.IO.File.Delete(pdb);
+            Assert.IsFalse(FileUtils.Exists(pdb));
+            sw.Start();
+            var rv = Program.Main(new string[] { "/nologo", "/Zi", "/Fd" + pdb, "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
+            sw.Stop();
+
+            var duration1 = sw.Elapsed;
+            Assert.IsTrue(FileUtils.Exists(pdb));
+            Assert.AreEqual(0, rv);
+            sw.Reset();
+            sw.Start();
+
+            for (int i = 0; i < times; i++)
+            {
+                rv = Program.Main(new string[] { "/nologo", "/Zi", "/Fd" + pdb, "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
+                Assert.IsTrue(FileUtils.Exists(pdb));
+                Assert.AreEqual(0, rv);
+            }
+            sw.Stop();
+            var duration2 = sw.Elapsed;
+
+            Console.Error.WriteLine(duration1.TotalMilliseconds);
+            Console.Error.WriteLine(duration2.TotalMilliseconds/times);
+            
+        }
+
+        [Test]
         [TestCase(10)]
         public void RunEnabledDirect(int times)
         {

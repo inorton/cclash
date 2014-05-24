@@ -25,6 +25,7 @@ namespace CClash.Tests
         public static void SetEnvs()
         {
             Environment.SetEnvironmentVariable("CCLASH_DISABLED", null);
+            Environment.SetEnvironmentVariable("CCLASH_ATTEMPT_PDB_CACHE", null);
             Environment.SetEnvironmentVariable("CCLASH_PPMODE", null);
             Environment.SetEnvironmentVariable("CCLASH_DISABLE_WHEN_VAR", null);
             Environment.SetEnvironmentVariable("CCLASH_ENABLE_WHEN_VAR", null);
@@ -99,7 +100,6 @@ namespace CClash.Tests
         [TestCase("/c", "test-sources\\exists.c", "/Zi")]
         [TestCase("/c", "test-sources\\exists.c", "/Zi", "/Fowhatever.obj")]
         [TestCase("/c", "test-sources\\exists.c", "/Zi", "/Fotest-sources")]
-        [TestCase("/c", "test-sources\\exists.c", "/Zi", "/Fdtest-sources\\stuff.pdb")]
         public void ParseUnSupportedPdbArgs(params string[] argv)
         {
             var c = new Compiler();
@@ -107,6 +107,18 @@ namespace CClash.Tests
             c.CompilerExe = CompilerPath;
             Assert.IsFalse(c.ProcessArguments(argv));
         }
+
+        [TestCase("/c", "test-sources\\exists.c", "/Zi", "/Fdtest-sources\\stuff.pdb")]
+        public void ParseSupportedPdbArgs(params string[] argv)
+        {
+            Environment.SetEnvironmentVariable("CCLASH_ATTEMPT_PDB_CACHE","yes");
+            Assert.IsTrue(Settings.AttemptPDBCaching);
+            var c = new Compiler();
+            c.SetWorkingDirectory(InitialDir);
+            c.CompilerExe = CompilerPath;
+            Assert.IsTrue(c.ProcessArguments(argv));
+        }
+
 
         [Test]
         [TestCase("/c", "test-sources\\exists.c", "/Zi","/Z7")]
@@ -144,7 +156,7 @@ namespace CClash.Tests
             Assert.IsTrue(c.ProcessArguments(argv));
             hv.Add(Path.GetFullPath(c.SingleSourceFile));
             List<string> incfiles = new List<string>();
-            var rv = c.InvokeCompiler(argv, x => { }, y => { }, true, incfiles);
+            var rv = c.InvokeCompiler(argv, Console.Error.WriteLine, Console.Out.WriteLine, true, incfiles);
             hv.AddRange(incfiles);
             Assert.AreEqual(0, rv);
             Assert.IsTrue(hv.Count > 0);
@@ -207,16 +219,6 @@ namespace CClash.Tests
             c.SetWorkingDirectory(InitialDir);
             c.SetEnvironment(Compiler.GetEnvironmentDictionary());
             Assert.IsFalse(c.ProcessArguments(argv));
-        }
-
-        [Test]
-        public void TestHardLinking()
-        {
-            var src = Path.Combine(InitialDir, "test.old");
-            FileUtils.WriteTextFile(src, "test");
-            var target = Path.Combine(InitialDir, "test.txt");
-            if (File.Exists(target)) File.Delete(target);
-            Assert.AreEqual( true, Compiler.MakeHardLink(target, src) );
         }
     }
 }

@@ -40,6 +40,23 @@ namespace CClash
             return false;
         }
 
+        /// <summary>
+        /// Attempt to cache and restore PDB files. If the target PDB already exists then we will count 
+        /// that towards the common key and cache the file. If not we mark that it doesnt and cache the file.
+        /// 
+        /// If on a subsequent run, the pdb already exists exactly as it was when we cached it or is missing then
+        /// we allow a hit.
+        /// 
+        /// This basically only works for pdb builds that were sequential.
+        /// </summary>
+        public static bool AttemptPDBCaching
+        {
+            get
+            {
+                return Environment.GetEnvironmentVariable("CCLASH_ATTEMPT_PDB_CACHE") == "yes";
+            }
+        }
+
         static bool EnabledByConditions()
         {
             return ConditionVarsAreTrue("CCLASH_ENABLE_WHEN");

@@ -41,6 +41,11 @@ namespace CClash
         public string PreprocessedSourceHash { get; set; }
 
         /// <summary>
+        /// The hash of any pdb file produced for this item
+        /// </summary>
+        public string PdbHash { get; set; }
+
+        /// <summary>
         /// Hashes and names of each #included file
         /// </summary>
         public Dictionary<string, string> IncludeFiles { get; set; }

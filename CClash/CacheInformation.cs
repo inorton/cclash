@@ -113,6 +113,8 @@ namespace CClash
         public const string F_StatTimeSaved = "time_saved.txt";
         public const string F_CacheVersion = "version.txt";
 
+        public const string CacheFormat = "v2";
+
         FileCacheStore cache;
         Mutex statMtx = null;
 
