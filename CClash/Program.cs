@@ -41,6 +41,14 @@ namespace CClash
             if (args.Contains("--cclash-server"))
             {
                 var server = new CClashServer();
+                if (args.Contains("--attempt-pdb"))
+                {
+                    Environment.SetEnvironmentVariable("CCLASH_ATTEMPT_PDB_CACHE", "yes");
+                }
+                if (args.Contains("--pdb-to-z7"))
+                {
+                    Environment.SetEnvironmentVariable("CCLASH_Z7_OBJ", "yes");
+                }
 
                 if (args.Contains("--debug")) {
                     if (Settings.DebugFile == null) {
@@ -63,16 +71,27 @@ namespace CClash
                 if (Settings.ServiceMode)
                 {
                     for (int i = 0; i < 3; i++ ) {
-                        try {
+                        try
+                        {
                             var cc = new CClashServerClient(Settings.CacheDirectory);
-                            if (args.Contains("--stop")) {
+                            if (args.Contains("--stop"))
+                            {
                                 cc.Transact(new CClashRequest() { cmd = Command.Quit });
-                            } else {
+                            }
+                            else
+                            {
                                 Console.Out.WriteLine(cc.GetStats(compiler));
                                 return 0;
                             }
-                        } catch (CClashWarningException) {
+                        }
+                        catch (CClashWarningException)
+                        {
                             System.Threading.Thread.Sleep(2000);
+                        }
+                        catch (InvalidOperationException)
+                        {
+                            Logging.Error("server not running");
+                            return -1;
                         }
                     }
                 }

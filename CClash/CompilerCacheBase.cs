@@ -71,6 +71,12 @@ namespace CClash
         public abstract void Setup();
         public abstract void Finished();
 
+        public void SetCompilerEx(int parentpid, string compiler, string workdir, Dictionary<string, string> envs)
+        {
+            SetCompiler(compiler, workdir, envs);
+            comp.ParentPid = parentpid;
+        }
+
         public void SetCompiler(string compiler, string workdir, Dictionary<string,string> envs)
         {
             if (string.IsNullOrEmpty(compiler)) throw new ArgumentNullException("compiler");
@@ -268,6 +274,7 @@ namespace CClash
         {
             if (IsSupported(args))
             {
+                args = comp.CompileArgs;
                 var hc = DeriveHashKey(args);
                 if (hc.Result == DataHashResult.Ok)
                 {

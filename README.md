@@ -3,7 +3,7 @@
 
 CClash is a (.net based) compiler cache for the Microsoft 'cl' compiler.
 
-It is aimed at fairly simple use ( eg, `cl /c file.c /Fofile.o` ) and will cache object and pdb files rather like ccache does.
+It is aimed at fairly simple use ( eg, `cl /c file.c /Fofile.o` ) and will cache object files rather like ccache does. Due to the nature of PDB files on windows cclash can't easily cache these so you might be out of luck. However you might want to experiment with the CCLASH_Z7_OBJ=yes environment setting to see if it gives you what you want.
 
 CClash has been inspired by clcache (https://github.com/frerich/clcache) and of course ccache (http://ccache.samba.org).
 
@@ -15,24 +15,21 @@ On subsequent builds, the key will match, giving us a the manifest file, we chec
 
 Those who know ccache will recognise this as quite similar to the ccache 'direct mode'. ( I read the ccache man page before writing this - http://ccache.samba.org/manual.html#_the_direct_mode ). CClash has a preprocessor mode but it does not work very well and is best avoided at the moment.
 
-CClash has a couple of extra twists to get a little more speed, if you set the `CCLASH_SERVER` environment variable, a short lived ( 5 mins max ) server will be spawned. This server will take over the running of the compiler and the hashing of input data, so common files will only be hashed once! The stats below are from using the server mode.
-Also, you can set `CCLASH_HARDLINK` and cclash will attempt to make NTFS hardlinks rather than copy files which should also be faster. Don't try this if your files are on a different drive or ntfs volume to `CCLASH_DIR`. If your system has a significant disk I/O overhead this might help you.
-
 ## How well does it work?
 
-On my (not very good) windows 8 machine, I have a simple test by building openssl under nmake. These tests were all done _after_ running the Configure step.
+On my (not very good) windows 8.1 machine, I have a simple test by building openssl under nmake. These tests were all done _after_ running the Configure and do_ms steps.
 
 OpenSSL windows build                                     | Duration | Time Difference |
 ----------------------------------------------------------|----------|-----------------|
-average build time without cclash                         |   288s   |                 |
-cclash enabled first run                                  |   464s   |           +61%  |
-cclash enabled second run                                 | **128s** |           **-56% ** |
-cclash enabled first run (CCLASH_SERVER)                  |   391s   |           +35%  |
-cclash enabled second run (CCLASH_SERVER)                 | **108s** |           **-63%**  |
+average build time without cclash                         |   405s   |                 |
+cclash enabled first run (CCLASH_SERVER)                  |   428s   |             +6% |
+cclash enabled second run (CCLASH_SERVER)                 | **123s** |        **-71%** |
 
-The first build with a clean cache costs about an extra 30-60% in build time for each file. Subsequent builds (with no source changes) give about a 50-65% reduction in build time.
+The first build with a clean cache costs about an extra 5-15% in build time for each file. Subsequent builds (with no source changes) give about a 50-80% reduction in build time for some operations.
 
-So.. For cclash to make a difference to you, you would want to be in a situation where you will compile most of your files more than 2 or 3 times. In my case, I wanted cclash for a continuous integration build so it _should_ pay off quite quickly day or so
+This build was done with CCLASH_Z7_OBJ=yes to prevent openssl trying to make pdb files for each .obj it creates (you still get the desired pdb files after the linker calls)
+
+So.. For cclash to make a difference to you, you would want to be in a situation where you will compile most of your files more than 2 or 3 times. In my case, I wanted cclash for a continuous integration build so it _should_ pay off quite quickly day or so.
 
 Compared to good old ccache this isn't too bad (ccache with gcc costs about 25% on a clean cache). Your milage may of course vary greatly!  On a multi-core machine with GNU Make things go quite well too.
 
@@ -40,7 +37,7 @@ Compared to good old ccache this isn't too bad (ccache with gcc costs about 25% 
 
 There are two ways. The first is easier if you can adjust your environment. The latter might be your only choice if you wish to use the Visual Studio IDE.
 
-   * Add the folder that contains cclash's cl.exe to %PATH% before the visual studio compiler
+   * Add the folder that contains cclash's cl.exe to %PATH% before the visual studio compiler.
 
 or
 

@@ -36,6 +36,11 @@ namespace CClash
         public string CommonHash { get; set; }
 
         /// <summary>
+        /// Hash of the pre-existing PDB file before this object was created.
+        /// </summary>
+        public string EarlierPdbHash { get; set; }
+
+        /// <summary>
         /// non-null if this entry was made by preprocessing the source
         /// </summary>
         public string PreprocessedSourceHash { get; set; }

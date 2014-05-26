@@ -154,9 +154,13 @@ namespace CClash
                 {
                     foreach (var filename in tmp.Keys)
                     {
-                        hashcache[filename.ToLower()] =  tmp[filename];
-                        rv[filename.ToLower()] = tmp[filename];
-                        WatchFile(filename.ToLower());
+                        var flow = filename.ToLower();
+                        hashcache[flow] = tmp[filename];
+                        rv[flow] = tmp[filename];
+                        if (!flow.StartsWith( Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(comp.CompilerExe)))))
+                        {
+                            WatchFile(flow);
+                        }
                     }
                 }
             }

@@ -57,6 +57,18 @@ namespace CClash
             }
         }
 
+        /// <summary>
+        /// When an object compilation with pdb generation (Zi) is requested. Instead
+        /// generate embedded debug info (Z7).
+        /// </summary>
+        public static bool ConvertObjPdbToZ7
+        {
+            get
+            {
+                return Environment.GetEnvironmentVariable("CCLASH_Z7_OBJ") == "yes";
+            }
+        }
+
         static bool EnabledByConditions()
         {
             return ConditionVarsAreTrue("CCLASH_ENABLE_WHEN");

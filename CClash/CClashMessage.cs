@@ -60,6 +60,7 @@ namespace CClash
         public IList<string> argv;
         public string compiler;
         public int tag;
+        public int pid;
     }
 
     [Serializable]

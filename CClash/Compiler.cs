@@ -14,6 +14,7 @@ namespace CClash
     public sealed class Compiler
     {
         static Regex findLineInclude = new Regex("#line\\s+\\d+\\s+\"([^\"]+)\"");
+        public const string InternalResponseFileSuffix = "cclash";
 
         [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
         static unsafe extern IntPtr GetEnvironmentStringsA();
@@ -171,6 +172,11 @@ namespace CClash
         public string[] CommandLine { get; set; }
 
         /// <summary>
+        /// The arguments that should be sent to the compiler by us or our caller.
+        /// </summary>
+        public string[] CompileArgs { get; set; }
+
+        /// <summary>
         /// The first source file.
         /// </summary>
         public string SingleSourceFile
@@ -211,6 +217,8 @@ namespace CClash
             }
         }
 
+        public int ParentPid { get; set; }
+
         public string ObjectTarget { get; set; }
         public string PdbFile { get; set; }
 
@@ -218,11 +226,15 @@ namespace CClash
         public bool PrecompiledHeaders { get; set; }
         public bool GeneratePdb { get; set; }
         public bool AttemptPdb { get; set; }
+        public bool PdbExistsAlready { get; set; }
         public string ResponseFile { get; set; }
+
+
 
         List<string> srcs = new List<string>();
         List<string> incs = new List<string>();
         List<string> cliincs = new List<string>();
+
 
         public List<string> CliIncludePaths
         {
@@ -244,7 +256,8 @@ namespace CClash
         {
             get
             {
-                return (!Linking &&
+                return (
+                    !Linking &&
                     !PrecompiledHeaders &&
                     SingleSource &&
                     ((!GeneratePdb) || AttemptPdb ) &&
@@ -378,6 +391,7 @@ namespace CClash
                     var opt = getOption(args[i]);
                     var full = getFullOption(args[i]);
 
+                    #region switch process each argument type
                     switch (opt)
                     {
                         case "/o":
@@ -423,6 +437,12 @@ namespace CClash
                         case "/Fd":
                             GeneratePdb = true;
                             PdbFile = Path.Combine(WorkingDirectory, full.Substring(3));
+                            // openssl gives us a posix path here..
+                            PdbFile = PdbFile.Replace('/', '\\');
+                            if (!PdbFile.ToLower().EndsWith(".pdb"))
+                            {
+                                PdbFile = PdbFile + ".pdb";
+                            }
                             break;
 
                         case "/Fo":
@@ -448,7 +468,7 @@ namespace CClash
                             break;
 
                         default:
-
+                            #region positional or other flag options
                             if (full.StartsWith("/E"))
                             {
                                 return NotSupported("/E");
@@ -462,7 +482,15 @@ namespace CClash
 
                             if (opt.StartsWith("@"))
                             {
+                                #region response file
                                 ResponseFile = full.Substring(1);
+
+                                if (ResponseFile.EndsWith(InternalResponseFileSuffix))
+                                {
+                                    Logging.Emit("cclash misshelper internal response file");
+                                    return false;
+                                }
+
                                 if (!Path.IsPathRooted(ResponseFile))
                                     ResponseFile = Path.Combine(WorkingDirectory, ResponseFile);
                                 var rsptxt = File.ReadAllText(ResponseFile);
@@ -486,6 +514,7 @@ namespace CClash
                                 }
 
                                 return NotSupported("response file error");
+                                #endregion
                             }
 
                             if (!full.StartsWith("/"))
@@ -509,23 +538,28 @@ namespace CClash
                                 if (d == "..")
                                     d = Path.GetDirectoryName(WorkingDirectory);
 
-                                if (!Path.IsPathRooted(d)) {
+                                if (!Path.IsPathRooted(d))
+                                {
                                     d = Path.Combine(WorkingDirectory, d);
                                 }
 
                                 if (Directory.Exists(d))
                                 {
                                     Logging.Emit("cli include '{0}' => {1}", full, d);
-                                    
+
 
                                     cliincs.Add(d);
                                     continue;
                                 }
                             }
+#endregion
 
                             break;
                     }
+                    #endregion
+
                 }
+                
                 if (SingleSource)
                 {
                     if (ObjectTarget == null)
@@ -543,11 +577,35 @@ namespace CClash
 
                     if (GeneratePdb)
                     {
+                        if (Settings.ConvertObjPdbToZ7)
+                        {
+                            // append /Z7 to the arg list
+                            var newargs = new List<string>(args);
+                            newargs.Add("/Z7");
+                            AttemptPdb = false;
+                            PdbFile = null;
+                            GeneratePdb = false;
+                            PdbExistsAlready = false;
+                            args = newargs.ToArray();
+                        }
+                    }
+
+                    if (GeneratePdb) 
+                    {
                         if (Settings.AttemptPDBCaching)
                         {
                             if (PdbFile != null)
                             {
                                 AttemptPdb = true;
+                                if (PdbFile.EndsWith("\\"))
+                                {
+                                    AttemptPdb = false;
+                                    return NotSupported("Implicit PDB folder+file requested");
+                                }
+                                if (FileUtils.Exists(PdbFile))
+                                {
+                                    PdbExistsAlready = true;
+                                }
                             }
                             else
                             {
@@ -559,16 +617,14 @@ namespace CClash
                             return NotSupported("PDB file requested");
                         }
                     }
-
                 }
-
             }
             catch (Exception e)
             {
                 Console.Error.WriteLine(e);
                 return NotSupported("option parser exception '{0}'", e);
             }
-
+            CompileArgs = args.ToArray();
             return IsSupported;
         }
 

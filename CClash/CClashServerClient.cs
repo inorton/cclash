@@ -33,19 +33,23 @@ namespace CClash
             if (ncs == null)
                 Open();
 
-            for (int i = 0; i < 2; i++)
+            try
             {
-                try {
-                    if (!ncs.IsConnected)
-                        ncs.Connect(100);
-                    ncs.ReadMode = PipeTransmissionMode.Message;
-                    return;
-                } catch (IOException ex) {
-                    Logging.Emit("error connecting {0}", ex.Message);
-                    try { ncs.Dispose(); Open(); } catch { }
-                } catch (TimeoutException) {
-                }
+                if (!ncs.IsConnected)
+                    ncs.Connect(100);
+                ncs.ReadMode = PipeTransmissionMode.Message;
+                return;
             }
+            catch (IOException ex)
+            {
+                Logging.Emit("error connecting {0}", ex.Message);
+                try { ncs.Dispose(); Open(); }
+                catch { }
+            }
+            catch (TimeoutException)
+            {
+            }
+            
 
             // start the server, but lets not try to use it here, the next instance can
             try {
@@ -59,11 +63,10 @@ namespace CClash
                 p.StartInfo.WorkingDirectory = Environment.CurrentDirectory;
                 p.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
                 p.Start();
-                
+                throw new CClashWarningException("starting new server");
             } catch (Exception e) {
                 Logging.Emit("error starting cclash server process", e.Message);
             }
-            throw new CClashWarningException("failed to connect to server");
         }
 
         public ICacheInfo Stats
@@ -149,7 +152,7 @@ namespace CClash
         {
             Connect();
             CClashResponse resp = null;
-
+            req.pid = System.Diagnostics.Process.GetCurrentProcess().Id;
             var txbuf = req.Serialize();
 
             ncs.Write(txbuf, 0, txbuf.Length);
