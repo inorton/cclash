@@ -8,7 +8,7 @@ namespace CClash
 {
     public class StatOutputs
     {
-        public static string GetStatsString(string compiler)
+        public static string GetStatsString(string compiler, ICompilerCache cache)
         {
             var sb = new StringBuilder();
             sb.WriteLine("compiler: {0}", compiler);
@@ -27,7 +27,7 @@ namespace CClash
             }
             if (compiler != null)
             {
-                using (var cache = new DirectCompilerCache(Settings.CacheDirectory))
+                if (cache != null)
                 {
                     var mseclost = cache.Stats.MSecLost;
                     var msecsaved = cache.Stats.MSecSaved;

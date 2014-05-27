@@ -222,7 +222,7 @@ namespace CClash
                     rv.exitcode = 0;
                     cache.SetupStats(); // commits stats to disk
                     
-                    rv.stdout = StatOutputs.GetStatsString(req.compiler);
+                    rv.stdout = StatOutputs.GetStatsString(req.compiler, cache);
                     break;
 
                 case Command.Run:

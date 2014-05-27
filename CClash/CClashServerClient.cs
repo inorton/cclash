@@ -35,9 +35,7 @@ namespace CClash
 
             try
             {
-                if (!ncs.IsConnected)
-                    ncs.Connect(100);
-                ncs.ReadMode = PipeTransmissionMode.Message;
+                ConnectClient();
                 return;
             }
             catch (IOException ex)
@@ -50,8 +48,7 @@ namespace CClash
             {
             }
             
-
-            // start the server, but lets not try to use it here, the next instance can
+            // start the server
             try {
 
                 var p = new Process();
@@ -63,10 +60,19 @@ namespace CClash
                 p.StartInfo.WorkingDirectory = Environment.CurrentDirectory;
                 p.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
                 p.Start();
-                throw new CClashWarningException("starting new server");
+                System.Threading.Thread.Sleep(1000);
+                ConnectClient();
             } catch (Exception e) {
                 Logging.Emit("error starting cclash server process", e.Message);
+                throw new CClashErrorException("could not start/connect to server");
             }
+        }
+
+        private void ConnectClient()
+        {
+            if (!ncs.IsConnected)
+                ncs.Connect(100);
+            ncs.ReadMode = PipeTransmissionMode.Message;
         }
 
         public ICacheInfo Stats

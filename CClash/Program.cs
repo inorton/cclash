@@ -70,7 +70,8 @@ namespace CClash
                 var compiler = Compiler.Find();
                 if (Settings.ServiceMode)
                 {
-                    for (int i = 0; i < 3; i++ ) {
+                    for (int i = 0; i < 3; i++)
+                    {
                         try
                         {
                             var cc = new CClashServerClient(Settings.CacheDirectory);
@@ -83,6 +84,11 @@ namespace CClash
                                 Console.Out.WriteLine(cc.GetStats(compiler));
                                 return 0;
                             }
+                        }
+                        catch (CClashErrorException ex)
+                        {
+                            Logging.Error(ex.Message);
+                            return -1;
                         }
                         catch (CClashWarningException)
                         {
@@ -97,7 +103,12 @@ namespace CClash
                 }
                 else
                 {
-                    Console.Out.WriteLine(StatOutputs.GetStatsString(compiler));
+                    using (ICompilerCache cc =
+                        CompilerCacheFactory.Get(Settings.DirectMode, Settings.CacheDirectory, compiler, Environment.CurrentDirectory, Compiler.GetEnvironmentDictionary()
+                        ))
+                    {
+                        Console.Out.WriteLine(StatOutputs.GetStatsString(compiler, cc));
+                    }
                 }
                 return 0;
             }
