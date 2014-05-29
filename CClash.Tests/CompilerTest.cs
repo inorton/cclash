@@ -111,12 +111,11 @@ namespace CClash.Tests
         [TestCase("/c", "test-sources\\exists.c", "/Zi", "/Fdtest-sources\\stuff.pdb")]
         public void ParseSupportedPdbArgs(params string[] argv)
         {
-            Environment.SetEnvironmentVariable("CCLASH_ATTEMPT_PDB_CACHE","yes");
-            Assert.IsTrue(Settings.AttemptPDBCaching);
+            Assert.IsFalse(Settings.AttemptPDBCaching);
             var c = new Compiler();
             c.SetWorkingDirectory(InitialDir);
             c.CompilerExe = CompilerPath;
-            Assert.IsTrue(c.ProcessArguments(argv));
+            Assert.IsFalse(c.ProcessArguments(argv));
         }
 
 
@@ -166,7 +165,6 @@ namespace CClash.Tests
         [TestCase("/c", "test-sources\\hello.c", "/Itest-sources\\inc with spaces")]
         [TestCase("/c", "test-sources\\hello.c", "/I", "test-sources\\inc with spaces", "/D", "a_hash_define")]
         [TestCase("@test-sources\\compiler1.resp")]
-        [TestCase("@test-sources\\compiler2.resp")]
         public void PreprocessorTest(params string[] argv)
         {
             var c = new Compiler() { CompilerExe = CompilerPath };
@@ -190,7 +188,6 @@ namespace CClash.Tests
         [TestCase("/c", "test-sources\\hello.c", "/Itest-sources\\inc with spaces")]
         [TestCase("/c", "test-sources\\hello.c", "/I","test-sources\\inc with spaces","/D","a_hash_define")]
         [TestCase("@test-sources\\compiler1.resp")]
-        [TestCase("@test-sources\\compiler2.resp")]
         public void CompileObjectTest(params string[] argv)
         {
             var c = new Compiler() { CompilerExe = CompilerPath };

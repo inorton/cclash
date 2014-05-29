@@ -62,13 +62,6 @@ namespace CClash
             set;
         }
 
-
-        public bool OmitLocks
-        {
-            get;
-            set;
-        }
-
         public long SlowHitCount
         {
             get;
@@ -113,7 +106,7 @@ namespace CClash
         public const string F_StatTimeSaved = "time_saved.txt";
         public const string F_CacheVersion = "version.txt";
 
-        public const string CacheFormat = "v2";
+        public const string CacheFormat = "v3";
 
         FileCacheStore cache;
         Mutex statMtx = null;
@@ -121,12 +114,6 @@ namespace CClash
         public void Commit()
         {
 
-        }
-
-        public bool OmitLocks
-        {
-            get;
-            set;
         }
 
         public CacheInfo(FileCacheStore statCache)
@@ -138,9 +125,9 @@ namespace CClash
 
         public void LockStatsCall(Action x)
         {
-            if ( !OmitLocks ) statMtx.WaitOne();
+            statMtx.WaitOne();
             x.Invoke();
-            if (!OmitLocks) statMtx.ReleaseMutex(); 
+            statMtx.ReleaseMutex(); 
         }
 
         public long ReadStat(string statfile)

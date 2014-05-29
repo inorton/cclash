@@ -18,35 +18,18 @@ namespace CClash
         public string FolderPath { get; private set; }
         
         Mutex mtx = null;
-        bool ignoreLocks = false;
-        public void KeepLocks()
-        {
-            WaitOne();
-            ignoreLocks = true;
-        }
-
-        public void UnKeepLocks()
-        {
-            ignoreLocks = false;
-            ReleaseMutex();
-        }
 
         public void WaitOne()
         {
-            if (!ignoreLocks)
-            {
-                Logging.Emit("WaitOne {0}", FolderPath);
-                if (!mtx.WaitOne()) throw new InvalidProgramException("mutex lock failed " + mtx.ToString());
-            }
+            Logging.Emit("WaitOne {0}", FolderPath);
+            if (!mtx.WaitOne()) throw new InvalidProgramException("mutex lock failed " + mtx.ToString());
+            
         }
 
         public void ReleaseMutex()
         {
-            if (!ignoreLocks)
-            {
-                Logging.Emit("ReleaseMutex {0}", FolderPath);
-                mtx.ReleaseMutex();
-            }
+            Logging.Emit("ReleaseMutex {0}", FolderPath);
+            mtx.ReleaseMutex();
         }
 
         FileCacheStore( string folderPath )
@@ -197,8 +180,6 @@ namespace CClash
         {
             if (mtx != null)
             {
-                if (ignoreLocks)
-                    UnKeepLocks();
                 mtx.Dispose();
             }
         }

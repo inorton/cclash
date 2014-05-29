@@ -9,11 +9,11 @@ namespace CClash
     public interface ICompilerCache : IDisposable
     {
         ICacheInfo Stats { get; }
-
-        bool IsSupported(IEnumerable<string> args);
-        int CompileOrCache(IEnumerable<string> args);
-        void SetCaptureCallback(Action<string> onOutput, Action<string> onError);
-        void SetCompiler(string compiler, string workdir, Dictionary<string, string> envs);
-        DataHash DeriveHashKey(IEnumerable<string> args);
+        bool CheckCache(ICompiler comp, IEnumerable<string> args, DataHash commonkey, out CacheManifest manifest);
+        ICompiler SetCompiler(string compiler, string workdir, Dictionary<string, string> envs);
+        bool IsSupported( ICompiler comp, IEnumerable<string> args);
+        int CompileOrCache( ICompiler comp, IEnumerable<string> args);
+        void SetCaptureCallback(ICompiler comp, Action<string> onOutput, Action<string> onError);
+        DataHash DeriveHashKey(ICompiler comp, IEnumerable<string> args);
     }
 }

@@ -71,7 +71,7 @@ namespace CClash
         private void ConnectClient()
         {
             if (!ncs.IsConnected)
-                ncs.Connect(100);
+                ncs.Connect(200);
             ncs.ReadMode = PipeTransmissionMode.Message;
         }
 
@@ -83,7 +83,7 @@ namespace CClash
             }
         }
 
-        public bool IsSupported(IEnumerable<string> args)
+        public bool IsSupported(ICompiler comp, IEnumerable<string> args)
         {
             return true;
         }
@@ -92,7 +92,13 @@ namespace CClash
         string workingdir;
         Dictionary<string, string> environment;
 
-        public void SetCompiler(string compiler, string workdir, System.Collections.Generic.Dictionary<string,string> envs )
+        public bool CheckCache(ICompiler comp, IEnumerable<string> args, DataHash commonkey, out CacheManifest manifest)
+        {
+            manifest = null;
+            return false;
+        }
+
+        public ICompiler SetCompiler(string compiler, string workdir, System.Collections.Generic.Dictionary<string,string> envs )
         {
             if (string.IsNullOrEmpty(compiler)) throw new ArgumentNullException("compiler");
             if (string.IsNullOrEmpty(workdir)) throw new ArgumentNullException("workdir");
@@ -100,17 +106,18 @@ namespace CClash
             workingdir = workdir;
             compilerPath = System.IO.Path.GetFullPath(compiler);
             Connect();
+            return null;
         }
 
         Action<string> stdOutCallback = null;
         Action<string> stdErrCallback = null;
-        public void SetCaptureCallback(Action<string> onOutput, Action<string> onError)
+        public void SetCaptureCallback(ICompiler comp, Action<string> onOutput, Action<string> onError)
         {
             stdOutCallback = onOutput;
             stdErrCallback = onError;
         }
 
-        public int CompileOrCache(IEnumerable<string> args)
+        public int CompileOrCache(ICompiler comp, IEnumerable<string> args)
         {
             Logging.Emit("client args: {0}", string.Join(" ", args.ToArray()));
             try {
@@ -181,7 +188,7 @@ namespace CClash
             return resp;
         }
 
-        public DataHash DeriveHashKey(IEnumerable<string> args)
+        public DataHash DeriveHashKey(ICompiler comp, IEnumerable<string> args)
         {
             throw new NotSupportedException();
         }

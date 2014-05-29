@@ -66,6 +66,7 @@
     <Compile Include="FileUtils.cs" />
     <Compile Include="HashUtil.cs" />
     <Compile Include="ICacheInfo.cs" />
+    <Compile Include="ICompiler.cs" />
     <Compile Include="ICompilerCache.cs" />
     <Compile Include="Logging.cs" />
     <Compile Include="NullCompilerCache.cs" />

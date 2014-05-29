@@ -26,7 +26,7 @@ namespace CClash
         /// <param name="commonkey"></param>
         /// <param name="manifest"></param>
         /// <returns></returns>
-        protected override bool CheckCache( IEnumerable<string> args, DataHash commonkey, out CacheManifest manifest )
+        public override bool CheckCache(ICompiler comp, IEnumerable<string> args, DataHash commonkey, out CacheManifest manifest )
         {
             manifest = null;
             outputCache.WaitOne();
@@ -110,7 +110,7 @@ namespace CClash
 
         TimeSpan lastCompileDuration = default(TimeSpan);
 
-        protected virtual int Compile(IEnumerable<string> args, string stderrfile, string stdoutfile, List<string> includes)
+        protected virtual int Compile(ICompiler comp, IEnumerable<string> args, string stderrfile, string stdoutfile, List<string> includes)
         {
             #region compile
             var start = DateTime.Now;
@@ -118,7 +118,7 @@ namespace CClash
             {
                 using (var stdoutfs = new StreamWriter(stdoutfile))
                 {
-                    var rv = CompileWithStreams(args, stderrfs, stdoutfs, includes);
+                    var rv = CompileWithStreams(comp, args, stderrfs, stdoutfs, includes);
                     lastCompileDuration = DateTime.Now.Subtract(start);
                     return rv;
                 }
@@ -126,14 +126,14 @@ namespace CClash
             #endregion
         }
 
-        protected virtual void SaveOutputsLocked( CacheManifest m, Compiler c )
+        protected virtual void SaveOutputsLocked(CacheManifest m, ICompiler c )
         {
-            outputCache.AddFile(m.CommonHash, comp.ObjectTarget, F_Object);
+            outputCache.AddFile(m.CommonHash, c.ObjectTarget, F_Object);
             if (c.GeneratePdb)
             {
-                var pdbhash = hasher.DigestBinaryFile(comp.PdbFile);
+                var pdbhash = hasher.DigestBinaryFile(c.PdbFile);
                 m.PdbHash = pdbhash.Hash;
-                outputCache.AddFile(m.CommonHash, comp.PdbFile, F_Pdb);
+                outputCache.AddFile(m.CommonHash, c.PdbFile, F_Pdb);
                 Stats.LockStatsCall(() => Stats.CacheSize += new FileInfo(c.PdbFile).Length);
             }
 
@@ -153,7 +153,7 @@ namespace CClash
             }
         }
 
-        protected override int OnCacheMissLocked(DataHash hc, IEnumerable<string> args, CacheManifest m)
+        protected override int OnCacheMissLocked(ICompiler comp, DataHash hc, IEnumerable<string> args, CacheManifest m)
         {
             Logging.Emit("cache miss");
             outputCache.EnsureKey(hc.Hash);
@@ -162,7 +162,7 @@ namespace CClash
             var ifiles = new List<string>();
             Stats.LockStatsCall(() => Stats.CacheMisses++);
 
-            int rv = Compile( args, stderrfile, stdoutfile, ifiles );
+            int rv = Compile(comp, args, stderrfile, stdoutfile, ifiles );
 
             // we still hold the cache lock, create the manifest asap or give up now!
 
@@ -173,7 +173,14 @@ namespace CClash
             else
             {
                 // this unlocks for us
-                DoCacheMiss(comp, hc, args, m, ifiles);
+                try
+                {
+                    DoCacheMiss(comp, hc, args, m, ifiles);
+                }
+                catch (CClashWarningException)
+                {
+                    return CompileOnly(comp, args);
+                }
             }
 
             var duration = DateTime.Now.Subtract(cacheStart);
@@ -186,7 +193,7 @@ namespace CClash
 
         static object RelatedMissLock = new object();
 
-        protected virtual void DoCacheMiss( Compiler c, DataHash hc, IEnumerable<string> args, CacheManifest m, List<string> ifiles)
+        protected virtual void DoCacheMiss( ICompiler c, DataHash hc, IEnumerable<string> args, CacheManifest m, List<string> ifiles)
         {
 
             var idirs = c.GetUsedIncludeDirs(ifiles);
@@ -207,17 +214,6 @@ namespace CClash
                 m.IncludeFiles = new Dictionary<string, string>();
                 m.TimeStamp = DateTime.Now.ToString("s");
                 m.CommonHash = hc.Hash;
-                if (c.AttemptPdb)
-                {
-                    if (c.PdbExistsAlready)
-                    {
-                        var ph = hasher.DigestBinaryFile(c.PdbFile);
-                        if (ph.Result == DataHashResult.Ok)
-                        {
-                            m.EarlierPdbHash = ph.Hash;
-                        }
-                    }
-                }
 
                 #endregion
 

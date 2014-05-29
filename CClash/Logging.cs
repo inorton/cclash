@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CClash
@@ -33,6 +34,15 @@ namespace CClash
             Logging.Emit("warning: {0}", string.Format(fmt, args));
         }
 
+        public static void Input(string dir, string target, IEnumerable<string> args)
+        {
+            if (Settings.DebugEnabled)
+            {
+                var cfiles = from a in args where a.Contains(".c") select a;
+                Logging.Emit("invoked: dir={0}, target={1} srcs={2}", dir, target, string.Join(",", cfiles.ToArray()));
+            }
+        }
+
         public static void Error(string fmt, params object[] args)
         {
             Console.Error.WriteLine(fmt, args);
@@ -48,7 +58,9 @@ namespace CClash
                     try
                     {
                         if (Settings.DebugFile == "Console") {
-                            Console.Error.WriteLine("{0}:{1}", pid, string.Format(fmt, args));
+                            Console.Error.WriteLine("p{0} t{1}:{2}", pid, 
+                                Thread.CurrentThread.ManagedThreadId, 
+                                string.Format(fmt, args));
                         } else {
                             File.AppendAllLines(Settings.DebugFile, new string[] { pid + ":" + string.Format(fmt, args) });
                         }

@@ -53,7 +53,9 @@ namespace CClash
         {
             get
             {
-                return Environment.GetEnvironmentVariable("CCLASH_ATTEMPT_PDB_CACHE") == "yes";
+                return false;
+                //TODO - fix other things before enabling this
+                //return Environment.GetEnvironmentVariable("CCLASH_ATTEMPT_PDB_CACHE") == "yes";
             }
         }
 

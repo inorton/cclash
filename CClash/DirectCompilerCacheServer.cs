@@ -15,10 +15,6 @@ namespace CClash
         public DirectCompilerCacheServer(string cachedir)
             : base(cachedir)
         {
-            StdErrorText = new StringBuilder();
-            StdOutText = new StringBuilder();
-            base.includeCache.KeepLocks();
-            base.outputCache.KeepLocks();
             SetupStats();
             base.includeCache.CacheEntryChecksInMemory = true;
         }
@@ -34,6 +30,7 @@ namespace CClash
 
         public void WatchFile(string path)
         {
+            if (!path.ToLower().Contains("program files")) return;
             var dir = Path.GetDirectoryName(path);
             if ( !Path.IsPathRooted(dir) )
                 dir = Path.GetFullPath(dir);
@@ -157,10 +154,7 @@ namespace CClash
                         var flow = filename.ToLower();
                         hashcache[flow] = tmp[filename];
                         rv[flow] = tmp[filename];
-                        if (!flow.StartsWith( Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(comp.CompilerExe)))))
-                        {
-                            WatchFile(flow);
-                        }
+                        WatchFile(flow);
                     }
                 }
             }
@@ -168,35 +162,9 @@ namespace CClash
             return rv;  
         }
 
-        public StringBuilder StdErrorText { get; private set; }
-        public StringBuilder StdOutText { get; private set; }
-
-        public override void OutputWriteLine(string str)
+        public override int CompileOrCache(ICompiler comp, IEnumerable<string> args)
         {
-            StdOutText.AppendLine(str);
-        }
-
-        public override void ErrorWriteLine(string str)
-        {
-            StdErrorText.AppendLine(str);
-        }
-
-        public override void OutputWrite(string str)
-        {
-            StdOutText.Append(str);
-        }
-
-        public override void ErrorWrite(string str)
-        {
-            StdErrorText.Append(str);
-        }
-
-        public override int CompileOrCache(IEnumerable<string> args)
-        {
-            StdErrorText.Clear();
-            StdOutText.Clear();
-
-            return base.CompileOrCache(args);
+            return base.CompileOrCache(comp, args);
         }
 
         protected override void Dispose( bool disposing)
@@ -208,8 +176,6 @@ namespace CClash
                     x.Value.Dispose();
                 }
                 dwatchers.Clear();
-                base.includeCache.UnKeepLocks();
-                base.outputCache.UnKeepLocks();
             }
             base.Dispose(disposing);
         }
@@ -219,24 +185,6 @@ namespace CClash
             if (Stats != null)
                 Stats.Dispose();
             Stats = new FastCacheInfo(outputCache);
-        }
-
-        int yield_count = 0;
-        public void YieldLocks()
-        {
-            if (yield_count++ > 100)
-            {
-                yield_count = 0;
-                SetupStats();
-            }
-
-            base.includeCache.UnKeepLocks();
-            base.outputCache.UnKeepLocks();
-
-            System.Threading.Thread.Sleep(0);
-
-            base.includeCache.KeepLocks();
-            base.outputCache.KeepLocks();
         }
     }
 }

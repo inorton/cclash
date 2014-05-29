@@ -5,13 +5,14 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace CClash
 {
     /// <summary>
     /// Class for processing compiler inputs, running the compiler and deducing outputs.
     /// </summary>
-    public sealed class Compiler
+    public sealed class Compiler : CClash.ICompiler
     {
         static Regex findLineInclude = new Regex("#line\\s+\\d+\\s+\"([^\"]+)\"");
         public const string InternalResponseFileSuffix = "cclash";
@@ -149,6 +150,8 @@ namespace CClash
         public Compiler()
         {
             compilerExe = "cl";
+            StdErrorText = new StringBuilder(1024);
+            StdOutputText = new StringBuilder(1024);
         }
 
         private string compilerExe;
@@ -185,6 +188,12 @@ namespace CClash
             {
                 return srcs.FirstOrDefault();
             }
+        }
+
+        public bool HasDashC
+        {
+            get;
+            private set;
         }
 
         public string AbsoluteSourceFile
@@ -229,7 +238,11 @@ namespace CClash
         public bool PdbExistsAlready { get; set; }
         public string ResponseFile { get; set; }
 
+        public StringBuilder StdErrorText { get; private set; }
+        public StringBuilder StdOutputText { get; private set; }
 
+        public Action<string> StdErrorCallback { get; set; }
+        public Action<string> StdOutputCallback { get; set; }
 
         List<string> srcs = new List<string>();
         List<string> incs = new List<string>();
@@ -257,6 +270,7 @@ namespace CClash
             get
             {
                 return (
+                    HasDashC &&
                     !Linking &&
                     !PrecompiledHeaders &&
                     SingleSource &&
@@ -376,6 +390,7 @@ namespace CClash
 
         bool NotSupported(string fmt, params object[] args)
         {
+            Logging.Emit("args: {0}", string.Format(" ", CommandLine));
             Logging.Emit("argument not supported : {0}", string.Format( fmt, args));
             return false;
         }
@@ -387,13 +402,15 @@ namespace CClash
                 CommandLine = args;
                 for (int i = 0; i < args.Length; i++)
                 {
-                    Logging.Emit("process arg '{0}'", args[i]);
                     var opt = getOption(args[i]);
                     var full = getFullOption(args[i]);
 
                     #region switch process each argument type
                     switch (opt)
                     {
+                        case "/c":
+                            HasDashC = true;
+                            break;
                         case "/o":
                             return NotSupported("/o");
                         case "/D":
@@ -411,7 +428,7 @@ namespace CClash
                                 i++;
                                 if (i > args.Length)
                                 {
-                                    return NotSupported("-I has not path!");
+                                    return NotSupported("-I has no path!");
                                 }
                                 full = "/I" + args[i];
                                 goto default;
@@ -493,7 +510,7 @@ namespace CClash
 
                                 if (!Path.IsPathRooted(ResponseFile))
                                     ResponseFile = Path.Combine(WorkingDirectory, ResponseFile);
-                                var rsptxt = File.ReadAllText(ResponseFile);
+                                string rsptxt = File.ReadAllText(ResponseFile);
                                 if (rsptxt.Length < 2047)
                                 // windows max command line, this is why they invented response files
                                 {
@@ -501,8 +518,8 @@ namespace CClash
                                     if (args.Length == 1)
                                     {
                                         // this only works if it is the one and only arg!
-                                        args = CommandLineToArgs(rsptxt).Skip(1).ToArray();
-                                        i = 0;
+                                        args = FixupArgs( CommandLineToArgs(rsptxt).Skip(1) ).ToArray();
+                                        i = -1;
                                         // replace the command line with the response file content 
                                         // and restart parsing. This does go wrong if the response text is huge
                                         continue;
@@ -545,9 +562,6 @@ namespace CClash
 
                                 if (Directory.Exists(d))
                                 {
-                                    Logging.Emit("cli include '{0}' => {1}", full, d);
-
-
                                     cliincs.Add(d);
                                     continue;
                                 }
@@ -558,8 +572,8 @@ namespace CClash
                     }
                     #endregion
 
-                }
-                
+                }                
+
                 if (SingleSource)
                 {
                     if (ObjectTarget == null)
@@ -579,43 +593,54 @@ namespace CClash
                     {
                         if (Settings.ConvertObjPdbToZ7)
                         {
-                            // append /Z7 to the arg list
-                            var newargs = new List<string>(args);
-                            newargs.Add("/Z7");
-                            AttemptPdb = false;
-                            PdbFile = null;
-                            GeneratePdb = false;
-                            PdbExistsAlready = false;
-                            args = newargs.ToArray();
+                            bool doconvert = false;
+                            if (PdbFile == null)
+                            {
+                                doconvert = true;
+                            }
+                            else
+                            {
+                                if (PdbFile.EndsWith("\\"))
+                                {
+                                    doconvert = true;
+                                }
+                                else
+                                {
+                                    if (!FileUtils.Exists(PdbFile))
+                                    {
+                                        if (WorkingDirectory.Contains("openssl"))
+                                        {
+                                            doconvert = true;
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (doconvert)
+                            {
+                                Logging.Emit("converting pdb request to Z7 embedded debug {0}:{1}", WorkingDirectory, Path.GetFileName(ObjectTarget));
+                                // append /Z7 to the arg list
+                                var newargs = new List<string>();                                
+                                foreach (var a in args)
+                                {
+                                    if (!(a.StartsWith("/Zi") || a.StartsWith("/Fd")))
+                                    {
+                                        newargs.Add(a);
+                                    }
+                                }
+                                newargs.Add("/Z7");
+                                AttemptPdb = false;
+                                PdbFile = null;
+                                GeneratePdb = false;
+                                PdbExistsAlready = false;
+                                args = newargs.ToArray();
+                            }
                         }
                     }
 
                     if (GeneratePdb) 
                     {
-                        if (Settings.AttemptPDBCaching)
-                        {
-                            if (PdbFile != null)
-                            {
-                                AttemptPdb = true;
-                                if (PdbFile.EndsWith("\\"))
-                                {
-                                    AttemptPdb = false;
-                                    return NotSupported("Implicit PDB folder+file requested");
-                                }
-                                if (FileUtils.Exists(PdbFile))
-                                {
-                                    PdbExistsAlready = true;
-                                }
-                            }
-                            else
-                            {
-                                return NotSupported("Implicit PDB file requested");
-                            }
-                        }
-                        else
-                        {
-                            return NotSupported("PDB file requested");
-                        }
+                        return NotSupported("PDB file requested");
                     }
                 }
             }
@@ -720,117 +745,129 @@ namespace CClash
 
         public int InvokeCompiler(IEnumerable<string> args, Action<string> onStdErr, Action<string> onStdOut, bool showIncludes, List<string> foundIncludes)
         {
-            Logging.Emit("invoking real compiler: [{0}]", string.Join(" ", args.ToArray()));
-
-            if (string.IsNullOrWhiteSpace(CompilerExe) || !FileUtils.Exists(CompilerExe))
-                throw new FileNotFoundException("cant find cl.exe");
-
-            if (string.IsNullOrWhiteSpace(compworkdir))
-                throw new InvalidOperationException("no working directory set");
-
-            if (compenvs == null || compenvs.Count == 0 )
-                throw new InvalidOperationException("no environment set");
-
-            var cla = JoinAguments(FixupArgs(args));
-            if (showIncludes) cla += " /showIncludes";
-            var psi = new ProcessStartInfo(CompilerExe, cla)
+            int rv = -1;
+            bool retry;
+            do
             {
-                UseShellExecute = false,
-                RedirectStandardError = true,
-                RedirectStandardOutput = true,
-                WorkingDirectory = compworkdir,
-            };
+                retry = false;
+                Logging.Emit("invoking real compiler: {0} {1} [{2}]", CompilerExe, WorkingDirectory, string.Join(" ", args.ToArray()));
 
-            psi.EnvironmentVariables.Clear();
-            foreach (var row in compenvs)
-            {
-                psi.EnvironmentVariables[row.Key] = row.Value;
-            }
-            psi.EnvironmentVariables["PATH"] = Path.GetDirectoryName(CompilerExe) + ";" + psi.EnvironmentVariables["PATH"];
-            psi.ErrorDialog = true;
-            var p = Process.Start(psi);
+                if (string.IsNullOrWhiteSpace(CompilerExe) || !FileUtils.Exists(CompilerExe))
+                    throw new FileNotFoundException("cant find cl.exe");
 
-            p.OutputDataReceived += (o, a) =>
-            {
-                if (a.Data != null)
+                if (string.IsNullOrWhiteSpace(compworkdir))
+                    throw new InvalidOperationException("no working directory set");
+
+                if (compenvs == null || compenvs.Count == 0)
+                    throw new InvalidOperationException("no environment set");
+
+                var cla = JoinAguments(FixupArgs(args));
+                if (showIncludes) cla += " /showIncludes";
+                var psi = new ProcessStartInfo(CompilerExe, cla)
                 {
-                    if (showIncludes && a.Data.StartsWith("Note: including file:"))
-                    {
-                        var inc = a.Data.Substring("Note: including file:".Length + 1).TrimStart(' ');
-                        if (inc.Contains('/'))
-                        {
-                            inc = inc.Replace('/', '\\');
-                        }
-                        foundIncludes.Add(inc);
-                    }
-                    else
-                    {
-                        if (onStdOut != null) onStdOut(a.Data);
-                    }
+                    UseShellExecute = false,
+                    RedirectStandardError = true,
+                    RedirectStandardOutput = true,
+                    WorkingDirectory = compworkdir,
+                };
+
+                psi.EnvironmentVariables.Clear();
+                foreach (var row in compenvs)
+                {
+                    psi.EnvironmentVariables[row.Key] = row.Value;
                 }
+                psi.EnvironmentVariables["PATH"] = Path.GetDirectoryName(CompilerExe) + ";" + psi.EnvironmentVariables["PATH"];
+                psi.ErrorDialog = true;
+                var p = Process.Start(psi);
 
-            };
-
-            p.ErrorDataReceived += (o, a) =>
-            {
-                if (onStdErr != null)
+                p.OutputDataReceived += (o, a) =>
+                {
                     if (a.Data != null)
-                        onStdErr(a.Data);
-            };
-
-            p.BeginErrorReadLine();
-
-            p.BeginOutputReadLine();
-
-            p.WaitForExit();
-
-            int rv = p.ExitCode;
-
-            if (rv == 0)
-            {
-                if (IsSupported)
-                {
-                    if (!string.IsNullOrEmpty(ObjectTarget))
                     {
-                        bool missing = true;
-                        var sw = new Stopwatch();
-                        sw.Start();
-                        do
+                        if (showIncludes && a.Data.StartsWith("Note: including file:"))
                         {
-                            if (!FileUtils.Exists(ObjectTarget))
+                            var inc = a.Data.Substring("Note: including file:".Length + 1).TrimStart(' ');
+                            if (inc.Contains('/'))
                             {
-                                Logging.Emit("compiler slow to write object!");
-                                System.Threading.Thread.Sleep(50);
+                                inc = inc.Replace('/', '\\');
                             }
-                            else
+                            foundIncludes.Add(inc);
+                        }
+                        else
+                        {
+                            if (onStdOut != null) onStdOut(a.Data);
+                            lock (StdOutputText)
                             {
-                                missing = false;
+                                StdOutputText.AppendLine(a.Data);
                             }
-                        } while (missing && sw.ElapsedMilliseconds < 2000);
+                        }
+                    }
 
-                        if (missing)
+                };
+
+                p.ErrorDataReceived += (o, a) =>
+                {
+                    if (a.Data != null)
+                    {
+                        if (onStdErr != null)
                         {
-                            string logmsg = string.Format("cclash: cl exited with zero cclash could not find the object file! {0}", ObjectTarget);
-                            // let the retry system have a go with this
-                            if (onStdErr != null)
+
+                            onStdErr(a.Data);
+                        }
+                        lock (StdErrorText)
+                        {
+                            StdErrorText.AppendLine(a.Data);
+                        }
+                    }
+                };
+
+                p.BeginErrorReadLine();
+
+                p.BeginOutputReadLine();
+
+                p.WaitForExit();
+
+                rv = p.ExitCode;
+                Logging.Emit("cl exit {0}", rv);
+                if (rv == 0)
+                {
+                    if (IsSupported)
+                    {
+                        if (!string.IsNullOrEmpty(ObjectTarget))
+                        {
+                            var sw = new Stopwatch();
+                            sw.Start();
+                            int waited = 0;
+
+                            while (!File.Exists(ObjectTarget) && (sw.ElapsedMilliseconds < 10000))
                             {
-                                onStdErr(logmsg);
+                                Logging.Emit("compiler slow to write object! {0} {1}ms", ObjectTarget, (int)sw.Elapsed.TotalMilliseconds);
+                                waited++;
+                                System.Threading.Thread.Sleep(Math.Min(1000, 100 * waited));
                             }
-                            else
+
+                            if (!File.Exists(ObjectTarget))
                             {
-                                Logging.Warning("{0}", logmsg);
+                                string logmsg = string.Format("cl exited with zero but failed to create the object file! {0}", ObjectTarget);
+                                // let the retry system have a go with this
+                                Logging.Warning("stderr was {0}", StdErrorText.ToString());
+                                if (onStdErr != null)
+                                {
+                                    onStdErr(logmsg);
+                                }
+                                Logging.Warning("{0}, re-running!", logmsg);
+                                retry = true;
                             }
-                            rv = 42;
+                            Logging.Emit("output: {0} seen", ObjectTarget);
                         }
                     }
                 }
-            }
-            
-            if ( rv != 0 )
-            {
-                Logging.Emit("non-zero exit");
-            }
 
+                if (rv != 0)
+                {
+                    Logging.Emit("non-zero exit");
+                }
+            } while (retry);
             return rv;
         }
 

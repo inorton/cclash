@@ -18,3 +18,7 @@ testprogram/obj/*
 testserver/bin/*
 testserver/bin/*
 testserver/obj/*
+Installer/Installer/Express/DVD-5/LogFiles/*.*
+Installer/Installer/Express/DVD-5/Reports/*.*
+Installer/Installer/Express/SingleImage/LogFiles/*.*
+Installer/Installer/Express/SingleImage/Reports/*.*

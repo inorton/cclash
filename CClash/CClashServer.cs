@@ -33,6 +33,8 @@ namespace CClash
 
         int busyThreads = 0;
 
+        public bool FirstThreadReady { get; private set; }
+
         public int BusyThreadCount
         {
             get
@@ -78,6 +80,7 @@ namespace CClash
                     while (!quitnow)
                     {
                         var w = nss.BeginWaitForConnection(null, null);
+                        FirstThreadReady = true;
                         Logging.Emit("waiting for client..");
                         while (!w.AsyncWaitHandle.WaitOne(1000))
                         {
@@ -94,8 +97,9 @@ namespace CClash
                             ThreadBeforeProcessRequest();
                             ThreadIsBusy();
                             ServiceRequest(nss);
-                            ThreadIsIdle();
                         }
+                        
+                        ThreadIsIdle();
                     }
                 }
                 catch (IOException ex)
@@ -111,6 +115,7 @@ namespace CClash
             var msgbuf = new List<byte>(8192);
             var rxbuf = new byte[256 * 1024];
             int count = 0;
+            
             do
             {
                 count = nss.Read(rxbuf, msgbuf.Count, rxbuf.Length);
@@ -226,12 +231,21 @@ namespace CClash
                     break;
 
                 case Command.Run:
-                    cache.SetCompilerEx(req.pid, req.compiler, req.workdir, new Dictionary<string,string>( req.envs ));
-                    rv.exitcode = cache.CompileOrCache(req.argv);
-                    System.IO.Directory.SetCurrentDirectory(mydocs);
+                    var stdout = new StringBuilder();
+                    var stderr = new StringBuilder();
+                    var comp = cache.SetCompilerEx(req.pid, req.compiler, req.workdir, new Dictionary<string,string>( req.envs ));
+                    cache.SetCaptureCallback(comp, (so) => { stdout.AppendLine(so); }, (se) => { stderr.AppendLine(se); });
+                    rv.exitcode = cache.CompileOrCache(comp, req.argv);
                     rv.supported = true;
-                    rv.stderr = cache.StdErrorText.ToString();
-                    rv.stdout = cache.StdOutText.ToString();
+                    rv.stderr = stderr.ToString();
+                    rv.stdout = stdout.ToString();
+                    if (Environment.CurrentDirectory != mydocs)
+                    {
+                        //rv.exitcode = -1;
+                        //rv.supported = false;
+                        //rv.stderr = string.Format("cclash server error: server cwd has changed from {0} to {1}!!", mydocs, Environment.CurrentDirectory);
+                        //rv.stdout = string.Empty;
+                    }
                     break;
 
                 case Command.Quit:

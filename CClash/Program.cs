@@ -12,6 +12,8 @@ namespace CClash
         public static StringBuilder MainStdErr = new StringBuilder();
         public static StringBuilder MainStdOut = new StringBuilder();
 
+        public static CClashServer Server = null;
+
         public static int Main(string[] args)
         {
             var start = DateTime.Now;
@@ -56,7 +58,7 @@ namespace CClash
                         Settings.DebugEnabled = true;
                     }
                 }
-
+                Server = server;
                 server.Listen(Settings.CacheDirectory);
                 return 0;
             }
@@ -94,6 +96,11 @@ namespace CClash
                         {
                             System.Threading.Thread.Sleep(2000);
                         }
+                        catch (IOException ex)
+                        {
+                            Logging.Error(ex.ToString());
+                            return -1;
+                        }
                         catch (InvalidOperationException)
                         {
                             Logging.Error("server not running");
@@ -103,9 +110,9 @@ namespace CClash
                 }
                 else
                 {
+                    ICompiler comp;
                     using (ICompilerCache cc =
-                        CompilerCacheFactory.Get(Settings.DirectMode, Settings.CacheDirectory, compiler, Environment.CurrentDirectory, Compiler.GetEnvironmentDictionary()
-                        ))
+                        CompilerCacheFactory.Get(Settings.DirectMode, Settings.CacheDirectory, compiler, Environment.CurrentDirectory, Compiler.GetEnvironmentDictionary(), out comp))
                     {
                         Console.Out.WriteLine(StatOutputs.GetStatsString(compiler, cc));
                     }
@@ -124,8 +131,9 @@ namespace CClash
                         MainStdOut.Clear();
                         rv = RunBuild(args, start, AppendStdout, AppendStderr);
                         if (rv == 0) break;
-                        Logging.Emit("compiler returned non-zero, doing auto-retry {0}", i);
-                        System.Threading.Thread.Sleep(50);
+
+                        Logging.Error("cclash returned non-zero, doing auto-retry {0} {1}", i, rv);
+                        System.Threading.Thread.Sleep(100);
                     }
                 }
             }
@@ -157,13 +165,13 @@ namespace CClash
 
                     var cachedir = Settings.CacheDirectory;
                     Logging.Emit("compiler: {0}", compiler);
-
+                    ICompiler comp;
                     using (ICompilerCache cc =
-                        CompilerCacheFactory.Get(Settings.DirectMode, cachedir, compiler, Environment.CurrentDirectory, Compiler.GetEnvironmentDictionary()
-                        ))
+                        CompilerCacheFactory.Get(Settings.DirectMode, cachedir, compiler, Environment.CurrentDirectory, Compiler.GetEnvironmentDictionary(), out comp))
                     {
-                        cc.SetCaptureCallback(stdout, stderr);
-                        return cc.CompileOrCache(args);
+                        
+                        cc.SetCaptureCallback(comp, stdout, stderr);
+                        return cc.CompileOrCache(comp, args);
                     }
                 }
                 else

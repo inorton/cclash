@@ -19,15 +19,17 @@ namespace CClash {
             
         }
 
-        public override bool IsSupported(IEnumerable<string> args) {
+        public override bool IsSupported(ICompiler comp, IEnumerable<string> args) {
             return false;
         }
 
-        protected override bool CheckCache(IEnumerable<string> args, DataHash commonkey, out CacheManifest manifest) {
+        public override bool CheckCache(ICompiler comp, IEnumerable<string> args, DataHash commonkey, out CacheManifest manifest)
+        {
             throw new NotImplementedException();
         }
 
-        protected override int OnCacheMissLocked(DataHash hc, IEnumerable<string> args, CacheManifest m) {
+        protected override int OnCacheMissLocked(ICompiler comp, DataHash hc, IEnumerable<string> args, CacheManifest m)
+        {
             throw new NotImplementedException();
         }
     }
