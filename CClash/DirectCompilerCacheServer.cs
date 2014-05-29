@@ -30,7 +30,7 @@ namespace CClash
 
         public void WatchFile(string path)
         {
-            if (!path.ToLower().Contains("program files")) return;
+            if (!path.ToLower().Contains(":\\progra")) return;
             var dir = Path.GetDirectoryName(path);
             if ( !Path.IsPathRooted(dir) )
                 dir = Path.GetFullPath(dir);
