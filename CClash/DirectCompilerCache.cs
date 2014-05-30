@@ -12,6 +12,14 @@ namespace CClash
         {
         }
 
+        public FileCacheStore OutputCache
+        {
+            get
+            {
+                return outputCache;
+            }
+        }
+
         public override void Setup()
         {
         }
@@ -190,8 +198,6 @@ namespace CClash
 
             return rv;
         }
-
-        static object RelatedMissLock = new object();
 
         protected virtual void DoCacheMiss( ICompiler c, DataHash hc, IEnumerable<string> args, CacheManifest m, List<string> ifiles)
         {

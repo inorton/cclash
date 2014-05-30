@@ -182,9 +182,12 @@ namespace CClash
 
         public void SetupStats()
         {
-            if (Stats != null)
-                Stats.Dispose();
-            Stats = new FastCacheInfo(outputCache);
+            lock (outputCache)
+            {
+                if (Stats != null)
+                    Stats.Dispose();
+                Stats = new FastCacheInfo(outputCache);
+            }
         }
     }
 }

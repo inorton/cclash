@@ -19,6 +19,14 @@ namespace CClash {
             
         }
 
+        public FileCacheStore OutputCache
+        {
+            get
+            {
+                return null;
+            }
+        }
+
         public override bool IsSupported(ICompiler comp, IEnumerable<string> args) {
             return false;
         }

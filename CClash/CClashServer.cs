@@ -141,6 +141,7 @@ namespace CClash
 
             nss.WaitForPipeDrain();
             nss.Disconnect();
+            cache.SetupStats();
             Logging.Emit("request done");
         }
 

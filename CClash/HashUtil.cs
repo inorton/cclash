@@ -27,6 +27,15 @@ namespace CClash
         public string InputName { get; set; }
         public DataHashResult Result { get; set; }
         public string Hash { get; set; }
+        public DateTime TimeStamp { get; set; }
+
+        public TimeSpan Age
+        {
+            get
+            {
+                return DateTime.Now.Subtract(TimeStamp);
+            }
+        }
     }
 
     public sealed class HashUtil
@@ -51,6 +60,8 @@ namespace CClash
             get { return hashingThreadCount; }
             set { hashingThreadCount = value; }
         }
+
+        Dictionary<string, DataHash> recentHashes = new Dictionary<string, DataHash>();
 
         public DataHash DigestString(string input)
         {
@@ -79,7 +90,21 @@ namespace CClash
 
         public Dictionary<string,DataHash> DigestFiles(IEnumerable<string> files)
         {
-            return ThreadyDigestFiles(files, true);
+            var tohash = new List<string>();
+            Dictionary<string, DataHash> rv = new Dictionary<string, DataHash>();
+            lock (recentHashes){
+                foreach (var f in files)
+                {
+                    if (!recentHashes.ContainsKey(f) || (recentHashes[f].Age.TotalMinutes < 4))
+                    {
+                        tohash.Add(f);
+                    }
+                }
+            }
+            var newhashes = ThreadyDigestFiles(files, true);
+            foreach (var nh in newhashes)
+                rv[nh.Key] = nh.Value;
+            return rv;
         }
 
         public Dictionary<string, DataHash> ThreadyDigestFiles(IEnumerable<string> files, bool stopOnUnCachable)
@@ -164,6 +189,10 @@ namespace CClash
             for ( var i = input.begin; i < end; i++ )
             {
                 var d = DigestFile( input.provider, files[i], rx );
+                lock (recentHashes)
+                {
+                    recentHashes[files[i]] = d;
+                }
                 input.results.Add(d);
                 if (input.stopOnCachable && d.Result != DataHashResult.Ok) break;
             }
