@@ -12,11 +12,14 @@ namespace CClash
     {
         Dictionary<string, DirectoryWatcher> dwatchers = new Dictionary<string, DirectoryWatcher>();
 
+        ReaderWriterLockSlim slimlock = new ReaderWriterLockSlim();
+
         public DirectCompilerCacheServer(string cachedir)
             : base(cachedir)
         {
             SetupStats();
             base.includeCache.CacheEntryChecksInMemory = true;
+            base.Lock(CacheLockType.ReadWrite); // base is a multi-process lock, keep this forever
         }
 
         public override void Setup()
@@ -26,6 +29,30 @@ namespace CClash
         public override void Finished()
         {
            
+        }
+
+        public override void Lock(CacheLockType mode)
+        {
+            if (mode == CacheLockType.Read)
+            {
+                slimlock.EnterReadLock();
+            }
+            else
+            {
+                slimlock.EnterWriteLock();
+            }
+        }
+
+        public override void Unlock(CacheLockType mode)
+        {
+            if (mode == CacheLockType.Read)
+            {
+                slimlock.ExitReadLock();
+            }
+            else
+            {
+                slimlock.ExitWriteLock();
+            }
         }
 
         public void WatchFile(string path)

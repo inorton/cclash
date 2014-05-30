@@ -311,6 +311,15 @@ namespace CClash
             }
         }
 
+        public virtual void Lock(CacheLockType mode)
+        {
+            outputCache.WaitOne();
+        }
+
+        public virtual void Unlock(CacheLockType mode)
+        {
+            outputCache.ReleaseMutex();
+        }
 
         public ICacheInfo Stats
         {
@@ -324,6 +333,6 @@ namespace CClash
             }
         }
 
-
     }
+
 }

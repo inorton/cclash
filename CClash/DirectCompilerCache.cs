@@ -37,7 +37,7 @@ namespace CClash
         public override bool CheckCache(ICompiler comp, IEnumerable<string> args, DataHash commonkey, out CacheManifest manifest )
         {
             manifest = null;
-            outputCache.WaitOne();
+            Lock(CacheLockType.Read);
             manifest = GetCachedManifestLocked(commonkey);
             if (manifest != null)
             {
@@ -163,6 +163,7 @@ namespace CClash
 
         protected override int OnCacheMissLocked(ICompiler comp, DataHash hc, IEnumerable<string> args, CacheManifest m)
         {
+            Unlock(CacheLockType.Read);
             Logging.Emit("cache miss");
             outputCache.EnsureKey(hc.Hash);
             var stderrfile = outputCache.MakePath(hc.Hash, F_Stderr);
@@ -176,7 +177,7 @@ namespace CClash
 
             if (rv != 0)
             {
-                outputCache.ReleaseMutex();
+                Unlock(CacheLockType.Read);
             }
             else
             {
@@ -199,19 +200,19 @@ namespace CClash
             return rv;
         }
 
-        protected virtual void DoCacheMiss( ICompiler c, DataHash hc, IEnumerable<string> args, CacheManifest m, List<string> ifiles)
+        protected virtual void DoCacheMiss(ICompiler c, DataHash hc, IEnumerable<string> args, CacheManifest m, List<string> ifiles)
         {
-
-            var idirs = c.GetUsedIncludeDirs(ifiles);
-            if (idirs.Count < 1)
+            bool good = true;
+            try
             {
-                outputCache.ReleaseMutex();
-                throw new InvalidDataException(
-                    string.Format("could not find any include folders?! [{0}]",
-                    string.Join(" ", args)));
-            }
-            else
-            {
+                var idirs = c.GetUsedIncludeDirs(ifiles);
+                if (idirs.Count < 1)
+                {
+                    Unlock(CacheLockType.ReadWrite);
+                    throw new InvalidDataException(
+                        string.Format("could not find any include folders?! [{0}]",
+                        string.Join(" ", args)));
+                }
                 #region process includes folders
                 // save manifest and other things to cache
                 var others = c.GetPotentialIncludeFiles(idirs, ifiles);
@@ -222,8 +223,6 @@ namespace CClash
                 m.CommonHash = hc.Hash;
 
                 #endregion
-
-                bool good = true;
 
                 var hashes = GetHashes(ifiles);
 
@@ -245,16 +244,23 @@ namespace CClash
                 }
 
                 #endregion
-
+            }
+            finally
+            {
+                Unlock(CacheLockType.Read);
                 if (good)
                 {
-                    SaveOutputsLocked(m, c);
+                    Lock(CacheLockType.ReadWrite);
+                    try
+                    {
+                        SaveOutputsLocked(m, c);
+                    }
+                    finally
+                    {
+                        Unlock(CacheLockType.ReadWrite);
+                    }
                 }
-                outputCache.ReleaseMutex();
-
             }
-
         }
-
     }
 }
