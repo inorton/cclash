@@ -41,11 +41,13 @@ namespace CClash
             manifest = GetCachedManifestLocked(commonkey);
             if (manifest != null)
             {
+                #region build missed before
                 if (manifest.Disable)
                 {
                     Logging.Emit("disabled by manifest");
                     return false;
                 }
+                #region check includes
                 foreach (var f in manifest.PotentialNewIncludes)
                 {
                     if (!FileUtils.FileMissing(f))
@@ -85,7 +87,9 @@ namespace CClash
                         return false;
                     }
                 }
+                #endregion
 
+                #region check pdb
                 if (comp.AttemptPdb)
                 {
                     if (comp.PdbExistsAlready)
@@ -99,8 +103,10 @@ namespace CClash
                         }
                     }
                 }
+                #endregion
 
-                foreach (var f in new string[] { F_Manifest, F_Object, F_Stderr, F_Stdout })
+                #region check cached data exists
+                foreach (var f in new string[] { F_Manifest, F_Object })
                 {
                     if (!FileUtils.Exists(outputCache.MakePath(commonkey.Hash, f)))
                     {
@@ -109,9 +115,12 @@ namespace CClash
                         return false;
                     }
                 }
+                #endregion
 
                 return true; // cache hit, all includes match and no new files added
+                #endregion
             }
+                
             Logging.Miss(DataHashResult.NoPreviousBuild, comp.WorkingDirectory, comp.SingleSourceFile, "");
             return false;
         }
@@ -163,7 +172,6 @@ namespace CClash
 
         protected override int OnCacheMissLocked(ICompiler comp, DataHash hc, IEnumerable<string> args, CacheManifest m)
         {
-            Unlock(CacheLockType.Read);
             Logging.Emit("cache miss");
             outputCache.EnsureKey(hc.Hash);
             var stderrfile = outputCache.MakePath(hc.Hash, F_Stderr);
@@ -208,7 +216,6 @@ namespace CClash
                 var idirs = c.GetUsedIncludeDirs(ifiles);
                 if (idirs.Count < 1)
                 {
-                    Unlock(CacheLockType.ReadWrite);
                     throw new InvalidDataException(
                         string.Format("could not find any include folders?! [{0}]",
                         string.Join(" ", args)));
@@ -237,6 +244,7 @@ namespace CClash
                     else
                     {
                         Logging.Emit("input hash error {0} {1}", x.Key, x.Value.Result);
+                        Logging.Miss(x.Value.Result, c.WorkingDirectory, c.SingleSourceFile, x.Key);
                         good = false;
                         m.Disable = true;
                         break;

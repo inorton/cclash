@@ -57,6 +57,25 @@ namespace CClash.Tests
 
         [Test]
         [Repeat(2)]
+        public void ThreadyHashIncludeFilesCacheTest()
+        {
+            using (var ic = FileCacheStore.Load("testincs"))
+            {
+                var ht = new HashUtil(ic);
+
+                var hashes = ht.DigestFiles(Directory.GetFiles(IncludeDir));
+                Assert.IsTrue(hashes.Count > 0);
+                System.Threading.Thread.Sleep(500);
+                var hashes2 = ht.DigestFiles(Directory.GetFiles(IncludeDir));
+                foreach (var h in hashes2)
+                {
+                    Assert.IsTrue(h.Value.Cached);
+                }
+            }
+        }
+
+        [Test]
+        [Repeat(2)]
         public void HashesMatch()
         {
             var files = Directory.GetFiles(IncludeDir);

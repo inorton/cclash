@@ -28,6 +28,12 @@ namespace CClash
         public DataHashResult Result { get; set; }
         public string Hash { get; set; }
         public DateTime TimeStamp { get; set; }
+        public bool Cached { get; set; }
+
+        public DataHash()
+        {
+            TimeStamp = DateTime.Now;
+        }
 
         public TimeSpan Age
         {
@@ -43,6 +49,8 @@ namespace CClash
         const string FindDateTimePattern = "__(TIM|DAT)E__";
         const string F_HasDateTime = "hasdatetime";
         const string F_NotDateTime = "notdatetime";
+
+        const int SavedHashMaxAgeMinutes = 3;
 
         static Regex FindDateTime = new Regex(FindDateTimePattern);
 
@@ -62,6 +70,7 @@ namespace CClash
         }
 
         Dictionary<string, DataHash> recentHashes = new Dictionary<string, DataHash>();
+        ReaderWriterLockSlim recentHashLock = new ReaderWriterLockSlim();
 
         public DataHash DigestString(string input)
         {
@@ -92,18 +101,31 @@ namespace CClash
         {
             var tohash = new List<string>();
             Dictionary<string, DataHash> rv = new Dictionary<string, DataHash>();
-            lock (recentHashes){
-                foreach (var f in files)
+
+            recentHashLock.EnterReadLock();
+
+            foreach (var f in files.Distinct())
+            {
+                if (recentHashes.ContainsKey(f) && (recentHashes[f].Age.TotalMinutes < SavedHashMaxAgeMinutes))
                 {
-                    if (!recentHashes.ContainsKey(f) || (recentHashes[f].Age.TotalMinutes < 4))
-                    {
-                        tohash.Add(f);
-                    }
+                    rv[f] = recentHashes[f];
+                    rv[f].Cached = true;
+                }
+                else
+                {
+                    tohash.Add(f);
                 }
             }
-            var newhashes = ThreadyDigestFiles(files, true);
+
+            recentHashLock.ExitReadLock();
+            var newhashes = ThreadyDigestFiles(tohash, true);
+            recentHashLock.EnterWriteLock();
             foreach (var nh in newhashes)
+            {
                 rv[nh.Key] = nh.Value;
+                recentHashes[nh.Key] = nh.Value;
+            }
+            recentHashLock.ExitWriteLock();
             return rv;
         }
 
@@ -186,16 +208,15 @@ namespace CClash
             var end = input.begin + input.chunksize;
             if (end > files.Length) end = files.Length;
             var rx = new Regex(FindDateTimePattern);
+            var hashed = new List<DataHash>();
             for ( var i = input.begin; i < end; i++ )
             {
                 var d = DigestFile( input.provider, files[i], rx );
-                lock (recentHashes)
-                {
-                    recentHashes[files[i]] = d;
-                }
+                hashed.Add(d);
                 input.results.Add(d);
                 if (input.stopOnCachable && d.Result != DataHashResult.Ok) break;
             }
+
         }
 
         public DataHash DigestSourceFile(string filepath)
@@ -205,7 +226,21 @@ namespace CClash
 
         public DataHash DigestBinaryFile(string filepath) 
         {
-            return DigestFile(filepath, false);
+            try {
+                recentHashLock.EnterReadLock();   
+                if (recentHashes.ContainsKey(filepath) && recentHashes[filepath].Age.TotalMinutes < SavedHashMaxAgeMinutes)
+                {
+                    return recentHashes[filepath];
+                }
+            } finally {
+                recentHashLock.ExitReadLock();
+            }
+
+            recentHashLock.EnterWriteLock();
+            var rv = DigestFile(filepath, false);
+            recentHashes[filepath] = rv;
+            recentHashLock.ExitWriteLock();
+            return rv;
         }
 
         DataHash DigestFile(string filepath, bool checkDateTime) 

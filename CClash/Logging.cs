@@ -14,18 +14,30 @@ namespace CClash
 
         static object miss_log_sync = new object();
 
-        public static void Miss(DataHashResult reason, string dir, string srcfile, string headerfile) {
-            if (Settings.MissLogEnabled) {
-                lock (miss_log_sync) {
-                    File.AppendAllLines(
-                        Settings.MissLogFile,
-                        new string[] {
-                            string.Format( DateTime.Now.ToString("s") + " {0},dir={1},src={2},hdr={3}",
-                            reason, dir, srcfile, headerfile)
-                            }
-                        );
+        public static void Miss(DataHashResult reason, string dir, string srcfile, string headerfile)
+        {
+            HitMissRecord(reason.ToString(), dir, srcfile, headerfile);
+        }
+
+        public static void Hit( string hashkey, string dir, string obj)
+        {
+            //AppendMissLog(string.Format(" {0},dir={1},obj={2}", hashkey, dir, obj));
+        }
+
+        static void AppendMissLog(string str)
+        {
+            if (Settings.MissLogEnabled)
+            {
+                lock (miss_log_sync)
+                {
+                    File.AppendAllText(Settings.MissLogFile, DateTime.Now.ToString("s") + str + Environment.NewLine);
                 }
             }
+        }
+
+        static void HitMissRecord(string reason, string dir, string srcfile, string headerfile) {
+            AppendMissLog(string.Format(" {0},dir={1},src={2},hdr={3}",
+                            reason, dir, srcfile, headerfile));
         }
 
         public static void Warning(string fmt, params object[] args)

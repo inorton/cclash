@@ -95,7 +95,7 @@ namespace CClash
                 var rv = comp.ProcessArguments(args.ToArray());
                 if (!rv)
                 {
-                    Logging.Emit("unsupported args: {0}", args.ToArray());
+                    Logging.Emit("unsupported args: {0}", string.Join(" ",args.ToArray()));
                 }
                 else
                 {
@@ -121,16 +121,23 @@ namespace CClash
             var comphash = DigestCompiler(comp.CompilerExe);
             if (comphash.Result == DataHashResult.Ok)
             {
-                var buf = new StringBuilder();
-                buf.AppendLine(this.GetType().FullName.ToString());
-                string incs = null;
-                comp.EnvironmentVariables.TryGetValue("INCLUDE", out incs);
-                if ( incs != null ) buf.AppendLine(incs);
-                
-                foreach (var a in args)
-                    buf.AppendLine(a);
-                buf.AppendLine(comphash.Hash);
-                comphash = hasher.DigestString(buf.ToString());
+                var srchash = hasher.DigestBinaryFile(comp.SingleSourceFile);
+                if (srchash.Result == DataHashResult.Ok)
+                {
+                    var buf = new StringBuilder();
+                    buf.AppendLine(CacheInfo.CacheFormat);
+                    buf.AppendLine(srchash.Hash);
+                    buf.AppendLine(comp.WorkingDirectory);
+                    string incs = null;
+                    comp.EnvironmentVariables.TryGetValue("INCLUDE", out incs);
+                    if (incs != null) buf.AppendLine(incs);
+
+                    foreach (var a in args)
+                        buf.AppendLine(a);
+                    buf.AppendLine(comphash.Hash);
+
+                    comphash = hasher.DigestString(buf.ToString());
+                }
             }
             return comphash;
         }
@@ -200,7 +207,7 @@ namespace CClash
 
             // we dont need the lock now, it is highly unlikley someone else will
             // modify these files
-            outputCache.ReleaseMutex();
+            Unlock(CacheLockType.Read);
 
             var duration = DateTime.Now.Subtract(cacheStart);
 
@@ -258,6 +265,7 @@ namespace CClash
                     CacheManifest hm;
                     if (CheckCache(comp, args ,hc, out hm))
                     {
+                        Logging.Hit(hc.Hash, comp.WorkingDirectory, comp.ObjectTarget);
                         return OnCacheHitLocked(comp, hc, hm);
                     }
                     else
