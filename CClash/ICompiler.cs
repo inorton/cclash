@@ -4,6 +4,7 @@ namespace CClash
 {
     public interface ICompiler
     {
+        TimeSpan Age { get; }
         string AbsoluteSourceFile { get; }
         bool AttemptPdb { get; set; }
         System.Collections.Generic.List<string> CliIncludePaths { get; }

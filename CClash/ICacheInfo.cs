@@ -9,8 +9,6 @@ namespace CClash
         long CacheSize { get; set; }
         long CacheUnsupported { get; set; }
         void LockStatsCall(Action x);
-        long MSecLost { get; set; }
-        long MSecSaved { get; set; }
         long SlowHitCount { get; set; }
         void Commit();
     }

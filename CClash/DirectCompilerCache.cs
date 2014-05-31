@@ -158,7 +158,7 @@ namespace CClash
             Stats.LockStatsCall(() => Stats.CacheSize += new FileInfo(c.ObjectTarget).Length);
 
             // write manifest
-            var duration = DateTime.Now.Subtract(cacheStart);
+            var duration = c.Age;
             m.Duration = (int)duration.TotalMilliseconds;
 
             Logging.Emit("cache miss took {0}ms", (int)duration.TotalMilliseconds);
@@ -199,11 +199,6 @@ namespace CClash
                     return CompileOnly(comp, args);
                 }
             }
-
-            var duration = DateTime.Now.Subtract(cacheStart);
-            var wasted = duration - lastCompileDuration;
-            // estimate about 40% overhead was a waste.
-            Stats.LockStatsCall(() => Stats.MSecLost += (int)wasted.TotalMilliseconds);
 
             return rv;
         }

@@ -53,11 +53,11 @@ namespace CClash
             }
             catch (TimeoutException)
             {
+                Logging.Error("could not connect to cclash service (busy)");
             }
             
             // start the server
             try {
-
                 var p = new Process();
                 p.StartInfo = new ProcessStartInfo(GetType().Assembly.Location, "--cclash-server");
                 p.StartInfo.UseShellExecute = false;
@@ -67,6 +67,7 @@ namespace CClash
                 p.StartInfo.WorkingDirectory = Environment.CurrentDirectory;
                 p.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
                 p.Start();
+                Logging.Error("started new cclash service process");
                 System.Threading.Thread.Sleep(1000);
                 ConnectClient();
             } catch (Exception e) {
@@ -78,7 +79,7 @@ namespace CClash
         private void ConnectClient()
         {
             if (!ncs.IsConnected)
-                ncs.Connect(200);
+                ncs.Connect(1000);
             ncs.ReadMode = PipeTransmissionMode.Message;
         }
 

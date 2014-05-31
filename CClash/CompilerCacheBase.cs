@@ -51,8 +51,6 @@ namespace CClash
 
         ICacheInfo stats = null;
 
-        protected static DateTime cacheStart = DateTime.Now;
-
         public CompilerCacheBase(string cacheFolder)
         {
             if (string.IsNullOrEmpty(cacheFolder)) throw new ArgumentNullException("cacheFolder");            
@@ -89,7 +87,6 @@ namespace CClash
 
         public virtual bool IsSupported(ICompiler comp, IEnumerable<string> args)
         {
-            cacheStart = DateTime.Now;
             if (FileUtils.Exists(compilerPath))
             {
                 var rv = comp.ProcessArguments(args.ToArray());
@@ -209,7 +206,7 @@ namespace CClash
             // modify these files
             Unlock(CacheLockType.Read);
 
-            var duration = DateTime.Now.Subtract(cacheStart);
+            var duration = comp.Age;
 
             var tstat = Task.Run(() =>
             {
@@ -221,14 +218,11 @@ namespace CClash
                             // this cached result was slow. record a stat.
 
                             Stats.SlowHitCount++;
-                            Stats.MSecLost += (int)(duration.TotalMilliseconds - hm.Duration);
-
                             Logging.Emit("slow cache hit {0}ms", (int)duration.TotalMilliseconds);
                         }
                         else
                         {
                             Logging.Emit("fast cache hit {0}ms", (int)duration.TotalMilliseconds);
-                            Stats.MSecSaved += (int)(hm.Duration - duration.TotalMilliseconds);
                         }
                     });
             });

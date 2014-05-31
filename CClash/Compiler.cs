@@ -152,6 +152,17 @@ namespace CClash
             compilerExe = "cl";
             StdErrorText = new StringBuilder(1024);
             StdOutputText = new StringBuilder(1024);
+            Created = DateTime.Now;
+        }
+
+        public DateTime Created { get; set; }
+
+        public TimeSpan Age
+        {
+            get
+            {
+                return DateTime.Now.Subtract(Created);
+            }
         }
 
         private string compilerExe;

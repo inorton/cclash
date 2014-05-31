@@ -50,18 +50,6 @@ namespace CClash
             x.Invoke();
         }
 
-        public long MSecLost
-        {
-            get;
-            set;
-        }
-
-        public long MSecSaved
-        {
-            get;
-            set;
-        }
-
         public long SlowHitCount
         {
             get;
@@ -73,14 +61,12 @@ namespace CClash
             var real = new CacheInfo(statstore);
             real.LockStatsCall(() =>
             {
-                real.MSecLost += this.MSecLost;
                 real.SlowHitCount += this.SlowHitCount;
                 real.CacheUnsupported += this.CacheUnsupported;
                 real.CacheSize += this.CacheSize;
                 real.CacheObjects += this.CacheObjects;
                 real.CacheMisses += this.CacheMisses;
                 real.CacheHits += this.CacheHits;
-                real.MSecSaved += this.MSecSaved;
             });
         }
 
@@ -102,8 +88,6 @@ namespace CClash
         public const string F_StatUnsupported = "unsupported.txt";
 
         public const string F_StatSlowHits = "slow_hits.txt";
-        public const string F_StatTimeWasted = "time_wasted.txt";
-        public const string F_StatTimeSaved = "time_saved.txt";
         public const string F_CacheVersion = "version.txt";
 
         public const string CacheFormat = "v3";
@@ -147,32 +131,6 @@ namespace CClash
         {
             cache.EnsureKey(K_Stats);
             System.IO.File.WriteAllText(cache.MakePath(K_Stats, statfile), value.ToString());
-        }
-
-
-
-        public long MSecLost
-        {
-            get
-            {
-                return ReadStat(F_StatTimeWasted);
-            }
-            set
-            {
-                WriteStat(F_StatTimeWasted, value);
-            }
-        }
-
-        public long MSecSaved
-        {
-            get
-            {
-                return ReadStat(F_StatTimeSaved);
-            }
-            set
-            {
-                WriteStat(F_StatTimeSaved, value);
-            }
         }
 
         public long SlowHitCount
