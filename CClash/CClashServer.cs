@@ -141,7 +141,7 @@ namespace CClash
 
             nss.WaitForPipeDrain();
             nss.Disconnect();
-            cache.SetupStats();
+            
             Logging.Emit("request done");
         }
 
@@ -191,10 +191,11 @@ namespace CClash
                         serverThreads.Remove(t);
                         NewServerThread(cachedir);
                     }
-                    if (DateTime.Now.Subtract(lastRequest).TotalMinutes > QuitAfterIdleMinutes)
-                    {
-                        quitnow = true;
-                    }
+                }
+                cache.SetupStats();
+                if (DateTime.Now.Subtract(lastRequest).TotalMinutes > QuitAfterIdleMinutes)
+                {
+                    quitnow = true;
                 }
             }
             foreach (var t in serverThreads)
@@ -219,7 +220,7 @@ namespace CClash
             var rv = new CClashResponse() { supported = false };
             Logging.Emit("{0}", DateTime.Now.ToString("s"));
             Logging.Emit("server req: cmd = {0}, workdir = {1}",
-                req.cmd, req.workdir);
+                req.cmd, req.workdir);           
 
             switch (req.cmd)
             {

@@ -14,9 +14,9 @@ namespace CClash
 
         static object miss_log_sync = new object();
 
-        public static void Miss(DataHashResult reason, string dir, string srcfile, string headerfile)
+        public static void Miss( string hc, DataHashResult reason, string dir, string srcfile, string headerfile)
         {
-            HitMissRecord(reason.ToString(), dir, srcfile, headerfile);
+            HitMissRecord(reason.ToString() + "hc=" + hc, dir, srcfile, headerfile);
         }
 
         public static void Hit( string hashkey, string dir, string obj)

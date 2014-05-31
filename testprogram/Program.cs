@@ -23,7 +23,7 @@ namespace CClash.Tests
             t.RunEnabledDirect(times);
             
             var end = DateTime.Now;
-            Logging.Miss(DataHashResult.NoPreviousBuild, "test", "test", "test");
+            Logging.Miss("test", DataHashResult.NoPreviousBuild, "test", "test", "test");
             var duration = end.Subtract(start);
 
             Console.WriteLine("{0} operations in {1} sec. {2}/ops, {3}ms/op",

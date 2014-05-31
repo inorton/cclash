@@ -53,7 +53,7 @@ namespace CClash
                     if (!FileUtils.FileMissing(f))
                     {
                         Logging.Emit("detected added include file {0}", f);
-                        Logging.Miss(DataHashResult.FileAdded, Directory.GetCurrentDirectory(), comp.SingleSourceFile, f);
+                        Logging.Miss(commonkey.Hash, DataHashResult.FileAdded, Directory.GetCurrentDirectory(), comp.SingleSourceFile, f);
                         return false;
                     }
                 }
@@ -69,21 +69,21 @@ namespace CClash
                             if (mhash != h.Value.Hash)
                             {
                                 Logging.Emit("include file hash changed {0}", h.Key);
-                                Logging.Miss(DataHashResult.FileChanged, Directory.GetCurrentDirectory(), comp.SingleSourceFile, h.Key);
+                                Logging.Miss(commonkey.Hash, DataHashResult.FileChanged, Directory.GetCurrentDirectory(), comp.SingleSourceFile, h.Key);
                                 return false;
                             }
                         }
                         else
                         {
                             Logging.Emit("include file added {0}", h.Key);
-                            Logging.Miss(DataHashResult.FileAdded, Directory.GetCurrentDirectory(), comp.SingleSourceFile, h.Key);
+                            Logging.Miss(commonkey.Hash, DataHashResult.FileAdded, Directory.GetCurrentDirectory(), comp.SingleSourceFile, h.Key);
                             return false;
                         }
                     }
                     else
                     {
                         Logging.Emit("include file hash error {0} {1}", h.Key, h.Value.Result);
-                        Logging.Miss(h.Value.Result, Directory.GetCurrentDirectory(), comp.SingleSourceFile, h.Key);
+                        Logging.Miss(commonkey.Hash, h.Value.Result, Directory.GetCurrentDirectory(), comp.SingleSourceFile, h.Key);
                         return false;
                     }
                 }
@@ -98,7 +98,7 @@ namespace CClash
                         if (pdbhash.Hash != manifest.EarlierPdbHash)
                         {
                             outputCache.Remove(commonkey.Hash);
-                            Logging.Miss(DataHashResult.FileChanged, commonkey.Hash, comp.PdbFile, "");
+                            Logging.Miss(commonkey.Hash, DataHashResult.FileChanged, commonkey.Hash, comp.PdbFile, "");
                             return false;
                         }
                     }
@@ -111,17 +111,20 @@ namespace CClash
                     if (!FileUtils.Exists(outputCache.MakePath(commonkey.Hash, f)))
                     {
                         outputCache.Remove(commonkey.Hash);
-                        Logging.Miss(DataHashResult.CacheCorrupt, commonkey.Hash, comp.SingleSourceFile, "");
+                        Logging.Miss(commonkey.Hash, DataHashResult.CacheCorrupt, commonkey.Hash, comp.SingleSourceFile, "");
                         return false;
                     }
                 }
                 #endregion
-
+                if (Settings.MissLogEnabled)
+                {
+                    Logging.Emit("hit hc={0},dir={1},src={2}", commonkey.Hash, comp.WorkingDirectory, comp.SingleSourceFile);
+                }
                 return true; // cache hit, all includes match and no new files added
                 #endregion
             }
-                
-            Logging.Miss(DataHashResult.NoPreviousBuild, comp.WorkingDirectory, comp.SingleSourceFile, "");
+
+            Logging.Miss(commonkey.Hash, DataHashResult.NoPreviousBuild, comp.WorkingDirectory, comp.SingleSourceFile, "");
             return false;
         }
 
@@ -239,7 +242,7 @@ namespace CClash
                     else
                     {
                         Logging.Emit("input hash error {0} {1}", x.Key, x.Value.Result);
-                        Logging.Miss(x.Value.Result, c.WorkingDirectory, c.SingleSourceFile, x.Key);
+                        Logging.Miss(hc.Hash, x.Value.Result, c.WorkingDirectory, c.SingleSourceFile, x.Key);
                         good = false;
                         m.Disable = true;
                         break;
