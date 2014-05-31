@@ -11,5 +11,10 @@ namespace CClash
             sb.AppendFormat(fmt, args);
             sb.AppendLine();
         }
+
+        public static TimeSpan Age(this DateTime dt)
+        {
+            return DateTime.Now.Subtract(dt);
+        }
     }
 }
