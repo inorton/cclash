@@ -106,14 +106,15 @@ namespace CClash
 
             foreach (var f in files.Distinct())
             {
-                if (recentHashes.ContainsKey(f) && (recentHashes[f].Age.TotalMinutes < SavedHashMaxAgeMinutes))
+                var filepath = f.ToLower();
+                if (recentHashes.ContainsKey(filepath) && (recentHashes[filepath].Age.TotalMinutes < SavedHashMaxAgeMinutes))
                 {
-                    rv[f] = recentHashes[f];
-                    rv[f].Cached = true;
+                    rv[filepath] = recentHashes[filepath];
+                    rv[filepath].Cached = true;
                 }
                 else
                 {
-                    tohash.Add(f);
+                    tohash.Add(filepath);
                 }
             }
 

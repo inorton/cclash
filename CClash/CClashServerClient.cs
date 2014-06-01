@@ -69,6 +69,7 @@ namespace CClash
                 p.Start();
                 Logging.Error("started new cclash service process");
                 System.Threading.Thread.Sleep(1000);
+                Logging.Error("connecting to cclash service");
                 ConnectClient();
             } catch (Exception e) {
                 Logging.Emit("error starting cclash server process {0}", e.ToString());
@@ -78,8 +79,19 @@ namespace CClash
 
         private void ConnectClient()
         {
-            if (!ncs.IsConnected)
-                ncs.Connect(1000);
+            for (int i = 0; i < 6; i++)
+            {
+                try
+                {
+                    if (!ncs.IsConnected)
+                        ncs.Connect(500);
+                    break;
+                }
+                catch (TimeoutException)
+                {
+                    if (i == 5) throw;
+                }
+            }
             ncs.ReadMode = PipeTransmissionMode.Message;
         }
 

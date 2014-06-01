@@ -69,7 +69,10 @@ namespace CClash.Tests
                 var hashes2 = ht.DigestFiles(Directory.GetFiles(IncludeDir));
                 foreach (var h in hashes2)
                 {
-                    Assert.IsTrue(h.Value.Cached);
+                    if (hashes.ContainsKey(h.Key))
+                    {
+                        Assert.IsTrue(h.Value.Cached);
+                    }
                 }
             }
         }
