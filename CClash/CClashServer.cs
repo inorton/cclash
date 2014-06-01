@@ -192,7 +192,6 @@ namespace CClash
                         NewServerThread(cachedir);
                     }
                 }
-                cache.SetupStats();
                 if (DateTime.Now.Subtract(lastRequest).TotalMinutes > QuitAfterIdleMinutes)
                 {
                     quitnow = true;
@@ -203,7 +202,7 @@ namespace CClash
                 t.Join(2000);
             }
 
-
+            cache.SetupStats();
             Logging.Emit("server quitting");
             mtx.ReleaseMutex();
             
@@ -228,7 +227,6 @@ namespace CClash
                 case Command.GetStats:
                     rv.exitcode = 0;
                     cache.SetupStats(); // commits stats to disk
-                    
                     rv.stdout = StatOutputs.GetStatsString(req.compiler, cache);
                     break;
 
@@ -241,16 +239,11 @@ namespace CClash
                     rv.supported = true;
                     rv.stderr = stderr.ToString();
                     rv.stdout = stdout.ToString();
-                    if (Environment.CurrentDirectory != mydocs)
-                    {
-                        //rv.exitcode = -1;
-                        //rv.supported = false;
-                        //rv.stderr = string.Format("cclash server error: server cwd has changed from {0} to {1}!!", mydocs, Environment.CurrentDirectory);
-                        //rv.stdout = string.Empty;
-                    }
+
                     break;
 
                 case Command.Quit:
+                    cache.SetupStats();
                     Stop();
                     break;
             }
