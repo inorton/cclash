@@ -19,6 +19,7 @@ namespace CClash
         {
             SetupStats();
             base.includeCache.CacheEntryChecksInMemory = true;
+            Logging.Emit("server locking cache data");
             base.Lock(CacheLockType.ReadWrite); // base is a multi-process lock, keep this forever
         }
 

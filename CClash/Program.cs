@@ -42,7 +42,7 @@ namespace CClash
 
             if (args.Contains("--cclash-server"))
             {
-                var server = new CClashServer();
+                
                 if (args.Contains("--attempt-pdb"))
                 {
                     Environment.SetEnvironmentVariable("CCLASH_ATTEMPT_PDB_CACHE", "yes");
@@ -52,15 +52,34 @@ namespace CClash
                     Environment.SetEnvironmentVariable("CCLASH_Z7_OBJ", "yes");
                 }
 
+                if (Settings.DebugEnabled)
+                {
+                    if (Settings.DebugFile != null)
+                    {
+                        Settings.DebugFile += ".serv";
+                    }
+                }
+
                 if (args.Contains("--debug")) {
                     if (Settings.DebugFile == null) {
                         Settings.DebugFile = "Console";
                         Settings.DebugEnabled = true;
                     }
                 }
-                Server = server;
-                server.Listen(Settings.CacheDirectory);
-                return 0;
+
+                Logging.Emit("starting in server mode");
+                Server = new CClashServer();
+                if (Server.Preflight(Settings.CacheDirectory))
+                {
+                    Logging.Emit("server created");
+                    Server.Listen(Settings.CacheDirectory);
+                    return 0;
+                }
+                else
+                {
+                    Logging.Emit("another server is running.. quitting");
+                    return 1;
+                }
             }
 
             if (args.Contains("--cclash"))
@@ -144,12 +163,12 @@ namespace CClash
 
         static void AppendStderr(string str)
         {
-            MainStdErr.AppendLine(str);
+            MainStdErr.AppendLine(str.TrimEnd('\n', '\r'));
         }
 
         static void AppendStdout(string str)
         {
-            MainStdOut.AppendLine(str);
+            MainStdOut.AppendLine(str.TrimEnd('\n', '\r'));
         }
 
         private static int RunBuild(string[] args, DateTime start, Action<string> stdout, Action<string> stderr)

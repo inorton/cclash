@@ -103,7 +103,9 @@ namespace CClash
         public CacheInfo(FileCacheStore statCache)
         {
             cache = statCache;
+            Logging.Emit("creating cache info mutex");
             statMtx = new Mutex(false, "cclash_stat_" + cache.FolderPath.ToLower().GetHashCode());
+            Logging.Emit("created cache info mutex");
         }
 
 

@@ -51,12 +51,19 @@ namespace CClash
 
         ICacheInfo stats = null;
 
-        public CompilerCacheBase(string cacheFolder)
+        protected CompilerCacheBase()
         {
+        }
+
+        public CompilerCacheBase(string cacheFolder) : this()
+        {
+            Logging.Emit("setting up file stores");
             if (string.IsNullOrEmpty(cacheFolder)) throw new ArgumentNullException("cacheFolder");            
             outputCache = FileCacheStore.Load(Path.Combine(cacheFolder, "outputs"));
             includeCache = FileCacheStore.Load(Path.Combine(cacheFolder, "includes"));
+            Logging.Emit("setup cache info");
             stats = new CacheInfo(outputCache);
+            Logging.Emit("setup hasher");
             hasher = new HashUtil(includeCache);
         }
 

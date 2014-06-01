@@ -37,9 +37,6 @@ namespace CClash
         Action<string> StdErrorCallback { get; set; }
         Action<string> StdOutputCallback { get; set; }
 
-        StringBuilder StdErrorText { get; }
-        StringBuilder StdOutputText { get; }
-
     }
 }
 

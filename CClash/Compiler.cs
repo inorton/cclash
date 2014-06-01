@@ -150,8 +150,6 @@ namespace CClash
         public Compiler()
         {
             compilerExe = "cl";
-            StdErrorText = new StringBuilder(1024);
-            StdOutputText = new StringBuilder(1024);
             Created = DateTime.Now;
         }
 
@@ -248,9 +246,6 @@ namespace CClash
         public bool AttemptPdb { get; set; }
         public bool PdbExistsAlready { get; set; }
         public string ResponseFile { get; set; }
-
-        public StringBuilder StdErrorText { get; private set; }
-        public StringBuilder StdOutputText { get; private set; }
 
         public Action<string> StdErrorCallback { get; set; }
         public Action<string> StdOutputCallback { get; set; }
@@ -806,11 +801,10 @@ namespace CClash
                         }
                         else
                         {
-                            if (onStdOut != null) onStdOut(a.Data);
-                            lock (StdOutputText)
-                            {
-                                StdOutputText.AppendLine(a.Data);
-                            }
+                            if (StdOutputCallback != null)
+                                StdOutputCallback(a.Data);
+                            if (onStdOut != null) 
+                                onStdOut(a.Data);
                         }
                     }
 
@@ -820,20 +814,14 @@ namespace CClash
                 {
                     if (a.Data != null)
                     {
+                        if (StdErrorCallback != null)
+                            StdErrorCallback(a.Data);
                         if (onStdErr != null)
-                        {
-
                             onStdErr(a.Data);
-                        }
-                        lock (StdErrorText)
-                        {
-                            StdErrorText.AppendLine(a.Data);
-                        }
                     }
                 };
 
                 p.BeginErrorReadLine();
-
                 p.BeginOutputReadLine();
 
                 p.WaitForExit();
@@ -861,11 +849,7 @@ namespace CClash
                             {
                                 string logmsg = string.Format("cl exited with zero but failed to create the object file! {0}", ObjectTarget);
                                 // let the retry system have a go with this
-                                Logging.Warning("stderr was {0}", StdErrorText.ToString());
-                                if (onStdErr != null)
-                                {
-                                    onStdErr(logmsg);
-                                }
+
                                 Logging.Warning("{0}, re-running!", logmsg);
                                 retry = true;
                             }

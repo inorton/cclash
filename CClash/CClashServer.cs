@@ -29,6 +29,34 @@ namespace CClash
         public CClashServer()
         {
             Directory.SetCurrentDirectory(mydocs);
+
+        }
+
+        Mutex serverMutex;
+
+        public bool Preflight(string cachedir)
+        {
+            Logging.Emit("cclash server preflight check");
+            var mtx = new Mutex(false, "cclash_serv_" + cachedir.ToLower().GetHashCode());
+            serverMutex = mtx;
+            try
+            {
+                if (!mtx.WaitOne(1000))
+                {
+                    quitnow = true;
+                    Logging.Error("another server is already running");
+                    return false; // some other process is holding it!
+                }
+                else
+                {
+                    Logging.Emit("cclash server preflight ok");
+                }
+            }
+            catch (AbandonedMutexException)
+            {
+                Logging.Warning("previous instance did not exit cleanly!");
+            }
+            return true;
         }
 
         int busyThreads = 0;
@@ -158,21 +186,7 @@ namespace CClash
         public void Listen(string cachedir)
         {
             Environment.CurrentDirectory = mydocs;
-            var mtx = new Mutex(false, "cclash_serv_" + cachedir.ToLower().GetHashCode());
-            try
-            {
-
-                if (!mtx.WaitOne(1000))
-                {
-                    quitnow = true;
-                    Logging.Error("another server is already running");
-                    return; // some other process is holding it!
-                }
-            }
-            catch (AbandonedMutexException)
-            {
-                Logging.Warning("previous instance did not exit cleanly!");
-            }
+            Logging.Emit("creating direct cache server..");
             cache = new DirectCompilerCacheServer(cachedir);
             Logging.Emit("starting server threads..");
 
@@ -204,8 +218,7 @@ namespace CClash
 
             cache.SetupStats();
             Logging.Emit("server quitting");
-            mtx.ReleaseMutex();
-            
+            serverMutex.ReleaseMutex();
         }
 
         public static string MakePipeName(string cachedir)

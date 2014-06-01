@@ -36,7 +36,7 @@ namespace CClash
         {
             FolderPath = Path.GetFullPath(folderPath);
             mtx = new Mutex(false, "cclash_mtx_" + FolderPath.ToLower().GetHashCode());
-
+            Logging.Emit("locking file store: {0}", FolderPath);
             WaitOne();
             
             var tlist = new List<Thread>();
@@ -57,12 +57,18 @@ namespace CClash
 
                     if (bad_cache_format)
                     {
+                        Logging.Emit("corrupt filestore, deleting: {0}", FolderPath);
                         // cache is too old, wiping
                         Directory.Delete(FolderPath, true);
                         Directory.CreateDirectory(FolderPath);
                         File.WriteAllText(Path.Combine(FolderPath, CacheInfo.F_CacheVersion), CacheInfo.CacheFormat);
                     }
                 }
+                Logging.Emit("filestore ready: {0}", FolderPath);
+            }
+            catch (IOException)
+            {
+                throw new CClashErrorException("could not clear cache!");
             }
             catch (UnauthorizedAccessException uae)
             {

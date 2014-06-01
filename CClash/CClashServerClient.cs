@@ -71,7 +71,7 @@ namespace CClash
                 System.Threading.Thread.Sleep(1000);
                 ConnectClient();
             } catch (Exception e) {
-                Logging.Emit("error starting cclash server process", e.Message);
+                Logging.Emit("error starting cclash server process {0}", e.ToString());
                 throw new CClashErrorException("could not start/connect to server");
             }
         }

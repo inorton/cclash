@@ -10,6 +10,7 @@ namespace CClash
         public DirectCompilerCache(string cacheFolder)
             : base(cacheFolder)
         {
+            Logging.Emit("direct compiler cache");
         }
 
         public FileCacheStore OutputCache

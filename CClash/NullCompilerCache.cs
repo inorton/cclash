@@ -8,7 +8,7 @@ namespace CClash {
     public class NullCompilerCache : CompilerCacheBase , ICompilerCache {
 
         public NullCompilerCache(string cachedir)
-            : base(cachedir) {
+            : base() {
         }
 
         public override void Setup() {
