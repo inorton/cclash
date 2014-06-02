@@ -117,17 +117,12 @@ namespace CClash
                         }
                         catch (CClashServerNotReadyException)
                         {
-                            Logging.Error("server not ready");
+                            Logging.Emit("server not ready, try again");
                             return -1;
                         }
                         catch (IOException ex)
                         {
                             Logging.Error(ex.ToString());
-                            return -1;
-                        }
-                        catch (InvalidOperationException)
-                        {
-                            Logging.Error("server not running");
                             return -1;
                         }
                     }

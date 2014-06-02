@@ -89,5 +89,21 @@ namespace CClash {
                 }
             } while (true);
         }
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
+        static extern int GetShortPathName(
+            [MarshalAs(UnmanagedType.LPTStr)]
+         string path,
+            [MarshalAs(UnmanagedType.LPTStr)]
+         StringBuilder shortPath,
+            int shortPathLength
+            );
+
+        public static string GetShortPath(string path)
+        {
+            var sb = new StringBuilder(255);
+            GetShortPathName(path, sb, 255);
+            return sb.ToString();
+        }
     }
 }

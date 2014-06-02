@@ -35,7 +35,6 @@ namespace CClash
 
         void Connect()
         {
-            Logging.Emit("connecting to service...");
             var exe = GetType().Assembly.Location;
             if (ncs == null)
                 Open();
@@ -58,10 +57,16 @@ namespace CClash
                 {
                     // start the server
                     var p = new Process();
-                    p.StartInfo = new ProcessStartInfo(GetType().Assembly.Location, "--cclash-server");
+                    var pargs = new List<string>
+                    {
+                        FileUtils.GetShortPath( GetType().Assembly.Location ),
+                        "--cclash-server"
+                    };
+
+                    p.StartInfo = new ProcessStartInfo("cmd");
                     p.StartInfo.UseShellExecute = false;
                     p.StartInfo.CreateNoWindow = true;
-                    p.StartInfo.Arguments = "--cclash-server";
+                    p.StartInfo.Arguments = "/c " + string.Join(" ", pargs.ToArray() );
                     p.StartInfo.ErrorDialog = false;
                     p.StartInfo.WorkingDirectory = Environment.CurrentDirectory;
                     p.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
