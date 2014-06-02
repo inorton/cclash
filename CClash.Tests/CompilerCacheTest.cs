@@ -105,6 +105,21 @@ namespace CClash.Tests
 
         [Test]
         [TestCase(10)]
+        public void RunEnabledDirectNotSupported(int times)
+        {
+            Assert.IsFalse(Settings.Disabled);
+            Assert.IsTrue(Settings.DirectMode);
+            var comp = CompilerTest.CompilerPath;
+            Environment.SetEnvironmentVariable("PATH", System.IO.Path.GetDirectoryName(comp) + ";" + Environment.GetEnvironmentVariable("PATH"));
+            for (int i = 0; i < times; i++)
+            {
+                var rv = Program.Main(new string[] { "/E", "/nologo", "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
+                Assert.AreEqual(0, rv);
+            }
+        }
+
+        [Test]
+        [TestCase(10)]
         public void RunEnabledDirectServerRestart(int times)
         {
             Assert.IsFalse(Settings.Disabled);

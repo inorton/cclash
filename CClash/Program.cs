@@ -163,12 +163,12 @@ namespace CClash
 
         static void AppendStderr(string str)
         {
-            MainStdErr.AppendLine(str.TrimEnd('\n', '\r'));
+            MainStdErr.AppendLine(str);
         }
 
         static void AppendStdout(string str)
         {
-            MainStdOut.AppendLine(str.TrimEnd('\n', '\r'));
+            MainStdOut.AppendLine(str);
         }
 
         private static int RunBuild(string[] args, DateTime start, Action<string> stdout, Action<string> stderr)

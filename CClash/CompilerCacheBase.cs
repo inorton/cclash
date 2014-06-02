@@ -294,7 +294,7 @@ namespace CClash
         public int CompileOnly(ICompiler comp, IEnumerable<string> args)
         {
             {
-                return comp.InvokeCompiler(args, comp.StdErrorCallback, comp.StdOutputCallback, false, null);
+                return comp.InvokeCompiler(args, null, null, false, null);
             }
         }
 
