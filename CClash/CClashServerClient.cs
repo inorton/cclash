@@ -66,6 +66,7 @@ namespace CClash
                     p.StartInfo.WorkingDirectory = Environment.CurrentDirectory;
                     p.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
                     p.Start();
+                    System.Threading.Thread.Sleep(2000);
                 }
                 catch (Exception ex)
                 {

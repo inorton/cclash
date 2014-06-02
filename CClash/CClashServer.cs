@@ -24,12 +24,11 @@ namespace CClash
         List<NamedPipeServerStream> serverPipes = new List<NamedPipeServerStream>();
         List<Thread> serverThreads = new List<Thread>();
 
-        string mydocs = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        string cdto = Path.GetPathRoot( Environment.GetFolderPath(Environment.SpecialFolder.Windows));
 
         public CClashServer()
         {
-            Directory.SetCurrentDirectory(mydocs);
-
+            Directory.SetCurrentDirectory(cdto);
         }
 
         Mutex serverMutex;
@@ -179,13 +178,19 @@ namespace CClash
             t.IsBackground = true;
             serverThreads.Add(t);
             var nss = new NamedPipeServerStream(MakePipeName(cachedir), PipeDirection.InOut, MaxServerThreads, PipeTransmissionMode.Message, PipeOptions.WriteThrough | PipeOptions.Asynchronous);
+            if (Settings.PipeSecurityEveryone) {
+                var npa = new PipeAccessRule("Everyone", PipeAccessRights.ReadWrite, System.Security.AccessControl.AccessControlType.Allow);
+                var nps = new PipeSecurity();
+                nps.AddAccessRule(npa);
+                nss.SetAccessControl(nps);
+            }
             t.Start(nss);
             Logging.Emit("server thread started");
         }
 
         public void Listen(string cachedir)
         {
-            Environment.CurrentDirectory = mydocs;
+            Environment.CurrentDirectory = cdto;
             Logging.Emit("creating direct cache server..");
             cache = new DirectCompilerCacheServer(cachedir);
             Logging.Emit("starting server threads..");

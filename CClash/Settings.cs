@@ -71,6 +71,12 @@ namespace CClash
             }
         }
 
+        public static bool PipeSecurityEveryone {
+            get {
+                return Environment.GetEnvironmentVariable("CCLASH_LAX_PIPE") == "yes";
+            }
+        }
+
         static bool EnabledByConditions()
         {
             return ConditionVarsAreTrue("CCLASH_ENABLE_WHEN");
