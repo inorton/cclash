@@ -56,6 +56,7 @@
     <Compile Include="CClashMessage.cs" />
     <Compile Include="CClashServer.cs" />
     <Compile Include="CClashServerClient.cs" />
+    <Compile Include="CClashServerNotReadyException.cs" />
     <Compile Include="CClashWarningException.cs" />
     <Compile Include="Compiler.cs" />
     <Compile Include="DirectCompilerCache.cs" />

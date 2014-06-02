@@ -128,12 +128,14 @@ namespace CClash.Tests
             Environment.SetEnvironmentVariable("CCLASH_SERVER", "yes");
             Environment.SetEnvironmentVariable("PATH", System.IO.Path.GetDirectoryName(comp) + ";" + Environment.GetEnvironmentVariable("PATH"));
 
+            var obj = Guid.NewGuid().ToString() + ".obj";
             for (int i = 0; i < times; i++)
             {
                 Environment.CurrentDirectory = CClashTestsFixtureSetup.InitialDir;
-                var rv = Program.Main(new string[] { "/nologo", "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
-                Assert.IsTrue(FileUtils.Exists("hello.obj"));
-                System.IO.File.Delete("hello.obj");
+                
+                var rv = Program.Main(new string[] { "/nologo", "/Fo" + obj, "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
+                Assert.IsTrue(FileUtils.Exists(obj));
+                System.IO.File.Delete(obj);
                 Assert.AreEqual(0, rv);
                 Program.Main(new string[] {"--cclash", "--stop"});
             }

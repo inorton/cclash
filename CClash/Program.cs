@@ -115,6 +115,11 @@ namespace CClash
                         {
                             System.Threading.Thread.Sleep(2000);
                         }
+                        catch (CClashServerNotReadyException)
+                        {
+                            Logging.Error("server not ready");
+                            return -1;
+                        }
                         catch (IOException ex)
                         {
                             Logging.Error(ex.ToString());

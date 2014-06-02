@@ -53,45 +53,34 @@ namespace CClash
             }
             catch (TimeoutException)
             {
-                Logging.Error("could not connect to cclash service (busy)");
-            }
-            
-            // start the server
-            try {
-                var p = new Process();
-                p.StartInfo = new ProcessStartInfo(GetType().Assembly.Location, "--cclash-server");
-                p.StartInfo.UseShellExecute = false;
-                p.StartInfo.CreateNoWindow = true;
-                p.StartInfo.Arguments = "--cclash-server";
-                p.StartInfo.ErrorDialog = false;
-                p.StartInfo.WorkingDirectory = Environment.CurrentDirectory;
-                p.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-                p.Start();
+                Logging.Error("could not connect to cclash service");
+                try
+                {
+                    // start the server
+                    var p = new Process();
+                    p.StartInfo = new ProcessStartInfo(GetType().Assembly.Location, "--cclash-server");
+                    p.StartInfo.UseShellExecute = false;
+                    p.StartInfo.CreateNoWindow = true;
+                    p.StartInfo.Arguments = "--cclash-server";
+                    p.StartInfo.ErrorDialog = false;
+                    p.StartInfo.WorkingDirectory = Environment.CurrentDirectory;
+                    p.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+                    p.Start();
+                }
+                catch (Exception ex)
+                {
+                    Logging.Error("error starting server (bug?) {0}", ex);
+                }
                 Logging.Error("started new cclash service process");
-                System.Threading.Thread.Sleep(1000);
-                Logging.Error("connecting to cclash service");
-                ConnectClient();
-            } catch (Exception e) {
-                Logging.Emit("error starting cclash server process {0}", e.ToString());
-                throw new CClashErrorException("could not start/connect to server");
+
+                throw new CClashServerNotReadyException();
             }
         }
 
         private void ConnectClient()
         {
-            for (int i = 0; i < 6; i++)
-            {
-                try
-                {
-                    if (!ncs.IsConnected)
-                        ncs.Connect(500);
-                    break;
-                }
-                catch (TimeoutException)
-                {
-                    if (i == 5) throw;
-                }
-            }
+            if (!ncs.IsConnected)
+                ncs.Connect(500);
             ncs.ReadMode = PipeTransmissionMode.Message;
         }
 
@@ -125,7 +114,18 @@ namespace CClash
             environment = envs;
             workingdir = workdir;
             compilerPath = System.IO.Path.GetFullPath(compiler);
-            Connect();
+            try
+            {
+                Connect();
+            }
+            catch (CClashServerNotReadyException)
+            {
+                var c = new Compiler() { CompilerExe = compiler };
+                c.SetWorkingDirectory(workdir);
+                c.SetEnvironment(envs);
+                return c;
+
+            }
             return null;
         }
 
@@ -140,6 +140,12 @@ namespace CClash
         public int CompileOrCache(ICompiler comp, IEnumerable<string> args)
         {
             Logging.Emit("client args: {0}", string.Join(" ", args.ToArray()));
+
+            if (comp != null) // compiler is set, server wasnt ready
+            {
+                return comp.InvokeCompiler(args, null, null, false, new List<string>());
+            }
+
             try {
                 var req = new CClashRequest()
                 {
