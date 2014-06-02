@@ -206,6 +206,7 @@ namespace CClash
                         NewServerThread(cachedir);
                     }
                 }
+                Logging.Emit("server is idle..");
                 if (DateTime.Now.Subtract(lastRequest).TotalMinutes > QuitAfterIdleMinutes)
                 {
                     quitnow = true;
