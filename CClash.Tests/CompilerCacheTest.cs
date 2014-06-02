@@ -137,6 +137,12 @@ namespace CClash.Tests
                 Assert.IsTrue(FileUtils.Exists(obj));
                 System.IO.File.Delete(obj);
                 Assert.AreEqual(0, rv);
+
+                var rv2 = Program.Main(new string[] { "/nologo", "/Fo" + obj, "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
+                Assert.IsTrue(FileUtils.Exists(obj));
+                System.IO.File.Delete(obj);
+
+                Assert.AreEqual(0, rv2);
                 Program.Main(new string[] {"--cclash", "--stop"});
             }
 
