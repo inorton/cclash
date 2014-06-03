@@ -68,6 +68,15 @@ namespace CClash
                 }
 
                 Logging.Emit("starting in server mode");
+
+                if (Settings.DebugFile != "Console") {
+                    Logging.Emit("closing server console");
+                    Console.Out.Close();
+                    Console.Error.Close();
+                    Console.In.Close();
+                }
+
+                
                 Server = new CClashServer();
                 if (Server.Preflight(Settings.CacheDirectory))
                 {
@@ -100,11 +109,25 @@ namespace CClash
                             {
                                 cc.Transact(new CClashRequest() { cmd = Command.Quit });
                             }
-                            else
-                            {
-                                Console.Out.WriteLine(cc.GetStats(compiler));
+                            else {
+                                #region server commands
+                                if (args.Contains("--clear")) {
+                                    cc.Transact(new CClashRequest() { cmd = Command.ClearCache });
+                                } else if ( args.Contains("--disable") ){
+                                    cc.Transact(new CClashRequest() { cmd = Command.DisableCache });
+                                } else if (args.Contains("--enable") ){
+                                    cc.Transact(new CClashRequest() { cmd = Command.EnableCache });
+                                } else if (args.Contains("--start")) {
+                                    Console.Out.WriteLine("starting server");
+                                    CClashServerClient.StartBackgroundServer();
+                                } else {
+                                    Console.Out.WriteLine(cc.GetStats(compiler));
+                                }
                                 return 0;
+
+                                #endregion
                             }
+
                         }
                         catch (CClashErrorException ex)
                         {
@@ -158,6 +181,10 @@ namespace CClash
             }
             Console.Error.Write(MainStdErr.ToString());
             Console.Out.Write(MainStdOut.ToString());
+
+            if (spawnServer) {
+                Logging.Emit("server needs to be started");
+            }
             return rv;
         }
 
@@ -170,6 +197,8 @@ namespace CClash
         {
             MainStdOut.AppendLine(str);
         }
+
+        static bool spawnServer = false;
 
         private static int RunBuild(string[] args, DateTime start, Action<string> stdout, Action<string> stderr)
         {
@@ -188,7 +217,7 @@ namespace CClash
                     using (ICompilerCache cc =
                         CompilerCacheFactory.Get(Settings.DirectMode, cachedir, compiler, Environment.CurrentDirectory, Compiler.GetEnvironmentDictionary(), out comp))
                     {
-                        
+                        if (comp != null) spawnServer = true;
                         cc.SetCaptureCallback(comp, stdout, stderr);
                         return cc.CompileOrCache(comp, args);
                     }

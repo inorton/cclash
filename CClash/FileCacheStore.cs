@@ -113,6 +113,16 @@ namespace CClash
             set;
         }
 
+        public void ClearLocked() {
+            entryCache.Clear();
+            var files = Directory.GetFiles(FolderPath);
+            foreach (var f in files)
+                File.Delete(f);
+            var contents = Directory.GetDirectories(FolderPath);
+            foreach (var d in contents)
+                Directory.Delete(d, true);
+        }
+
         HashSet<string> entryCache = new HashSet<string>();
 
         public bool ContainsEntry(string key, string filename)

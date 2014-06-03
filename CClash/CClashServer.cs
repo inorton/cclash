@@ -19,7 +19,7 @@ namespace CClash
         /// </summary>
         public const int MaxServerThreads = 20;
 
-        public const int QuitAfterIdleMinutes = 10;
+        public const int QuitAfterIdleMinutes = 90;
 
         List<NamedPipeServerStream> serverPipes = new List<NamedPipeServerStream>();
         List<Thread> serverThreads = new List<Thread>();
@@ -142,7 +142,9 @@ namespace CClash
             var msgbuf = new List<byte>(8192);
             var rxbuf = new byte[256 * 1024];
             int count = 0;
-            
+
+
+            Logging.Emit("reading from client");
             do
             {
                 count = nss.Read(rxbuf, msgbuf.Count, rxbuf.Length);
@@ -205,23 +207,33 @@ namespace CClash
             {
                 foreach (var t in serverThreads.ToArray())
                 {
+                    if (busyThreads > 0)
+                        Logging.Emit("{0} busy threads", busyThreads);
                     if (t.Join(1000))
                     {
                         serverThreads.Remove(t);
+                        Logging.Emit("replacing thread");
                         NewServerThread(cachedir);
                     }
                 }
-                Logging.Emit("server is idle..");
+                if (busyThreads < 1) {
+                    Logging.Emit("server is idle..");
+                }
                 if (DateTime.Now.Subtract(lastRequest).TotalMinutes > QuitAfterIdleMinutes)
                 {
                     quitnow = true;
                 }
             }
+            Logging.Emit("waiting for threads to finish");
             foreach (var t in serverThreads)
             {
-                t.Join(2000);
+                Logging.Emit("joining thread {0}", t.ManagedThreadId);
+                if (!t.Join(2000)) {
+                    Logging.Emit("thread still running..");
+                }
             }
 
+            Logging.Emit("commiting stats");
             cache.SetupStats();
             Logging.Emit("server quitting");
             serverMutex.ReleaseMutex();
@@ -249,12 +261,36 @@ namespace CClash
                     rv.stdout = StatOutputs.GetStatsString(req.compiler, cache);
                     break;
 
+                case Command.DisableCache:
+                    DisableCaching = true;
+                    rv.supported = true;
+                    break;
+
+                case Command.ClearCache:
+                    DisableCaching = true;
+                    cache.SetupStats();
+                    cache.Lock(CacheLockType.ReadWrite);
+                    cache.OutputCache.ClearLocked();
+                    cache.IncludeCache.ClearLocked();
+                    cache.Unlock(CacheLockType.ReadWrite);
+                    rv.supported = true;
+                    break;
+
+                case Command.EnableCache:
+                    DisableCaching = false;
+                    rv.supported = true;
+                    break;
+
                 case Command.Run:
                     var stdout = new StringBuilder();
                     var stderr = new StringBuilder();
                     var comp = cache.SetCompilerEx(req.pid, req.compiler, req.workdir, new Dictionary<string,string>( req.envs ));
                     cache.SetCaptureCallback(comp, (so) => { stdout.AppendLine(so); }, (se) => { stderr.AppendLine(se); });
-                    rv.exitcode = cache.CompileOrCache(comp, req.argv);
+                    if (DisableCaching) {
+                        rv.exitcode = comp.InvokeCompiler(req.argv, null, null, false, new List<string>());
+                    } else {
+                        rv.exitcode = cache.CompileOrCache(comp, req.argv);
+                    }
                     rv.supported = true;
                     rv.stderr = stderr.ToString();
                     rv.stdout = stdout.ToString();
@@ -271,6 +307,8 @@ namespace CClash
 
             return rv;
         }
+
+        public bool DisableCaching { get; private set; }
 
         public void Stop()
         {

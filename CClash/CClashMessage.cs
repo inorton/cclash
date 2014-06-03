@@ -15,6 +15,9 @@ namespace CClash
         GetStats = 1,
         Quit = 2,
         GetResult = 3,
+        DisableCache = 4,
+        EnableCache = 5,
+        ClearCache = 6,
     }
 
     [Serializable]

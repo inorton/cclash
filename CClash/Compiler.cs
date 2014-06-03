@@ -59,7 +59,7 @@ namespace CClash
 
         static void cygwinEnvFixup()
         {
-            if (Environment.GetEnvironmentVariable("NO_CCLASH_CYGWIN_FIX") != null)
+            if (!Settings.IsCygwin)
                 return;
 
             List<string> lines = new List<string>();
@@ -805,6 +805,8 @@ namespace CClash
                                 StdOutputCallback(a.Data);
                             if (onStdOut != null) 
                                 onStdOut(a.Data);
+                            if (Settings.DebugEnabled)
+                                Logging.Emit("stdout {0}", a.Data);
                         }
                     }
 
@@ -818,6 +820,8 @@ namespace CClash
                             StdErrorCallback(a.Data);
                         if (onStdErr != null)
                             onStdErr(a.Data);
+                        if (Settings.DebugEnabled)
+                            Logging.Emit("stderr {0}", a.Data);
                     }
                 };
 
@@ -825,8 +829,9 @@ namespace CClash
                 p.BeginOutputReadLine();
 
                 p.WaitForExit();
-
+                
                 rv = p.ExitCode;
+                p.Close();
                 Logging.Emit("cl exit {0}", rv);
                 if (rv == 0)
                 {

@@ -131,6 +131,17 @@ namespace CClash
             }
         }
 
+        public static bool IsCygwin {
+            get {
+                if (Environment.GetEnvironmentVariable("NO_CCLASH_CYGWIN_FIX") == null)
+                    return true;
+
+                if (Environment.GetEnvironmentVariable("OSTYPE") == "cygwin")
+                    return true;
+                return false;
+            }
+        }
+
         public static bool DirectMode
         {
             get

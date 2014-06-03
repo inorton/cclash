@@ -52,34 +52,52 @@ namespace CClash
             }
             catch (TimeoutException)
             {
-                Logging.Error("could not connect to cclash service");
-                try
-                {
-                    // start the server
-                    var p = new Process();
-                    var pargs = new List<string>
-                    {
-                        FileUtils.GetShortPath( GetType().Assembly.Location ),
-                        "--cclash-server"
-                    };
-
-                    p.StartInfo = new ProcessStartInfo("cmd");
-                    p.StartInfo.UseShellExecute = false;
-                    p.StartInfo.CreateNoWindow = true;
-                    p.StartInfo.Arguments = "/c " + string.Join(" ", pargs.ToArray() );
-                    p.StartInfo.ErrorDialog = false;
-                    p.StartInfo.WorkingDirectory = Environment.CurrentDirectory;
-                    p.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
-                    p.Start();
-                    System.Threading.Thread.Sleep(2000);
-                }
-                catch (Exception ex)
-                {
-                    Logging.Error("error starting server (bug?) {0}", ex);
-                }
-                Logging.Error("started new cclash service process");
-
+                Logging.Emit("could not connect to cclash service");
                 throw new CClashServerNotReadyException();
+            }
+        }
+
+        public static void StartBackgroundServer() {
+            using (var ssm = new System.Threading.Mutex(false, "cclash_server_spawn")) {
+                var can_start_server = ssm.WaitOne(500);
+                try {
+                    if (can_start_server) {
+                        Logging.Emit("starting new server");
+                        // start the server
+                        var p = new Process();
+                        var ours = FileUtils.GetShortPath( typeof(CClashServerClient).Assembly.Location);
+                        var exedir = Path.GetDirectoryName(ours);
+                        var exepath = Path.Combine(exedir, "cclash.exe");
+                        if (!File.Exists(exepath)) {
+                            exepath = ours;
+                        }
+                        var pargs = new List<string>
+                                {
+                                    exepath,
+                                    "--cclash-server"
+                                };
+                        if (Settings.DebugFile != null) {
+                            pargs.Add("--debug");
+                        }
+
+                        var command = "cmd";
+                        var command_args = "/c " + string.Join(" ", pargs.ToArray());
+
+                        p.StartInfo = new ProcessStartInfo(command);
+                        p.StartInfo.UseShellExecute = false;
+                        p.StartInfo.CreateNoWindow = true;
+                        p.StartInfo.Arguments = command_args;
+                        p.StartInfo.ErrorDialog = false;
+                        p.StartInfo.WorkingDirectory = Path.GetPathRoot(Environment.CurrentDirectory);
+                        p.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+                        p.Start();
+                    }
+                    System.Threading.Thread.Sleep(1000);
+                } finally {
+                    if (can_start_server) {
+                        ssm.ReleaseMutex();
+                    }
+                }
             }
         }
 
@@ -130,7 +148,6 @@ namespace CClash
                 c.SetWorkingDirectory(workdir);
                 c.SetEnvironment(envs);
                 return c;
-
             }
             return null;
         }

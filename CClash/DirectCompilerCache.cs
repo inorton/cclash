@@ -21,6 +21,12 @@ namespace CClash
             }
         }
 
+        public FileCacheStore IncludeCache {
+            get {
+                return includeCache;
+            }
+        }
+
         public override void Setup()
         {
         }
