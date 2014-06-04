@@ -1,7 +1,7 @@
-# CClash (c) 2013 Ian Norton
+# CClash (c) 2014 Ian Norton
 ## About
 
-CClash is a (.net based) compiler cache for the Microsoft 'cl' compiler.
+CClash is a compiler cache for the Microsoft 'cl' compiler.
 
 It is aimed at fairly simple use ( eg, `cl /c file.c /Fofile.o` ) and will cache object files rather like ccache does. Due to the nature of PDB files on windows cclash can't easily cache these so you might be out of luck. However you might want to experiment with the CCLASH_Z7_OBJ=yes environment setting to see if it gives you what you want.
 
@@ -43,13 +43,22 @@ or
 
    * Rename the real cl.exe (and cl.exe.config) to cl_real.exe (and cl_real.exe.config), place cclash's cl.exe (and cl.exe.config) in the same visual studio folder.
 
+For best results you should set CCLASH_SERVER=1 and start the server process (inside a devenv window) like so:
+
+```
+$ cclash --cclash --start
+```
+
+If you are in cygwin, you might also have to rename the real compiler, this may not work with the server. In the build process where this is used mainly, we invoke cl.exe from makefiles and can control what the
+compiler binary paths are.
+
 ## Future Features
 
 There are a number of things that might happen to make cclash faster and applicable in more situations. At the moment it doesn't understant pre-compiled headers so that is one possibility. Using it inside visual studio also can have mixed results so better support for the options provided by the IDE is also an option. For now though, the easier ones are:
 
    * cache linker calls
    * pre-compiled headers
-   * build mapping ( make dot maps of the sources involved in builds )
+   * build mapping ( make gantt-like charts of the sources involved in builds )
 
 ## GPL v3.0 License
 
