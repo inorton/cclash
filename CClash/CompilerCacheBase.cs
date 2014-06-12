@@ -117,11 +117,13 @@ namespace CClash
 
         public virtual DataHash DigestCompiler(string compilerPath)
         {
+            
             return DigestBinaryFile(compilerPath);
         }
 
         public DataHash DeriveHashKey( ICompiler comp, IEnumerable<string> args)
         {
+            Logging.Emit("compiler is {0}", comp.CompilerExe);
             var comphash = DigestCompiler(comp.CompilerExe);
             if (comphash.Result == DataHashResult.Ok)
             {

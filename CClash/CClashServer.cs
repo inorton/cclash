@@ -19,7 +19,17 @@ namespace CClash
         /// </summary>
         public const int MaxServerThreads = 20;
 
-        public const int QuitAfterIdleMinutes = 90;
+        public const int DefaultQuitAfterIdleMinutes = 90;
+
+        public int QuitAfterIdleMinutes
+        {
+            get
+            {
+                var rv = Settings.ServerQuitAfterIdleMinutes;
+                if (rv == 0) rv = DefaultQuitAfterIdleMinutes;
+                return rv;
+            }
+        }
 
         List<NamedPipeServerStream> serverPipes = new List<NamedPipeServerStream>();
         List<Thread> serverThreads = new List<Thread>();

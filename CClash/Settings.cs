@@ -11,7 +11,12 @@ namespace CClash
         public static bool DebugEnabled { get; set; }
         public static string DebugFile { get; set; }
 
-        public static string MissLogFile { get; set; }
+        public static string MissLogFile {
+            get
+            {
+                return Environment.GetEnvironmentVariable("CCLASH_MISSES");
+            }
+        }
         public static bool MissLogEnabled { 
             get 
             {
@@ -177,6 +182,23 @@ namespace CClash
             get
             {
                 return Environment.GetEnvironmentVariable("CCLASH_AUTOREBUILD") == "no";
+            }
+        }
+
+
+
+        public static int ServerQuitAfterIdleMinutes
+        {
+            get
+            {
+                int rv = 0;
+                var env = Environment.GetEnvironmentVariable("CCLASH_EXIT_IDLETIME");
+                if (env != null)
+                {
+                    Int32.TryParse(env, out rv);
+                    if (rv < 0) rv = 0;
+                }
+                return (int)rv;
             }
         }
     }

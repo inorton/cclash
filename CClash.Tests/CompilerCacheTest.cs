@@ -89,6 +89,34 @@ namespace CClash.Tests
         }
 
         [Test]
+        public void TestHashKeyDerive()
+        {
+            List<string> compilers = new List<string>
+            {
+                @"C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\cl.exe",
+                @"C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\amd64\cl.exe",
+                @"C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\x86_amd64\cl.exe",
+            };
+            var src = @"test-sources\hello.c";
+
+            var res = new List<DataHash>();
+
+            foreach (var comp in compilers)
+            {
+                ICompiler c;
+                using (var cache = CompilerCacheFactory.Get(true, Settings.CacheDirectory, comp, Environment.CurrentDirectory, Compiler.GetEnvironmentDictionary(), out c))
+                {
+                    Assert.IsNotNull(c);
+                    Assert.IsTrue(c.ProcessArguments(new string[] { "/nologo", "/c", src }));
+                    Assert.IsNotNull(cache);
+                    var hash = cache.DeriveHashKey(c, c.CompileArgs);
+                    Assert.IsFalse(res.Contains(hash), "expected unique hash key for each compiler");
+                    res.Add(hash);
+                }
+            }
+        }
+
+        [Test]
         [TestCase(10)]
         public void RunEnabledDirect(int times)
         {

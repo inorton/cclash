@@ -113,6 +113,13 @@ namespace CClash
 
         public static string Find()
         {
+            var compiler = _Find();
+            Logging.Emit("chose compiler {}", compiler);
+            return compiler;
+        }
+
+        static string _Find()
+        {
             var compiler = Environment.GetEnvironmentVariable("CCLASH_CL");
             if ((compiler != null) && File.Exists(compiler)) return compiler;
 

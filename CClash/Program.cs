@@ -25,12 +25,6 @@ namespace CClash
                 Settings.DebugEnabled = true;
             }
 
-            var miss = Environment.GetEnvironmentVariable("CCLASH_MISSES");
-            if (!string.IsNullOrEmpty(miss))
-            {
-                Settings.MissLogFile = miss;
-            }
-
             if (Settings.DebugEnabled)
             {
                 Logging.Emit("command line args:");
