@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using NUnit.Framework;
 using System.Threading;
+using System.Diagnostics;
 
 namespace CClash.Tests
 {
@@ -131,6 +132,33 @@ namespace CClash.Tests
             }
         }
 
+        void RunSubprocess(string prog, string[] argv, StringBuilder stdout, StringBuilder stderr) {
+            var p = new Process();
+            
+            p.StartInfo = new ProcessStartInfo( prog, Compiler.JoinAguments(argv) );
+            p.StartInfo.UseShellExecute = false;
+            p.StartInfo.RedirectStandardOutput = true;
+            p.StartInfo.RedirectStandardError = true;
+            
+            p.ErrorDataReceived += (o,a) => {
+                if ( a.Data != null ) {
+                    stderr.Append( Environment.NewLine + a.Data);
+                }
+            };
+
+            p.OutputDataReceived += (o,a) => {
+                if ( a.Data != null ) {
+                    stdout.Append( Environment.NewLine + a.Data);
+                }
+            };
+
+            p.Start();
+            p.BeginErrorReadLine();
+            p.BeginOutputReadLine();
+
+            p.WaitForExit();
+        }
+
         [Test]
         [TestCase(10)]
         public void RunEnabledDirectNotSupported(int times)
@@ -141,7 +169,24 @@ namespace CClash.Tests
             Environment.SetEnvironmentVariable("PATH", System.IO.Path.GetDirectoryName(comp) + ";" + Environment.GetEnvironmentVariable("PATH"));
             for (int i = 0; i < times; i++)
             {
-                var rv = Program.Main(new string[] { "/E", "/nologo", "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
+                var args = new string[] { "/E", "/nologo", "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" };
+                var realerr = new StringBuilder();
+                var realout = new StringBuilder();
+                RunSubprocess(Compiler.Find(), args, realout, realerr);
+                var experr = realerr.ToString();
+                var expout = realout.ToString();
+
+                Program.MainStdErr.Clear();
+                Program.MainStdOut.Clear();
+                
+                var rv = Program.Main(args);
+                
+                var stderr = Program.MainStdErr.ToString();
+                var stdout = Program.MainStdOut.ToString();
+
+                Assert.AreEqual(experr, stderr);
+                Assert.AreEqual(expout, stdout);
+
                 Assert.AreEqual(0, rv);
             }
         }

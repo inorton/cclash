@@ -753,7 +753,7 @@ namespace CClash
             var xargs = new List<string>();
             xargs.Add("/EP");
             xargs.AddRange(from x in CommandLine where (x != "/c" || x != "-c") select x);
-            return InvokeCompiler(xargs, (x) => { }, stdout.WriteLine, false, null);
+            return InvokeCompiler(xargs, (x) => { }, stdout.Write, false, null);
         }
 
         public int InvokeCompiler(IEnumerable<string> args, Action<string> onStdErr, Action<string> onStdOut, bool showIncludes, List<string> foundIncludes)
@@ -809,9 +809,9 @@ namespace CClash
                         else
                         {
                             if (StdOutputCallback != null)
-                                StdOutputCallback(a.Data);
-                            if (onStdOut != null) 
-                                onStdOut(a.Data);
+                                StdOutputCallback( Environment.NewLine + a.Data);
+                            if (onStdOut != null)
+                                onStdOut(Environment.NewLine + a.Data);
                             if (Settings.DebugEnabled)
                                 Logging.Emit("stdout {0}", a.Data);
                         }
@@ -824,9 +824,9 @@ namespace CClash
                     if (a.Data != null)
                     {
                         if (StdErrorCallback != null)
-                            StdErrorCallback(a.Data);
+                            StdErrorCallback(Environment.NewLine + a.Data);
                         if (onStdErr != null)
-                            onStdErr(a.Data);
+                            onStdErr( Environment.NewLine + a.Data);
                         if (Settings.DebugEnabled)
                             Logging.Emit("stderr {0}", a.Data);
                     }

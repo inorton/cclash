@@ -184,12 +184,12 @@ namespace CClash
 
         static void AppendStderr(string str)
         {
-            MainStdErr.AppendLine(str);
+            MainStdErr.Append(str);
         }
 
         static void AppendStdout(string str)
         {
-            MainStdOut.AppendLine(str);
+            MainStdOut.Append(str);
         }
 
         static bool spawnServer = false;

@@ -155,7 +155,7 @@ namespace CClash.Tests
             Assert.IsTrue(c.ProcessArguments(argv));
             hv.Add(Path.GetFullPath(c.SingleSourceFile));
             List<string> incfiles = new List<string>();
-            var rv = c.InvokeCompiler(argv, Console.Error.WriteLine, Console.Out.WriteLine, true, incfiles);
+            var rv = c.InvokeCompiler(argv, Console.Error.Write, Console.Out.Write, true, incfiles);
             hv.AddRange(incfiles);
             Assert.AreEqual(0, rv);
             Assert.IsTrue(hv.Count > 0);
@@ -200,7 +200,7 @@ namespace CClash.Tests
             Assert.AreEqual( Path.Combine(InitialDir, "test-sources\\hello.c"), c.SingleSourceFile);
             var stderr = new StringBuilder();
             var stdout = new StringBuilder();
-            var rv = c.InvokeCompiler(c.CommandLine, x => stderr.AppendLine(x), x => stdout.AppendLine(x), false, null);
+            var rv = c.InvokeCompiler(c.CommandLine, x => stderr.Append(x), x => stdout.Append(x), false, null);
 
             Assert.AreEqual(0, rv);
         }
