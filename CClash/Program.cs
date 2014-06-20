@@ -167,8 +167,6 @@ namespace CClash
                         MainStdOut.Clear();
                         rv = RunBuild(args, start, AppendStdout, AppendStderr);
                         if (rv == 0) break;
-
-                        Logging.Error("cclash returned non-zero, doing auto-retry {0} {1}", i, rv);
                         System.Threading.Thread.Sleep(100);
                     }
                 }

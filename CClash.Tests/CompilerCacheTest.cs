@@ -127,7 +127,16 @@ namespace CClash.Tests
             Environment.SetEnvironmentVariable("PATH", System.IO.Path.GetDirectoryName( comp ) + ";" + Environment.GetEnvironmentVariable("PATH"));
             for (int i = 0; i < times; i++)
             {
-                var rv = Program.Main(new string[] { "/nologo", "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
+                var args = new string[] { "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" };
+                var realerr = new StringBuilder();
+                var realout = new StringBuilder();
+                RunSubprocess(Compiler.Find(), args, realout, realerr);
+                Program.MainStdErr.Clear();
+                Program.MainStdOut.Clear();
+                var rv = Program.Main(args);
+
+                Assert.AreEqual(realerr.ToString(), Program.MainStdErr.ToString());
+                Assert.AreEqual(realout.ToString(), Program.MainStdOut.ToString());
                 Assert.AreEqual(0, rv);
             }
         }
@@ -139,24 +148,25 @@ namespace CClash.Tests
             p.StartInfo.UseShellExecute = false;
             p.StartInfo.RedirectStandardOutput = true;
             p.StartInfo.RedirectStandardError = true;
-            
-            p.ErrorDataReceived += (o,a) => {
-                if ( a.Data != null ) {
-                    stderr.Append( Environment.NewLine + a.Data);
+
+            p.ErrorDataReceived += (o, a) => {
+                if (a.Data != null) {
+                    stderr.AppendLine(a.Data);
                 }
             };
 
-            p.OutputDataReceived += (o,a) => {
-                if ( a.Data != null ) {
-                    stdout.Append( Environment.NewLine + a.Data);
+            p.OutputDataReceived += (o, a) => {
+                if (a.Data != null) {
+                    stdout.AppendLine(a.Data);
                 }
             };
 
             p.Start();
             p.BeginErrorReadLine();
-            p.BeginOutputReadLine();
+            p.BeginOutputReadLine(); 
 
             p.WaitForExit();
+
         }
 
         [Test]

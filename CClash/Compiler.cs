@@ -797,6 +797,7 @@ namespace CClash
                 {
                     if (a.Data != null)
                     {
+                        
                         if (showIncludes && a.Data.StartsWith("Note: including file:"))
                         {
                             var inc = a.Data.Substring("Note: including file:".Length + 1).TrimStart(' ');
@@ -808,10 +809,12 @@ namespace CClash
                         }
                         else
                         {
-                            if (StdOutputCallback != null)
-                                StdOutputCallback( Environment.NewLine + a.Data);
-                            if (onStdOut != null)
-                                onStdOut(Environment.NewLine + a.Data);
+                            if (StdOutputCallback != null) {
+                                StdOutputCallback(a.Data + Environment.NewLine);
+                            }
+                            if (onStdOut != null) {
+                                onStdOut(a.Data + Environment.NewLine);
+                            }
                             if (Settings.DebugEnabled)
                                 Logging.Emit("stdout {0}", a.Data);
                         }
@@ -823,10 +826,12 @@ namespace CClash
                 {
                     if (a.Data != null)
                     {
-                        if (StdErrorCallback != null)
-                            StdErrorCallback(Environment.NewLine + a.Data);
-                        if (onStdErr != null)
-                            onStdErr( Environment.NewLine + a.Data);
+                        if (StdErrorCallback != null) {
+                            StdErrorCallback(a.Data + Environment.NewLine);
+                        }
+                        if (onStdErr != null) {
+                            onStdErr(a.Data + Environment.NewLine);
+                        }
                         if (Settings.DebugEnabled)
                             Logging.Emit("stderr {0}", a.Data);
                     }
@@ -837,6 +842,7 @@ namespace CClash
 
                 p.WaitForExit();
                 
+
                 rv = p.ExitCode;
                 p.Close();
                 Logging.Emit("cl exit {0}", rv);

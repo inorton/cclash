@@ -248,10 +248,10 @@ namespace CClash
             var rv = comp.InvokeCompiler(args,
                         x =>
                         {
-                            stderr.WriteLine(x);
+                            stderr.Write(x);
                         }, y =>
                         {
-                            stdout.WriteLine(y);
+                            stdout.Write(y);
                         }, includes != null, includes);
 
             return rv;

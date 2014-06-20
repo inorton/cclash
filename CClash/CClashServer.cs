@@ -295,7 +295,7 @@ namespace CClash
                     var stdout = new StringBuilder();
                     var stderr = new StringBuilder();
                     var comp = cache.SetCompilerEx(req.pid, req.compiler, req.workdir, new Dictionary<string,string>( req.envs ));
-                    cache.SetCaptureCallback(comp, (so) => { stdout.AppendLine(so); }, (se) => { stderr.AppendLine(se); });
+                    cache.SetCaptureCallback(comp, (so) => { stdout.Append(so); }, (se) => { stderr.Append(se); });
                     if (DisableCaching) {
                         rv.exitcode = comp.InvokeCompiler(req.argv, null, null, false, new List<string>());
                     } else {
