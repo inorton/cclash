@@ -497,12 +497,14 @@ namespace CClash
                             }
                             break;
 
+                        case "/E":
+                            return NotSupported(opt);
+
+                        case "/EP":
+                            return NotSupported(opt);
+
                         default:
                             #region positional or other flag options
-                            if (full.StartsWith("/E"))
-                            {
-                                return NotSupported("/E");
-                            }
 
                             if (full == "/link")
                             {
