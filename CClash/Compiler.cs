@@ -465,7 +465,6 @@ namespace CClash
                             break;
 
                         case "/Fd":
-                            GeneratePdb = true;
                             PdbFile = Path.Combine(WorkingDirectory, full.Substring(3));
                             // openssl gives us a posix path here..
                             PdbFile = PdbFile.Replace('/', '\\');
