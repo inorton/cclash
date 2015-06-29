@@ -252,6 +252,7 @@ namespace CClash
         public bool GeneratePdb { get; set; }
         public bool AttemptPdb { get; set; }
         public bool PdbExistsAlready { get; set; }
+        public bool ObjectTargetIsFile { get; set; }
         public string ResponseFile { get; set; }
 
         public Action<string> StdErrorCallback { get; set; }
@@ -376,7 +377,7 @@ namespace CClash
             compenvs = FixEnvironmentDictionary(envs);
         }
 
-        public Dictionary<string, string> EnvironmentVariables 
+        public Dictionary<string, string> EnvironmentVariables
         {
             get
             {
@@ -477,8 +478,10 @@ namespace CClash
 
                         case "/Fo":
                             ObjectTarget = Path.Combine(WorkingDirectory, full.Substring(3));
-                            if (!Path.GetFileName(ObjectTarget).Contains("."))
+                            ObjectTarget = ObjectTarget.Replace('/', '\\');
+                            if (!Path.GetFileName(ObjectTarget).Contains(".") && !ObjectTarget.EndsWith("\\"))
                                 ObjectTarget += ".obj";
+                            ObjectTargetIsFile = ObjectTarget.EndsWith(".obj");
                             break;
 
                         case "/Tp":
@@ -581,13 +584,13 @@ namespace CClash
                                     continue;
                                 }
                             }
-#endregion
+                            #endregion
 
                             break;
                     }
                     #endregion
 
-                }                
+                }
 
                 if (SingleSource)
                 {
@@ -601,6 +604,13 @@ namespace CClash
                         else
                         {
                             ObjectTarget = Path.Combine(WorkingDirectory, f);
+                        }
+                    }
+                    else
+                    {
+                        if (!ObjectTargetIsFile)
+                        {
+                            ObjectTarget = Path.Combine(ObjectTarget, Path.GetFileNameWithoutExtension(SingleSourceFile)) + ".obj";
                         }
                     }
 
@@ -635,7 +645,7 @@ namespace CClash
                             {
                                 Logging.Emit("converting pdb request to Z7 embedded debug {0}:{1}", WorkingDirectory, Path.GetFileName(ObjectTarget));
                                 // append /Z7 to the arg list
-                                var newargs = new List<string>();                                
+                                var newargs = new List<string>();
                                 foreach (var a in args)
                                 {
                                     if (!(a.StartsWith("/Zi") || a.StartsWith("/Fd")))
@@ -653,7 +663,7 @@ namespace CClash
                         }
                     }
 
-                    if (GeneratePdb) 
+                    if (GeneratePdb)
                     {
                         return NotSupported("PDB file requested");
                     }
@@ -799,7 +809,7 @@ namespace CClash
                 {
                     if (a.Data != null)
                     {
-                        
+
                         if (showIncludes && a.Data.StartsWith("Note: including file:"))
                         {
                             var inc = a.Data.Substring("Note: including file:".Length + 1).TrimStart(' ');
@@ -843,7 +853,7 @@ namespace CClash
                 p.BeginOutputReadLine();
 
                 p.WaitForExit();
-                
+
 
                 rv = p.ExitCode;
                 p.Close();
