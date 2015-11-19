@@ -469,7 +469,7 @@ namespace CClash
                             PdbFile = Path.Combine(WorkingDirectory, full.Substring(3));
                             // openssl gives us a posix path here..
                             PdbFile = PdbFile.Replace('/', '\\');
-                            if (!PdbFile.ToLower().EndsWith(".pdb"))
+                            if (!PdbFile.ToLower().EndsWith(".pdb") && !PdbFile.EndsWith("\\"))
                             {
                                 PdbFile = PdbFile + ".pdb";
                             }
