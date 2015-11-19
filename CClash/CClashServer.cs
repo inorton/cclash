@@ -17,9 +17,19 @@ namespace CClash
         /// <summary>
         /// The maximum number of pending requests.
         /// </summary>
-        public const int MaxServerThreads = 20;
+        public const int DefaultMaxServerThreads = 20;
 
         public const int DefaultQuitAfterIdleMinutes = 90;
+
+        public int MaxServerThreads
+        {
+            get
+            {
+                var rv = Settings.MaxServerThreads;
+                if (rv == 0) rv = DefaultMaxServerThreads;
+                return rv;
+            }
+        }
 
         public int QuitAfterIdleMinutes
         {

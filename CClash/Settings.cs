@@ -201,5 +201,20 @@ namespace CClash
                 return (int)rv;
             }
         }
+
+        public static int MaxServerThreads
+        {
+            get
+            {
+                int rv = 0;
+                var env = Environment.GetEnvironmentVariable("CCLASH_MAX_SERVER_THREADS");
+                if (env != null)
+                {
+                    Int32.TryParse(env, out rv);
+                    if (rv < 0) rv = 0;
+                }
+                return (int)rv;
+            }
+        }
     }
 }
