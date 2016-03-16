@@ -475,8 +475,9 @@ namespace CClash
                             break;
 
                         case "/Fo":
-                            ObjectTarget = Path.Combine(WorkingDirectory, full.Substring(3));
-                            if (!Path.GetFileName(ObjectTarget).Contains("."))
+                            var option = full.Substring(3).Replace('/', '\\');
+                            ObjectTarget = Path.Combine(WorkingDirectory, option);
+                            if (!Path.GetFileName(ObjectTarget).Contains(".") && !option.EndsWith("\\"))
                                 ObjectTarget += ".obj";
                             break;
 
@@ -601,6 +602,11 @@ namespace CClash
                         {
                             ObjectTarget = Path.Combine(WorkingDirectory, f);
                         }
+                    }
+                    // output option is a directory:
+                    else if (ObjectTarget.EndsWith("\\"))
+                    {
+                        ObjectTarget = Path.Combine(ObjectTarget, Path.GetFileNameWithoutExtension(SingleSourceFile) + ".obj");
                     }
 
                     if (GeneratePdb)
