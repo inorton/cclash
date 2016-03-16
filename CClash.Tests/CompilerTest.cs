@@ -66,7 +66,7 @@ namespace CClash.Tests
         [Test]
         [TestCase("/c","test-sources\\exists.c")]
         [TestCase("/c","test-sources\\exists.c", "/Fowhatever.obj")]
-        [TestCase("/c","test-sources\\exists.c", "/Fotest-sources")]
+        [TestCase("/c","test-sources\\exists.c", "/Fotest-sources\\")]
         public void ParseSupportedArgs(params string[] argv)
         {
             var c = new Compiler();
