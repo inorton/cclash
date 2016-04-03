@@ -399,6 +399,7 @@ namespace CClash
         {
             try
             {
+                DisableTracker();
                 CommandLine = args;
                 for (int i = 0; i < args.Length; i++)
                 {
@@ -475,7 +476,7 @@ namespace CClash
 
                         case "/Tp":
                         case "/Tc":
-                            var srcfile = full.Substring(3);
+                            var srcfile = ArgumentUtils.MakeWindowsPath(full.Substring(3));
                             if (!Path.IsPathRooted(srcfile))
                                 srcfile = Path.Combine(WorkingDirectory, srcfile);
 
@@ -507,7 +508,7 @@ namespace CClash
                             if (opt.StartsWith("@"))
                             {
                                 #region response file
-                                ResponseFile = full.Substring(1);
+                                ResponseFile = ArgumentUtils.MakeWindowsPath(full.Substring(1));
 
                                 if (ResponseFile.EndsWith(InternalResponseFileSuffix))
                                 {
@@ -544,7 +545,7 @@ namespace CClash
                             if (!full.StartsWith("/"))
                             {
                                 // NOTE, if we ever cache -link calls this will also match input objects and libs
-                                var file = full;
+                                var file = ArgumentUtils.MakeWindowsPath(full);
                                 if (!Path.IsPathRooted(file))
                                     file = Path.Combine(WorkingDirectory, file);
 
@@ -556,7 +557,7 @@ namespace CClash
                             }
                             if (full.StartsWith("/I"))
                             {
-                                var d = full.Substring(2);
+                                var d = ArgumentUtils.MakeWindowsPath(full.Substring(2));
                                 if (d == ".")
                                     d = WorkingDirectory;
                                 if (d == "..")
@@ -711,7 +712,81 @@ namespace CClash
             return InvokeCompiler(xargs, (x) => { }, stdout.Write, false, null);
         }
 
+        public string TrackerFolder
+        {
+            get;
+            private set;
+        }
+
+        public bool TrackerEnabled
+        {
+            get
+            {
+                return TrackerFolder != null;
+            }
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="folder"></param>
+        public void EnableTracker(string folder)
+        {            
+            TrackerFolder = folder;
+        }
+
+        public void DisableTracker()
+        {
+            TrackerFolder = null;
+        }
+
+        /// <summary>
+        /// Delete this folder in the background and retry.
+        /// </summary>
+        /// <param name="folder"></param>
+        static void ScheduleLaterDelete(string folder)
+        {
+            System.Threading.ThreadPool.QueueUserWorkItem((x) =>
+            {
+                for (int i = 0; i < 5; i++)
+                {
+                    try
+                    {
+                        Directory.Delete(folder, true);
+                        return;
+                    }
+                    catch (System.IO.IOException)
+                    {
+                        System.Threading.Thread.Sleep(2000);
+                    }
+                }
+            });
+        }
+
         public int InvokeCompiler(IEnumerable<string> args, Action<string> onStdErr, Action<string> onStdOut, bool showIncludes, List<string> foundIncludes)
+        {
+            try
+            {
+                if (TrackerEnabled)
+                    if (!TrackerFolder.StartsWith(WorkingDirectory))
+                        TrackerFolder = Path.Combine(WorkingDirectory, TrackerFolder);
+                return RealInvokeCompiler(args, onStdErr, onStdOut, showIncludes, foundIncludes);
+            }
+            finally
+            {
+                if (TrackerEnabled)
+                {
+                    if (Directory.Exists(TrackerFolder))
+                    {
+                        foundIncludes.AddRange(ParseTrackerFile.ParseReads(TrackerFolder));
+                        ScheduleLaterDelete(TrackerFolder);
+                    }
+                }
+            }
+        }
+
+
+        int RealInvokeCompiler(IEnumerable<string> args, Action<string> onStdErr, Action<string> onStdOut, bool showIncludes, List<string> foundIncludes)
         {
             int rv = -1;
             bool retry;
@@ -729,9 +804,28 @@ namespace CClash
                 if (compenvs == null || compenvs.Count == 0)
                     throw new InvalidOperationException("no environment set");
 
-                var cla = ArgumentUtils.JoinAguments(ArgumentUtils.FixupArgs(args));
-                if (showIncludes) cla += " /showIncludes";
-                var psi = new ProcessStartInfo(CompilerExe, cla)
+                var cla = ArgumentUtils.JoinAguments(ArgumentUtils.FixupArgs(args));                
+                var runExe = compilerExe;
+
+                if (showIncludes)
+                {
+                    if (TrackerEnabled)
+                    {
+                        runExe = "tracker.exe";
+                        var trackerargs = new List<string> {
+                            "/if", Path.Combine(WorkingDirectory, TrackerFolder),
+                            "/k", "/t"
+                        };
+                        var tcla = ArgumentUtils.JoinAguments(trackerargs);
+                        cla = String.Format("{0} /c \"{1}\" {2}", tcla, compilerExe, cla);
+                    }
+                    else
+                    {
+                        cla += " /showIncludes";
+                    }
+                }
+
+                var psi = new ProcessStartInfo(runExe, cla)
                 {
                     UseShellExecute = false,
                     RedirectStandardError = true,
@@ -797,7 +891,6 @@ namespace CClash
 
                 p.WaitForExit();
                 
-
                 rv = p.ExitCode;
                 p.Close();
                 Logging.Emit("cl exit {0}", rv);

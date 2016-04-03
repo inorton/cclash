@@ -7,9 +7,8 @@ using System.Threading;
 
 namespace CClash
 {
-
-    public sealed class DirectCompilerCacheServer : DirectCompilerCache
-    {
+    public class DirectCompilerCacheServer : DirectCompilerCache
+    {    
         Dictionary<string, DirectoryWatcher> dwatchers = new Dictionary<string, DirectoryWatcher>();
 
         ReaderWriterLockSlim slimlock = new ReaderWriterLockSlim();
@@ -29,7 +28,6 @@ namespace CClash
 
         public override void Finished()
         {
-           
         }
 
         public override void Lock(CacheLockType mode)

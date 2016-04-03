@@ -149,11 +149,20 @@ namespace CClash
             }
         }
 
+        public static bool TrackerMode
+        {
+            get
+            {
+                string tmode = Environment.GetEnvironmentVariable("CCLASH_TRACKER_MODE");
+                return tmode == "yes";
+            }
+        }
+
         public static bool DirectMode
         {
             get
             {
-                return !PreprocessorMode;
+                return !PreprocessorMode && !TrackerMode;
             }
         }
 

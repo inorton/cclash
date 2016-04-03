@@ -8,9 +8,11 @@ import shutil
 import time
 import subprocess
 
-OSLVERSION="1.0.2g"
+OSLVERSION = "1.0.2g"
+THISDIR = os.path.dirname(os.path.abspath(__file__))
+DIST = "Release"
+STARTSERVER = True
 
-THISDIR=os.path.dirname(os.path.abspath(__file__))
 
 def envcheck():
     """
@@ -22,24 +24,22 @@ def envcheck():
     except AssertionError:
         print "Run this from a visual studio command prompt"
         sys.exit(1)
-    bindir = os.path.join(THISDIR, "CClash", "bin", "Release")
+    bindir = os.path.join(THISDIR, "CClash", "bin", DIST)
     pathvar = os.getenv("PATH")
     os.environ["PATH"] = bindir + os.pathsep + pathvar
     os.environ["CCLASH_Z7_OBJ"] = "yes"
     os.environ["CCLASH_SERVER"] = "1"
+    os.environ["CCLASH_TRACKER_MODE"] = "yes"
 
     cachedir = os.path.join(THISDIR, "oslcache")
-    #if os.path.isdir(cachedir):
-    #    shutil.rmtree(cachedir)
-    #os.makedirs(cachedir)
     os.environ["CCLASH_DIR"] = cachedir
 
-    try:
-        subprocess.check_call(["cl", "--cclash", "--stop"])
-    except:
-        pass
-    subprocess.check_call(["cl", "--cclash", "--start"])
-
+    if STARTSERVER:
+        try:
+            subprocess.check_call(["cl", "--cclash", "--stop"])
+        except subprocess.CalledProcessError:
+            pass
+        subprocess.check_call(["cl", "--cclash", "--start"])
 
 
 def build():
@@ -60,7 +60,6 @@ def build():
                 repeat -= 1
                 if repeat == 0:
                     raise
-            
 
     sys.stdout.write(".. copying openssl source tree ..")
     shutil.copytree(os.path.join(THISDIR, oslsrc), 
@@ -71,7 +70,7 @@ def build():
 
     sys.stdout.write(".. running Configure ..")
     subprocess.check_output(["perl", "Configure", "VC-WIN32", "no-asm",
-        "--prefix=c:\openssl"])
+                             "--prefix=c:\openssl"])
     print "done."
     
     sys.stdout.write(".. create makefiles ..")
@@ -98,6 +97,11 @@ def try_build():
 
                                        
 if __name__ == "__main__":
+    if "--debug" in sys.argv:
+        DIST = "Debug"
+    if "--no-start" in sys.argv:
+        STARTSERVER = False
+
     envcheck()
     try_build()
     try_build()

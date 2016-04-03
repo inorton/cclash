@@ -55,6 +55,7 @@
     <SignManifests>false</SignManifests>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Microsoft.Build.Utilities.v4.0" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Management" />
@@ -91,6 +92,7 @@
     <Compile Include="ICompilerCache.cs" />
     <Compile Include="Logging.cs" />
     <Compile Include="NullCompilerCache.cs" />
+    <Compile Include="ParseTrackerFile.cs" />
     <Compile Include="ProcessUtils.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

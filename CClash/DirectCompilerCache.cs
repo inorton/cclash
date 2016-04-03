@@ -137,6 +137,11 @@ namespace CClash
 
         TimeSpan lastCompileDuration = default(TimeSpan);
 
+        string MakeTrackerFolderName()
+        {
+            return String.Format("cclash-track-{0}", Guid.NewGuid().ToString().Substring(0, 8));
+        }
+
         protected virtual int Compile(ICompiler comp, IEnumerable<string> args, string stderrfile, string stdoutfile, List<string> includes)
         {
             #region compile
@@ -145,8 +150,13 @@ namespace CClash
             {
                 using (var stdoutfs = new StreamWriter(stdoutfile))
                 {
+                    if (Settings.TrackerMode)
+                    {                        
+                        comp.EnableTracker(MakeTrackerFolderName());
+                    }
                     var rv = CompileWithStreams(comp, args, stderrfs, stdoutfs, includes);
                     lastCompileDuration = DateTime.Now.Subtract(start);
+
                     return rv;
                 }
             }

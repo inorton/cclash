@@ -32,6 +32,8 @@ namespace CClash
         string SingleSourceFile { get; }
         string[] SourceFiles { get; }
         string WorkingDirectory { get; }
+        void EnableTracker(string folder);
+        string TrackerFolder { get; }
 
         Action<string> StdErrorCallback { get; set; }
         Action<string> StdOutputCallback { get; set; }

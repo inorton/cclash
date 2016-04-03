@@ -67,6 +67,19 @@ namespace CClash
             return arg;
         }
 
+        /// <summary>
+        /// Given a string we expect is a disk path, swap "/" to "\".
+        /// </summary>
+        /// <remarks>
+        /// This might be from running under cygwin or mingw, cl is quite lax about this.
+        /// </remarks>
+        /// <param name="path"></param>
+        /// <returns></returns>
+        public static string MakeWindowsPath(string path)
+        {
+            return path.Replace('/', '\\');            
+        }
+
         public static IEnumerable<string> FixupArgs(IEnumerable<string> args)
         {
             var rv = new List<string>();
