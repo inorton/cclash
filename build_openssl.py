@@ -27,17 +27,19 @@ def envcheck():
     os.environ["PATH"] = bindir + os.pathsep + pathvar
     os.environ["CCLASH_Z7_OBJ"] = "yes"
     os.environ["CCLASH_SERVER"] = "1"
-    try:
-        subprocess.check_call(["cl", "--cclash", "--stop"])
-    except:
-        pass
-    subprocess.check_call(["cl", "--cclash", "--start"])
 
     cachedir = os.path.join(THISDIR, "oslcache")
     if os.path.isdir(cachedir):
         shutil.rmtree(cachedir)
     os.makedirs(cachedir)
     os.environ["CCLASH_DIR"] = cachedir
+
+    try:
+        subprocess.check_call(["cl", "--cclash", "--stop"])
+    except:
+        pass
+    subprocess.check_call(["cl", "--cclash", "--start"])
+
 
 
 def build():
