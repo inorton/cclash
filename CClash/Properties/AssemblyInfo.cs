@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Ian Norton")]
 [assembly: AssemblyProduct("cclash")]
-[assembly: AssemblyCopyright("Copyright Ian Norton ©2013")]
+[assembly: AssemblyCopyright("Copyright Ian Norton ©2016")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

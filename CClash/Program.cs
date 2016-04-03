@@ -88,7 +88,7 @@ namespace CClash
             if (args.Contains("--cclash"))
             {
                 Logging.Emit("maint mode");
-                Console.Error.WriteLine("cclash {0} (c) Ian Norton, April 2014",
+                Console.Error.WriteLine("cclash {0} (c) Ian Norton, April 2016",
                     typeof(Program).Assembly.GetName().Version.ToString());
 
                 var compiler = Compiler.Find();
