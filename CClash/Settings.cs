@@ -185,20 +185,31 @@ namespace CClash
             }
         }
 
-
+        static int GetInteger(string envvar, int defaultvalue)
+        {
+            int rv = defaultvalue;
+            var env = Environment.GetEnvironmentVariable(envvar);
+            if (env != null)
+            {
+                Int32.TryParse(env, out rv);
+                if (rv < 0) rv = 0;
+            }
+            return (int)rv;
+        }
 
         public static int ServerQuitAfterIdleMinutes
         {
             get
             {
-                int rv = 0;
-                var env = Environment.GetEnvironmentVariable("CCLASH_EXIT_IDLETIME");
-                if (env != null)
-                {
-                    Int32.TryParse(env, out rv);
-                    if (rv < 0) rv = 0;
-                }
-                return (int)rv;
+                return GetInteger("CCLASH_EXIT_IDLETIME", 0);
+            }
+        }
+
+        public static int SlowObjectTimeout
+        {
+            get
+            {
+                return GetInteger("CCLASH_SLOWOBJ_TIMEOUT", 0);
             }
         }
     }

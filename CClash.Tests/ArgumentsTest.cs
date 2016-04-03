@@ -10,17 +10,30 @@ namespace CClash.Tests
     [TestFixture]
     public class ArgumentsTest
     {
-        [TestCase("\"foo\"", "bar", "baz spaces", "bar spaces")]
-        [TestCase(" ", "x x x")]
-        public void EscapeSpaces( params string[] argv )
+        [Test]
+        public void EscapeSpaces()
         {
-            Console.WriteLine(Compiler.JoinAguments(argv));
+            Assert.AreEqual("\"foo\" bar \"baz spaces\" \"bar spaces\"",
+                ArgumentUtils.JoinAguments(new string[] { "\"foo\"", "bar", "baz spaces", "bar spaces" }));
+
+            Assert.AreEqual("\" \" \"x x x\"",
+                ArgumentUtils.JoinAguments(new string[] { " ", "x x x" }));
         }
 
-        [TestCase("foo\\bar")]
-        public void EscapeSlashes(params string[] argv)
+        [Test]
+        public void EscapeSlashes()
         {
-            Console.WriteLine(Compiler.JoinAguments(argv));
+            Assert.AreEqual("foo\\bar\\file.c",
+                ArgumentUtils.JoinAguments(new string[] { "foo\\bar\\file.c" }));
         }
+
+        [Test]
+        public void EscapeQuotes()
+        {
+            Assert.AreEqual(new string[] {"/D"}, 
+                ArgumentUtils.FixupArgs(new string[]{"/D"}));
+        }
+
+
     }
 }
