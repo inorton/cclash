@@ -144,7 +144,7 @@ namespace CClash.Tests
         void RunSubprocess(string prog, string[] argv, StringBuilder stdout, StringBuilder stderr) {
             var p = new Process();
             
-            p.StartInfo = new ProcessStartInfo( prog, Compiler.JoinAguments(argv) );
+            p.StartInfo = new ProcessStartInfo( prog, ArgumentUtils.JoinAguments(argv) );
             p.StartInfo.UseShellExecute = false;
             p.StartInfo.RedirectStandardOutput = true;
             p.StartInfo.RedirectStandardError = true;
