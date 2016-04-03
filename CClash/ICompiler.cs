@@ -11,8 +11,7 @@ namespace CClash
         string[] CommandLine { get; set; }
         string[] CompileArgs { get; set; }
         string CompilerExe { get; set; }
-        System.Collections.Generic.Dictionary<string, string> EnvironmentVariables { get; }
-        System.Collections.Generic.IEnumerable<string> FixupArgs(System.Collections.Generic.IEnumerable<string> args);
+        System.Collections.Generic.Dictionary<string, string> EnvironmentVariables { get; }        
         bool GeneratePdb { get; set; }
         System.Collections.Generic.List<string> GetPotentialIncludeFiles(System.Collections.Generic.IEnumerable<string> incdirs, System.Collections.Generic.IEnumerable<string> incfiles);
         System.Collections.Generic.List<string> GetUsedIncludeDirs(System.Collections.Generic.List<string> files);

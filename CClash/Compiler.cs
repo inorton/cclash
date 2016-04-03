@@ -16,6 +16,18 @@ namespace CClash
     {
         static Regex findLineInclude = new Regex("#line\\s+\\d+\\s+\"([^\"]+)\"");
         public const string InternalResponseFileSuffix = "cclash";
+        public const int WaitForSlowObjectDefault = 10000;
+
+        public int WaitForSlowObject
+        {
+            get;
+            private set;
+        }
+
+        public void SetWaitForSlowObject(int msec)
+        {
+            WaitForSlowObject = msec;
+        }
 
         [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
         static unsafe extern IntPtr GetEnvironmentStringsA();
@@ -158,6 +170,9 @@ namespace CClash
         {
             compilerExe = "cl";
             Created = DateTime.Now;
+            WaitForSlowObject = WaitForSlowObjectDefault;
+            if (Settings.SlowObjectTimeout > 0)
+                WaitForSlowObject = Settings.SlowObjectTimeout;
         }
 
         public DateTime Created { get; set; }
@@ -278,6 +293,12 @@ namespace CClash
             }
         }
 
+        public bool ObjectTargetIsFolder
+        {
+            get;
+            private set;
+        }
+
         bool IsSupported
         {
             get
@@ -297,11 +318,14 @@ namespace CClash
 
         string getOption(string arg)
         {
-            if (arg.StartsWith("-") || arg.StartsWith("/"))
+            var canon = ArgumentUtils.CanonicalArgument(arg);
+            if (canon.StartsWith("/"))
             {
-                var rv = "/" + arg.Substring(1);
-                if (rv.Length > 2) rv = rv.Substring(0, 3);
-                return rv;
+                if (canon == "/link")
+                    return canon;
+                if (canon.Length > 2)
+                    canon = canon.Substring(0, 3);
+                return canon;
             }
             return arg;
         }
@@ -309,11 +333,7 @@ namespace CClash
         string getFullOption(string arg)
         {
             arg = arg.Trim('"', '\'');
-            if (arg.StartsWith("-") || arg.StartsWith("/"))
-            {
-                return "/" + arg.Substring(1);
-            }
-            return arg;
+            return ArgumentUtils.CanonicalArgument(arg);            
         }
 
         [DllImport("shell32.dll", SetLastError = true)]
@@ -334,39 +354,6 @@ namespace CClash
             }
             Marshal.FreeHGlobal(argv);
             return args;
-        }
-
-        public IEnumerable<string> FixupArgs(IEnumerable<string> args)
-        {
-            var rv = new List<string>();
-            var aa = args.ToArray();
-            for (int i = 0; i < aa.Length; i++)
-            {
-                var a = aa[i];
-                if (a.StartsWith("/D") || a.StartsWith("-D"))
-                {
-                    string val;
-                    if (a.Length == 2 && (i + 1 < aa.Length))
-                    {
-                        val = aa[++i];
-                    }
-                    else
-                    {
-                        val = a.Substring(2);
-                    }
-                    if (val.Contains("=\""))
-                    {
-                        val = Regex.Replace(val, "\"", "\"\"\"");
-                    }
-                    rv.Add("/D" + val);
-                }
-                else
-                {
-                    rv.Add(a);
-                }
-            }
-
-            return rv;
         }
 
         private Dictionary<string, string> compenvs;
@@ -476,8 +463,14 @@ namespace CClash
 
                         case "/Fo":
                             ObjectTarget = Path.Combine(WorkingDirectory, full.Substring(3));
-                            if (!Path.GetFileName(ObjectTarget).Contains("."))
-                                ObjectTarget += ".obj";
+                            if (ArgumentUtils.TargetIsFolder(ObjectTarget))
+                            {
+                                ObjectTargetIsFolder = true;
+                            }
+                            else
+                            {
+                                ObjectTarget = ArgumentUtils.TargetObject(ObjectTarget);
+                            }
                             break;
 
                         case "/Tp":
@@ -532,7 +525,7 @@ namespace CClash
                                     if (args.Length == 1)
                                     {
                                         // this only works if it is the one and only arg!
-                                        args = FixupArgs( CommandLineToArgs(rsptxt).Skip(1) ).ToArray();
+                                        args = ArgumentUtils.FixupArgs(CommandLineToArgs(rsptxt).Skip(1)).ToArray();
                                         i = -1;
                                         // replace the command line with the response file content 
                                         // and restart parsing. This does go wrong if the response text is huge
@@ -590,17 +583,22 @@ namespace CClash
 
                 if (SingleSource)
                 {
+                    var defaultObj = ArgumentUtils.TargetObject(Path.GetFileNameWithoutExtension(SingleSourceFile));                         
                     if (ObjectTarget == null)
                     {
-                        var f = Path.GetFileNameWithoutExtension(SingleSourceFile) + ".obj";
-                        if (Path.IsPathRooted(f))
+                        if (Path.IsPathRooted(defaultObj))
                         {
-                            ObjectTarget = f;
+                            ObjectTarget = defaultObj;
                         }
                         else
                         {
-                            ObjectTarget = Path.Combine(WorkingDirectory, f);
+                            ObjectTarget = Path.Combine(WorkingDirectory, defaultObj);
                         }
+                    }
+
+                    if (ObjectTargetIsFolder)
+                    {
+                        ObjectTarget = Path.Combine(ObjectTarget, defaultObj);
                     }
 
                     if (GeneratePdb)
@@ -665,24 +663,6 @@ namespace CClash
             }
             CompileArgs = args.ToArray();
             return IsSupported;
-        }
-
-        public static string JoinAguments(IEnumerable<string> args)
-        {
-            var sb = new System.Text.StringBuilder();
-            foreach (var a in args)
-            {
-                if (a.Contains(' ') || a.Contains('\t'))
-                {
-                    sb.AppendFormat("\"{0}\"", a);
-                }
-                else
-                {
-                    sb.Append(a);
-                }
-                sb.Append(" ");
-            }
-            return sb.ToString().TrimEnd();
         }
 
         public List<string> GetPotentialIncludeFiles(IEnumerable<string> incdirs, IEnumerable<string> incfiles)
@@ -775,7 +755,7 @@ namespace CClash
                 if (compenvs == null || compenvs.Count == 0)
                     throw new InvalidOperationException("no environment set");
 
-                var cla = JoinAguments(FixupArgs(args));
+                var cla = ArgumentUtils.JoinAguments(ArgumentUtils.FixupArgs(args));
                 if (showIncludes) cla += " /showIncludes";
                 var psi = new ProcessStartInfo(CompilerExe, cla)
                 {
@@ -855,24 +835,30 @@ namespace CClash
                         {
                             var sw = new Stopwatch();
                             sw.Start();
-                            int waited = 0;
-
-                            while (!File.Exists(ObjectTarget) && (sw.ElapsedMilliseconds < 10000))
-                            {
-                                Logging.Emit("compiler slow to write object! {0} {1}ms", ObjectTarget, (int)sw.Elapsed.TotalMilliseconds);
-                                waited++;
-                                System.Threading.Thread.Sleep(Math.Min(1000, 100 * waited));
+                            while (!File.Exists(ObjectTarget) && (sw.ElapsedMilliseconds < WaitForSlowObject))
+                            {                                
+                                System.Threading.Thread.Sleep(500);
                             }
+                            sw.Stop();
 
                             if (!File.Exists(ObjectTarget))
                             {
-                                string logmsg = string.Format("cl exited with zero but failed to create the object file! {0}", ObjectTarget);
+                                retry = true;
+                                if (sw.ElapsedMilliseconds > 2000)
+                                {
+                                    Logging.Emit("compiler didn't write expected object! {0} after {1}ms", ObjectTarget, (int)sw.Elapsed.TotalMilliseconds);
+                                    retry = false;
+                                }
+                                string logmsg = string.Format("cl exited with zero but failed to create the expected object file! {0}", ObjectTarget);
                                 // let the retry system have a go with this
 
-                                Logging.Warning("{0}, re-running!", logmsg);
-                                retry = true;
+                                if (retry)
+                                    Logging.Warning("{0}, re-running!", logmsg);
                             }
-                            Logging.Emit("output: {0} seen", ObjectTarget);
+                            else
+                            {
+                                Logging.Emit("output: {0} seen", ObjectTarget);
+                            }
                         }
                     }
                 }

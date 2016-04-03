@@ -29,6 +29,7 @@ namespace CClash.Tests
             Environment.SetEnvironmentVariable("CCLASH_PPMODE", null);
             Environment.SetEnvironmentVariable("CCLASH_DISABLE_WHEN_VAR", null);
             Environment.SetEnvironmentVariable("CCLASH_ENABLE_WHEN_VAR", null);
+            Environment.SetEnvironmentVariable("CCLASH_SLOWOBJ_TIMEOUT", "3000");
             if (!setpaths)
             {
                 Environment.SetEnvironmentVariable("PATH",
@@ -64,14 +65,16 @@ namespace CClash.Tests
         }
 
         [Test]
-        [TestCase("/c","test-sources\\exists.c")]
-        [TestCase("/c","test-sources\\exists.c", "/Fowhatever.obj")]
-        [TestCase("/c","test-sources\\exists.c", "/Fotest-sources")]
-        public void ParseSupportedArgs(params string[] argv)
+        [TestCase("exists.obj", "/c", "test-sources\\exists.c")]
+        [TestCase("whatever.obj", "/c", "test-sources\\exists.c", "/Fowhatever.obj")]
+        [TestCase("test-sources.obj", "/c", "test-sources\\exists.c", "/Fotest-sources")]
+        [TestCase("test-sources\\exists.obj", "/c", "test-sources\\exists.c", "/Fotest-sources\\")]
+        public void CompilerArgumentParsing(string objfile, params string[] argv)
         {
             var c = new Compiler();
             c.SetWorkingDirectory(InitialDir);
             c.SetEnvironment(Compiler.GetEnvironmentDictionary());
+            c.SetWaitForSlowObject(3000);
             var sbo = new StringBuilder();
             var sbe = new StringBuilder();
             Assert.IsTrue(c.ProcessArguments(argv));
@@ -80,16 +83,23 @@ namespace CClash.Tests
             Assert.IsNotNullOrEmpty(c.ObjectTarget);
             Assert.IsFalse(c.PrecompiledHeaders);
             Assert.AreNotEqual(c.SingleSourceFile, c.ObjectTarget);
+            Assert.AreEqual(Path.Combine(InitialDir, objfile), c.ObjectTarget);
 
             EnsureDeleted(c.ObjectTarget);
             EnsureDeleted(c.PdbFile);
-            
+
             c.CompilerExe = CompilerPath;
             c.SetWorkingDirectory(InitialDir);
             c.SetEnvironment(Compiler.GetEnvironmentDictionary());
+
+            var stderr = new StringBuilder();
+            var stdout = new StringBuilder();
+
             var ec = c.InvokeCompiler(
                 c.CommandLine,
-                Console.Error.WriteLine, Console.Error.WriteLine, false, null);
+                (x) => { stderr.AppendLine(x); },
+                (x) => { stdout.AppendLine(x); },
+                false, null);
 
             Assert.AreEqual(0, ec);
 

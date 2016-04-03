@@ -51,7 +51,7 @@ namespace CClash.Tests
 
 
         [Test]
-        [TestCase(100)]
+        [TestCase(5)]
         public void RunEnabledDirectPdb(int times)
         {
             Assert.IsFalse(Settings.Disabled);
@@ -267,9 +267,9 @@ namespace CClash.Tests
         }
 
         [Test]
-        [TestCase(10, 20, false, false)]
-        [TestCase(2, 100, false, false)]
-        [TestCase(200, 1, false, false)]
+        [TestCase(5, 20, false, false)]
+        [TestCase(2, 20, false, false)]
+        [TestCase(10, 1, false, false)]
         [TestCase(5, 5, true, false)]
         //[TestCase(5, 5, true, true)] // TODO - pdb support is patchy, suppression is only for openssl
         public void RunEnabledDirectServerFolders(int times, int filecount, bool debug, bool pdb)
