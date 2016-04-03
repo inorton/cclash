@@ -262,6 +262,7 @@ namespace CClash
         public static string MakePipeName(string cachedir)
         {
             var x = cachedir.Replace('\\', ' ');
+            x = x.Replace('\"', '_');
             return x.Replace(':', '=') + ".pipe";
         }
 

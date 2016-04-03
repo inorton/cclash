@@ -29,9 +29,9 @@ def envcheck():
     os.environ["CCLASH_SERVER"] = "1"
 
     cachedir = os.path.join(THISDIR, "oslcache")
-    if os.path.isdir(cachedir):
-        shutil.rmtree(cachedir)
-    os.makedirs(cachedir)
+    #if os.path.isdir(cachedir):
+    #    shutil.rmtree(cachedir)
+    #os.makedirs(cachedir)
     os.environ["CCLASH_DIR"] = cachedir
 
     try:
@@ -49,7 +49,19 @@ def build():
     oslsrc = "openssl-" + OSLVERSION
     os.chdir(THISDIR)
     if os.path.exists("buildtemp"):
-        shutil.rmtree("buildtemp")
+        print ".. delete earlier build.."
+        repeat = 4
+        while repeat > 0:
+            try:
+                time.sleep(20)  # antivirus might still be in here..
+                shutil.rmtree("buildtemp")
+                repeat = 0
+            except:
+                repeat -= 1
+                if repeat == 0:
+                    raise
+            
+
     sys.stdout.write(".. copying openssl source tree ..")
     shutil.copytree(os.path.join(THISDIR, oslsrc), 
                     os.path.join(THISDIR, "buildtemp"))

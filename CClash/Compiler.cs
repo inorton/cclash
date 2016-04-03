@@ -605,48 +605,22 @@ namespace CClash
                     {
                         if (Settings.ConvertObjPdbToZ7)
                         {
-                            bool doconvert = false;
-                            if (PdbFile == null)
+                            Logging.Emit("converting pdb request to Z7 embedded debug {0}:{1}", WorkingDirectory, Path.GetFileName(ObjectTarget));
+                            // append /Z7 to the arg list and don't generate a pdb
+                            var newargs = new List<string>();
+                            foreach (var a in args)
                             {
-                                doconvert = true;
-                            }
-                            else
-                            {
-                                if (PdbFile.EndsWith("\\"))
+                                if (!(a.StartsWith("/Zi") || a.StartsWith("/Fd")))
                                 {
-                                    doconvert = true;
-                                }
-                                else
-                                {
-                                    if (!FileUtils.Exists(PdbFile))
-                                    {
-                                        if (WorkingDirectory.Contains("openssl"))
-                                        {
-                                            doconvert = true;
-                                        }
-                                    }
+                                    newargs.Add(a);
                                 }
                             }
-
-                            if (doconvert)
-                            {
-                                Logging.Emit("converting pdb request to Z7 embedded debug {0}:{1}", WorkingDirectory, Path.GetFileName(ObjectTarget));
-                                // append /Z7 to the arg list
-                                var newargs = new List<string>();                                
-                                foreach (var a in args)
-                                {
-                                    if (!(a.StartsWith("/Zi") || a.StartsWith("/Fd")))
-                                    {
-                                        newargs.Add(a);
-                                    }
-                                }
-                                newargs.Add("/Z7");
-                                AttemptPdb = false;
-                                PdbFile = null;
-                                GeneratePdb = false;
-                                PdbExistsAlready = false;
-                                args = newargs.ToArray();
-                            }
+                            newargs.Add("/Z7");
+                            AttemptPdb = false;
+                            PdbFile = null;
+                            GeneratePdb = false;
+                            PdbExistsAlready = false;
+                            args = newargs.ToArray();
                         }
                     }
 

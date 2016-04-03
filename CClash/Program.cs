@@ -101,6 +101,7 @@ namespace CClash
                             var cc = new CClashServerClient(Settings.CacheDirectory);
                             if (args.Contains("--stop"))
                             {
+                                Console.Error.WriteLine("stopping server..");
                                 cc.Transact(new CClashRequest() { cmd = Command.Quit });
                             }
                             else {

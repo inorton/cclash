@@ -114,6 +114,8 @@ namespace CClash
                         var appdata = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
                         cachedir = System.IO.Path.Combine(appdata, "cclash");
                     }
+                    if (cachedir.Contains('"'))
+                        cachedir = cachedir.Replace("\"", "");
                 }
                 return cachedir;
             }
