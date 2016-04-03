@@ -1,4 +1,4 @@
-# CClash (c) 2015 Ian Norton
+# CClash (c) 2016 Ian Norton
 ## About
 
 CClash is a compiler cache for the Microsoft 'cl' compiler.
