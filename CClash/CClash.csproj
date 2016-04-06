@@ -90,6 +90,7 @@
     <Compile Include="ICacheInfo.cs" />
     <Compile Include="ICompiler.cs" />
     <Compile Include="ICompilerCache.cs" />
+    <Compile Include="IFileCacheStore.cs" />
     <Compile Include="Logging.cs" />
     <Compile Include="NullCompilerCache.cs" />
     <Compile Include="ParseTrackerFile.cs" />

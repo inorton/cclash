@@ -5,14 +5,25 @@ using System.Threading;
 
 namespace CClash
 {
-    public sealed class FileCacheStore : IDisposable
+    public class FileCacheStore : IFileCacheStore
     {
-        public delegate void FileCacheStoreAddedHandler(object sender, FileCacheStoreAddedEventArgs e);
-        public delegate void FileCacheStoreRemovedHandler(object sender, FileCacheStoreRemovedEventArgs e);
-
-        public static FileCacheStore Load(string cacheFolder)
+        public static IFileCacheStore Load<T>(string cachefolder) where T :  class, IFileCacheStore, new()
         {
-            return new FileCacheStore(cacheFolder);
+            var cache = new T();
+            cache.Open(cachefolder);
+            return cache;
+        }
+
+        public static IFileCacheStore Load(string cacheFolder)
+        {
+            var ctype = Settings.CacheType;
+            switch (ctype)
+            {
+                case CacheStoreType.FileCache:
+                    return Load<FileCacheStore>(cacheFolder);
+                default:
+                    throw new NotImplementedException(ctype.ToString());
+            }      
         }
 
         public string FolderPath { get; private set; }
@@ -32,7 +43,11 @@ namespace CClash
             mtx.ReleaseMutex();
         }
 
-        FileCacheStore( string folderPath )
+        public FileCacheStore()
+        {
+        }
+
+        public void Open( string folderPath )
         {
             FolderPath = Path.GetFullPath(folderPath);
             mtx = new Mutex(false, "cclash_mtx_" + FolderPath.ToLower().GetHashCode());
@@ -143,6 +158,11 @@ namespace CClash
             return rv;
         }
 
+        public Stream OpenFileStream(string key, string filename, FileMode mode, FileAccess access)
+        {            
+            return File.Open(MakePath(key, filename), mode, access);
+        }
+
         public void AddEntry(string key)
         {
             EnsureKey(key);
@@ -201,13 +221,5 @@ namespace CClash
         }
     }
 
-    public class FileCacheStoreAddedEventArgs : EventArgs
-    {
-        public int SizeKB { get; set; }
-    }
 
-    public class FileCacheStoreRemovedEventArgs : EventArgs
-    {
-        public int SizeKB { get; set; }
-    }
 }

@@ -332,7 +332,7 @@ namespace CClash.Tests
         }
 
         [Test]
-        [TestCase(100)]
+        [TestCase(10)]
         public void RunDisabled(int times)
         {
             Assert.IsFalse(Settings.Disabled);

@@ -9,7 +9,7 @@ namespace CClash
     public interface ICompilerCache : IDisposable
     {
         ICacheInfo Stats { get; }
-        FileCacheStore OutputCache { get; }
+        IFileCacheStore OutputCache { get; }
         bool CheckCache(ICompiler comp, IEnumerable<string> args, DataHash commonkey, out CacheManifest manifest);
         ICompiler SetCompiler(string compiler, string workdir, Dictionary<string, string> envs);
         bool IsSupported( ICompiler comp, IEnumerable<string> args);

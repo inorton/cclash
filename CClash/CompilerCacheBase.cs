@@ -44,8 +44,8 @@ namespace CClash
         public const string F_Stdout = "compiler.stdout";
         public const string F_Stderr = "compiler.stderr";
 
-        protected FileCacheStore outputCache;
-        protected FileCacheStore includeCache;
+        protected IFileCacheStore outputCache;
+        protected IFileCacheStore includeCache;
         protected String compilerPath;
         protected HashUtil hasher;
 
@@ -154,9 +154,9 @@ namespace CClash
             
             if (outputCache.ContainsEntry(commonkey.Hash, F_Manifest))
             {
-                var mn = outputCache.MakePath(commonkey.Hash, F_Manifest);
-                using ( var fs = new FileStream( mn, FileMode.Open ) ){
-                    manifest = CacheManifest.Deserialize(fs);
+                using (var mfs = outputCache.OpenFileStream(commonkey.Hash, F_Manifest, FileMode.Open, FileAccess.Read))
+                {
+                    manifest = CacheManifest.Deserialize(mfs);
                 }
             }
 
@@ -167,9 +167,16 @@ namespace CClash
         {
             try
             {
-                CopyFile(outputCache.MakePath(hc.Hash, F_Object), comp.ObjectTarget);
-                if (comp.GeneratePdb && comp.AttemptPdb && comp.PdbFile != null)
-                    CopyFile(outputCache.MakePath(hc.Hash, F_Pdb), comp.PdbFile);
+                using (var obj = outputCache.OpenFileStream(hc.Hash, F_Object, FileMode.Open, FileAccess.Read))
+                    WriteFile(obj, comp.ObjectTarget);
+
+                if (outputCache.ContainsEntry(hc.Hash, F_Pdb))
+                {
+                    using (var pdb = outputCache.OpenFileStream(hc.Hash, F_Pdb, FileMode.Open, FileAccess.Read))
+                    {
+                        WriteFile(pdb, comp.PdbFile);
+                    }
+                }
             }
             catch (Exception e)
             {
@@ -180,10 +187,15 @@ namespace CClash
 
         void CopyStdio(ICompiler comp, DataHash hc)
         {
-            var stderrfile = outputCache.MakePath(hc.Hash, F_Stderr);
-            var stdoutfile = outputCache.MakePath(hc.Hash, F_Stdout);
-            comp.StdOutputCallback(File.ReadAllText(stdoutfile));
-            comp.StdErrorCallback(File.ReadAllText(stderrfile));
+
+            using (var stderr = outputCache.OpenFileStream(hc.Hash, F_Stderr, FileMode.Open, FileAccess.Read))
+            using (var reader = new StreamReader(stderr))
+                comp.StdErrorCallback(reader.ReadToEnd());
+
+            using (var stdout = outputCache.OpenFileStream(hc.Hash, F_Stdout, FileMode.Open, FileAccess.Read))
+            using (var reader = new StreamReader(stdout))
+                comp.StdOutputCallback(reader.ReadToEnd());
+            
         }
 
         public virtual Dictionary<string, DataHash> GetHashes(IEnumerable<string> fnames)
@@ -199,6 +211,14 @@ namespace CClash
         public virtual bool FileMissing(string path)
         {
             return FileUtils.FileMissing(path);
+        }
+
+        public virtual void WriteFile(Stream source, string newfile)
+        {
+            using (var ofs = new FileStream(newfile, FileMode.OpenOrCreate))
+            {
+                source.CopyTo(ofs);
+            }
         }
 
         public virtual void CopyFile(string from, string to)

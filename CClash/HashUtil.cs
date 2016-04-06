@@ -54,9 +54,9 @@ namespace CClash
 
         static Regex FindDateTime = new Regex(FindDateTimePattern);
 
-        FileCacheStore includeCache;
+        IFileCacheStore includeCache;
 
-        public HashUtil(FileCacheStore includecache) {
+        public HashUtil(IFileCacheStore includecache) {
             if (includecache == null) throw new ArgumentNullException("includecache");
             includeCache = includecache;
         }

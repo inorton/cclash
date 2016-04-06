@@ -38,10 +38,9 @@ namespace CClash.Tests
                 try
                 {
                     fc.AddTextFileContent("aa12345", "test.txt", "hello");
-                    Assert.IsTrue(File.Exists(fc.MakePath("aa12345", "test.txt")));
+                    Assert.IsTrue(fc.ContainsEntry("aa12345", "test.txt"));                    
                     fc.Remove("aa12345");
-                    Assert.IsFalse(File.Exists(fc.MakePath("aa12345", "test.txt")));
-                    Assert.IsTrue(Directory.Exists(Path.Combine(fc.FolderPath, "aa")));
+                    Assert.IsFalse(fc.ContainsEntry("aa12345", "test.txt"));                    
                 }
                 finally
                 {

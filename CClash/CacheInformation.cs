@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,8 +10,8 @@ namespace CClash
 {
     public sealed class FastCacheInfo : IDisposable, ICacheInfo
     {
-        FileCacheStore statstore;
-        public FastCacheInfo(FileCacheStore stats)
+        IFileCacheStore statstore;
+        public FastCacheInfo(IFileCacheStore stats)
         {
             statstore = stats;
         }
@@ -58,16 +59,18 @@ namespace CClash
 
         public void Commit()
         {
-            var real = new CacheInfo(statstore);
-            real.LockStatsCall(() =>
+            using (var real = new CacheInfo(statstore))
             {
-                real.SlowHitCount += this.SlowHitCount;
-                real.CacheUnsupported += this.CacheUnsupported;
-                real.CacheSize += this.CacheSize;
-                real.CacheObjects += this.CacheObjects;
-                real.CacheMisses += this.CacheMisses;
-                real.CacheHits += this.CacheHits;
-            });
+                real.LockStatsCall(() =>
+                {
+                    real.SlowHitCount += this.SlowHitCount;
+                    real.CacheUnsupported += this.CacheUnsupported;
+                    real.CacheSize += this.CacheSize;
+                    real.CacheObjects += this.CacheObjects;
+                    real.CacheMisses += this.CacheMisses;
+                    real.CacheHits += this.CacheHits;
+                });
+            }
         }
 
         public void Dispose()
@@ -92,7 +95,7 @@ namespace CClash
 
         public const string CacheFormat = "v3";
 
-        FileCacheStore cache;
+        IFileCacheStore cache;
         Mutex statMtx = null;
 
         public void Commit()
@@ -100,7 +103,7 @@ namespace CClash
 
         }
 
-        public CacheInfo(FileCacheStore statCache)
+        public CacheInfo(IFileCacheStore statCache)
         {
             cache = statCache;
             Logging.Emit("creating cache info mutex");
@@ -120,8 +123,15 @@ namespace CClash
         {
             try
             {
-                var x = System.IO.File.ReadAllText(cache.MakePath(K_Stats, statfile));
-                return Int64.Parse(x);
+                cache.EnsureKey(K_Stats);
+                using (var stats = cache.OpenFileStream(K_Stats, statfile, FileMode.Open, FileAccess.Read))
+                {
+                    using (var sr = new StreamReader(stats))
+                    {
+                        var x = sr.ReadToEnd();
+                        return Int64.Parse(x);
+                    }
+                }                
             }
             catch
             {
@@ -132,7 +142,13 @@ namespace CClash
         public void WriteStat(string statfile, long value)
         {
             cache.EnsureKey(K_Stats);
-            System.IO.File.WriteAllText(cache.MakePath(K_Stats, statfile), value.ToString());
+            using (var stats = cache.OpenFileStream(K_Stats, statfile, FileMode.OpenOrCreate, FileAccess.Write))
+            {
+                using (var sw = new StreamWriter(stats))
+                {
+                    sw.Write(value.ToString());
+                }
+            }
         }
 
         public long SlowHitCount

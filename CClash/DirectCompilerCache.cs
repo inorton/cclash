@@ -13,7 +13,7 @@ namespace CClash
             Logging.Emit("direct compiler cache");
         }
 
-        public FileCacheStore OutputCache
+        public IFileCacheStore OutputCache
         {
             get
             {
@@ -21,7 +21,7 @@ namespace CClash
             }
         }
 
-        public FileCacheStore IncludeCache {
+        public IFileCacheStore IncludeCache {
             get {
                 return includeCache;
             }
@@ -115,7 +115,7 @@ namespace CClash
                 #region check cached data exists
                 foreach (var f in new string[] { F_Manifest, F_Object })
                 {
-                    if (!FileUtils.Exists(outputCache.MakePath(commonkey.Hash, f)))
+                    if (!outputCache.ContainsEntry(commonkey.Hash, f))                        
                     {
                         outputCache.Remove(commonkey.Hash);
                         Logging.Miss(commonkey.Hash, DataHashResult.CacheCorrupt, commonkey.Hash, comp.SingleSourceFile, "");
@@ -142,13 +142,13 @@ namespace CClash
             return String.Format("cclash-track-{0}", Guid.NewGuid().ToString().Substring(0, 8));
         }
 
-        protected virtual int Compile(ICompiler comp, IEnumerable<string> args, string stderrfile, string stdoutfile, List<string> includes)
+        protected virtual int Compile(ICompiler comp, IEnumerable<string> args, Stream stderr, Stream stdout, List<string> includes)
         {
             #region compile
             var start = DateTime.Now;
-            using (var stderrfs = new StreamWriter(stderrfile))
+            using (var stderrfs = new StreamWriter(stderr))
             {
-                using (var stdoutfs = new StreamWriter(stdoutfile))
+                using (var stdoutfs = new StreamWriter(stdout))
                 {
                     if (Settings.TrackerMode)
                     {                        
@@ -183,44 +183,42 @@ namespace CClash
 
             Logging.Emit("cache miss took {0}ms", (int)duration.TotalMilliseconds);
 
-            var fname = outputCache.MakePath(m.CommonHash, F_Manifest);
-            using (var fs = new FileStream(fname, FileMode.OpenOrCreate, FileAccess.Write))
+            using (var manifest = outputCache.OpenFileStream(m.CommonHash, F_Manifest, FileMode.OpenOrCreate, FileAccess.Write))
             {
-                m.Serialize(fs);
+                m.Serialize(manifest);                
             }
         }
 
         protected override int OnCacheMissLocked(ICompiler comp, DataHash hc, IEnumerable<string> args, CacheManifest m)
         {
             Logging.Emit("cache miss");
-            outputCache.EnsureKey(hc.Hash);
-            var stderrfile = outputCache.MakePath(hc.Hash, F_Stderr);
-            var stdoutfile = outputCache.MakePath(hc.Hash, F_Stdout);
+            outputCache.EnsureKey(hc.Hash);            
             var ifiles = new List<string>();
             Stats.LockStatsCall(() => Stats.CacheMisses++);
-
-            int rv = Compile(comp, args, stderrfile, stdoutfile, ifiles );
-
-            // we still hold the cache lock, create the manifest asap or give up now!
-
-            if (rv != 0)
+            using (var stderr = outputCache.OpenFileStream(hc.Hash, F_Stderr, FileMode.OpenOrCreate, FileAccess.Write))
+            using (var stdout = outputCache.OpenFileStream(hc.Hash, F_Stdout, FileMode.OpenOrCreate, FileAccess.Write))
             {
-                Unlock(CacheLockType.Read);
-            }
-            else
-            {
-                // this unlocks for us
-                try
-                {
-                    DoCacheMiss(comp, hc, args, m, ifiles);
-                }
-                catch (CClashWarningException)
-                {
-                    return CompileOnly(comp, args);
-                }
-            }
+                int rv = Compile(comp, args, stderr, stdout, ifiles);
+                // we still hold the cache lock, create the manifest asap or give up now!
 
-            return rv;
+                if (rv != 0)
+                {
+                    Unlock(CacheLockType.Read);
+                }
+                else
+                {
+                    // this unlocks for us
+                    try
+                    {
+                        DoCacheMiss(comp, hc, args, m, ifiles);
+                    }
+                    catch (CClashWarningException)
+                    {
+                        return CompileOnly(comp, args);
+                    }
+                }
+                return rv;
+            }
         }
 
         protected virtual void DoCacheMiss(ICompiler c, DataHash hc, IEnumerable<string> args, CacheManifest m, List<string> ifiles)
