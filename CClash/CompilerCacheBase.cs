@@ -127,23 +127,33 @@ namespace CClash
             var comphash = DigestCompiler(comp.CompilerExe);
             if (comphash.Result == DataHashResult.Ok)
             {
-                var srchash = hasher.DigestBinaryFile(comp.SingleSourceFile);
-                if (srchash.Result == DataHashResult.Ok)
+                var buf = new StringWriter();
+
+                DataHash session;
+                buf.WriteLine(CacheInfo.CacheFormat);
+
+                // our compiler and folder
+                buf.WriteLine(comphash.Hash);
+                buf.WriteLine(comp.WorkingDirectory);
+                buf.WriteLine(comp.SingleSourceFile);
+                // important env vars
+                foreach (var ename in new string[] { "INCLUDE", "LIB" })
                 {
-                    var buf = new StringBuilder();
-                    buf.AppendLine(CacheInfo.CacheFormat);
-                    buf.AppendLine(srchash.Hash);
-                    buf.AppendLine(comp.WorkingDirectory);
-                    string incs = null;
-                    comp.EnvironmentVariables.TryGetValue("INCLUDE", out incs);
-                    if (incs != null) buf.AppendLine(incs);
-
-                    foreach (var a in args)
-                        buf.AppendLine(a);
-                    buf.AppendLine(comphash.Hash);
-
-                    comphash = hasher.DigestString(buf.ToString());
+                    string ev = null;
+                    if (comp.EnvironmentVariables.TryGetValue(ename, out ev))
+                    {
+                        if (!string.IsNullOrEmpty(ev)) buf.WriteLine(ev);
+                    }
                 }
+
+                // now all the command line options
+                foreach (var a in args)
+                    buf.WriteLine(a);
+
+                session = hasher.DigestString(buf.ToString());
+                comphash.SessionHash = session.Hash;
+           
+                comphash.Hash = comphash.SessionHash;
             }
             return comphash;
         }
@@ -152,9 +162,9 @@ namespace CClash
         {
             CacheManifest manifest = null;
             
-            if (outputCache.ContainsEntry(commonkey.Hash, F_Manifest))
+            if (outputCache.ContainsEntry(commonkey.SessionHash, F_Manifest))
             {
-                using (var mfs = outputCache.OpenFileStream(commonkey.Hash, F_Manifest, FileMode.Open, FileAccess.Read))
+                using (var mfs = outputCache.OpenFileStream(commonkey.SessionHash, F_Manifest, FileMode.Open, FileAccess.Read))
                 {
                     manifest = CacheManifest.Deserialize(mfs);
                 }
@@ -167,12 +177,12 @@ namespace CClash
         {
             try
             {
-                using (var obj = outputCache.OpenFileStream(hc.Hash, F_Object, FileMode.Open, FileAccess.Read))
+                using (var obj = outputCache.OpenFileStream(hc.SessionHash, F_Object, FileMode.Open, FileAccess.Read))
                     WriteFile(obj, comp.ObjectTarget);
 
-                if (outputCache.ContainsEntry(hc.Hash, F_Pdb))
+                if (outputCache.ContainsEntry(hc.SessionHash, F_Pdb))
                 {
-                    using (var pdb = outputCache.OpenFileStream(hc.Hash, F_Pdb, FileMode.Open, FileAccess.Read))
+                    using (var pdb = outputCache.OpenFileStream(hc.SessionHash, F_Pdb, FileMode.Open, FileAccess.Read))
                     {
                         WriteFile(pdb, comp.PdbFile);
                     }
@@ -188,11 +198,11 @@ namespace CClash
         void CopyStdio(ICompiler comp, DataHash hc)
         {
 
-            using (var stderr = outputCache.OpenFileStream(hc.Hash, F_Stderr, FileMode.Open, FileAccess.Read))
+            using (var stderr = outputCache.OpenFileStream(hc.SessionHash, F_Stderr, FileMode.Open, FileAccess.Read))
             using (var reader = new StreamReader(stderr))
                 comp.StdErrorCallback(reader.ReadToEnd());
 
-            using (var stdout = outputCache.OpenFileStream(hc.Hash, F_Stdout, FileMode.Open, FileAccess.Read))
+            using (var stdout = outputCache.OpenFileStream(hc.SessionHash, F_Stdout, FileMode.Open, FileAccess.Read))
             using (var reader = new StreamReader(stdout))
                 comp.StdOutputCallback(reader.ReadToEnd());
             

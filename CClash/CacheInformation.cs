@@ -92,8 +92,10 @@ namespace CClash
 
         public const string F_StatSlowHits = "slow_hits.txt";
         public const string F_CacheVersion = "version.txt";
+        public const string F_CacheType = "type.txt";
+        public const string F_CacheSchema = "schema.txt";
 
-        public const string CacheFormat = "v3";
+        public const string CacheFormat = "v6";
 
         IFileCacheStore cache;
         Mutex statMtx = null;

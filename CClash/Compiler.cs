@@ -57,6 +57,37 @@ namespace CClash
             return rv;
         }
 
+        static string here = null;
+        static string ThisFolder()
+        {
+            if (here == null)
+              here = System.IO.Path.GetDirectoryName(typeof(Compiler).Assembly.Location).ToLower();
+            return here;
+        }
+
+        static string RemoveHereFromPath(string userpath)
+        {
+            string thisdir = ThisFolder();
+            if (String.IsNullOrWhiteSpace(thisdir))
+            {
+                // somehow we couldn't get our assembly path.. odd
+                return userpath;
+            }
+
+            var newpath = new List<string>();
+            var parts = userpath.Split(System.IO.Path.PathSeparator);
+            
+            foreach (var part in parts)
+            {
+                var lower = part.ToLower();
+                if (lower != thisdir)
+                {
+                    newpath.Add(part);
+                }
+            }
+            return string.Join(System.IO.Path.PathSeparator.ToString(), newpath.ToArray());
+        }
+
         public static Dictionary<string, string> FixEnvironmentDictionary(Dictionary<string, string> envs)
         {
             if (envs == null) throw new ArgumentNullException("envs");
@@ -64,6 +95,10 @@ namespace CClash
             foreach (var row in envs)
             {
                 rv[row.Key.ToUpper()] = row.Value;
+            }
+            if (rv.ContainsKey("PATH"))
+            {
+                rv["PATH"] = RemoveHereFromPath(rv["PATH"]);
             }
 
             return rv;
@@ -809,6 +844,7 @@ namespace CClash
 
                 if (showIncludes)
                 {
+                    foundIncludes.Add(SingleSourceFile);
                     if (TrackerEnabled)
                     {
                         runExe = "tracker.exe";

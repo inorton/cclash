@@ -37,10 +37,28 @@ namespace CClash {
         [DllImport("Shlwapi.dll", SetLastError = true, CharSet = CharSet.Auto, BestFitMapping = false, ThrowOnUnmappableChar = true)]
         private extern static bool PathFileExists(StringBuilder path);
 
+        static Dictionary<string, DateTime> recent_missing = new Dictionary<string, DateTime>();
+
         public static bool FileMissing(string path)
         {
+            DateTime mt;
+            DateTime now = DateTime.Now;
+            if (recent_missing.TryGetValue(path, out mt))
+            {
+                if (now.Subtract(mt).TotalMilliseconds < 200) return true;
+            }
+
             var sb = new StringBuilder(path);
-            return !PathFileExists(sb);
+            var missing = !PathFileExists(sb);
+            if (missing)
+            {
+                lock (recent_missing)
+                {
+                    if (recent_missing.Count > 5000) recent_missing.Clear();
+                    recent_missing[path] = DateTime.Now;
+                }
+            }
+            return missing;
         }
 
         static int FileIORetrySleep = 100;

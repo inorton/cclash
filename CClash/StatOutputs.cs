@@ -13,6 +13,7 @@ namespace CClash
             var sb = new StringBuilder();
             sb.WriteLine("compiler: {0}", compiler);
             sb.WriteLine("cachedir: {0}", Settings.CacheDirectory);
+            sb.WriteLine("cachetype: {0}", Settings.CacheType);
             if (Settings.DebugEnabled)
             {
                 sb.WriteLine("debug file: {0}", Settings.DebugFile);
@@ -31,7 +32,6 @@ namespace CClash
                 {
                     using (var stats = new CacheInfo(cache.OutputCache))
                     {
-
                         sb.WriteLine("outputCache usage: {0} kb", (int)(stats.CacheSize / 1024));
                         sb.WriteLine("cached files: {0}", stats.CacheObjects);
                         sb.WriteLine("hits: {0}", stats.CacheHits);

@@ -60,11 +60,13 @@ namespace CClash
                     if (!FileUtils.FileMissing(f))
                     {
                         Logging.Emit("detected added include file {0}", f);
-                        Logging.Miss(commonkey.Hash, DataHashResult.FileAdded, Directory.GetCurrentDirectory(), comp.SingleSourceFile, f);
+                        Logging.Miss(commonkey.SessionHash, DataHashResult.FileAdded, Directory.GetCurrentDirectory(), comp.SingleSourceFile, f);
                         return false;
                     }
                 }
-                var hashes = GetHashes(manifest.IncludeFiles.Keys);
+                var files = new List<string>();                                
+                files.AddRange(manifest.IncludeFiles.Keys);
+                var hashes = GetHashes(files);
 
                 foreach (var h in hashes)
                 {
@@ -76,21 +78,21 @@ namespace CClash
                             if (mhash != h.Value.Hash)
                             {
                                 Logging.Emit("include file hash changed {0}", h.Key);
-                                Logging.Miss(commonkey.Hash, DataHashResult.FileChanged, Directory.GetCurrentDirectory(), comp.SingleSourceFile, h.Key);
+                                Logging.Miss(commonkey.SessionHash, DataHashResult.FileChanged, Directory.GetCurrentDirectory(), comp.SingleSourceFile, h.Key);
                                 return false;
                             }
                         }
                         else
                         {
                             Logging.Emit("include file added {0}", h.Key);
-                            Logging.Miss(commonkey.Hash, DataHashResult.FileAdded, Directory.GetCurrentDirectory(), comp.SingleSourceFile, h.Key);
+                            Logging.Miss(commonkey.SessionHash, DataHashResult.FileAdded, Directory.GetCurrentDirectory(), comp.SingleSourceFile, h.Key);
                             return false;
                         }
                     }
                     else
                     {
                         Logging.Emit("include file hash error {0} {1}", h.Key, h.Value.Result);
-                        Logging.Miss(commonkey.Hash, h.Value.Result, Directory.GetCurrentDirectory(), comp.SingleSourceFile, h.Key);
+                        Logging.Miss(commonkey.SessionHash, h.Value.Result, Directory.GetCurrentDirectory(), comp.SingleSourceFile, h.Key);
                         return false;
                     }
                 }
@@ -115,10 +117,10 @@ namespace CClash
                 #region check cached data exists
                 foreach (var f in new string[] { F_Manifest, F_Object })
                 {
-                    if (!outputCache.ContainsEntry(commonkey.Hash, f))                        
+                    if (!outputCache.ContainsEntry(commonkey.SessionHash, f))                        
                     {
-                        outputCache.Remove(commonkey.Hash);
-                        Logging.Miss(commonkey.Hash, DataHashResult.CacheCorrupt, commonkey.Hash, comp.SingleSourceFile, "");
+                        outputCache.Remove(commonkey.SessionHash);
+                        Logging.Miss(commonkey.SessionHash, DataHashResult.CacheCorrupt, commonkey.SessionHash, comp.SingleSourceFile, "");
                         return false;
                     }
                 }
@@ -165,12 +167,12 @@ namespace CClash
 
         protected virtual void SaveOutputsLocked(CacheManifest m, ICompiler c )
         {
-            outputCache.AddFile(m.CommonHash, c.ObjectTarget, F_Object);
+            outputCache.AddFile(m.SessionHash, c.ObjectTarget, F_Object);
             if (c.GeneratePdb)
             {
                 var pdbhash = hasher.DigestBinaryFile(c.PdbFile);
                 m.PdbHash = pdbhash.Hash;
-                outputCache.AddFile(m.CommonHash, c.PdbFile, F_Pdb);
+                outputCache.AddFile(m.SessionHash, c.PdbFile, F_Pdb);
                 Stats.LockStatsCall(() => Stats.CacheSize += new FileInfo(c.PdbFile).Length);
             }
 
@@ -183,7 +185,7 @@ namespace CClash
 
             Logging.Emit("cache miss took {0}ms", (int)duration.TotalMilliseconds);
 
-            using (var manifest = outputCache.OpenFileStream(m.CommonHash, F_Manifest, FileMode.OpenOrCreate, FileAccess.Write))
+            using (var manifest = outputCache.OpenFileStream(m.SessionHash, F_Manifest, FileMode.OpenOrCreate, FileAccess.Write))
             {
                 m.Serialize(manifest);                
             }
@@ -240,7 +242,7 @@ namespace CClash
                 m.PotentialNewIncludes = others;
                 m.IncludeFiles = new Dictionary<string, string>();
                 m.TimeStamp = DateTime.Now.ToString("s");
-                m.CommonHash = hc.Hash;
+                m.SessionHash = hc.SessionHash;
 
                 #endregion
 
@@ -257,7 +259,7 @@ namespace CClash
                     else
                     {
                         Logging.Emit("input hash error {0} {1}", x.Key, x.Value.Result);
-                        Logging.Miss(hc.Hash, x.Value.Result, c.WorkingDirectory, c.SingleSourceFile, x.Key);
+                        Logging.Miss(hc.SessionHash, x.Value.Result, c.WorkingDirectory, c.SingleSourceFile, x.Key);
                         good = false;
                         m.Disable = true;
                         break;

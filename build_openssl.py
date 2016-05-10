@@ -12,6 +12,7 @@ OSLVERSION = "1.0.2g"
 THISDIR = os.path.dirname(os.path.abspath(__file__))
 DIST = "Release"
 STARTSERVER = True
+TRACKER = "no"
 
 
 def envcheck():
@@ -29,7 +30,7 @@ def envcheck():
     os.environ["PATH"] = bindir + os.pathsep + pathvar
     os.environ["CCLASH_Z7_OBJ"] = "yes"
     os.environ["CCLASH_SERVER"] = "1"
-    os.environ["CCLASH_TRACKER_MODE"] = "yes"
+    os.environ["CCLASH_TRACKER_MODE"] = TRACKER
 
     cachedir = os.path.join(THISDIR, "oslcache")
     os.environ["CCLASH_DIR"] = cachedir
@@ -46,6 +47,7 @@ def build():
     """
     Build openssl using cclash
     """
+    print subprocess.check_output(["cl", "--cclash"])
     oslsrc = "openssl-" + OSLVERSION
     os.chdir(THISDIR)
     if os.path.exists("buildtemp"):
@@ -101,6 +103,8 @@ if __name__ == "__main__":
         DIST = "Debug"
     if "--no-start" in sys.argv:
         STARTSERVER = False
+    if "--tracker" in sys.argv:
+        TRACKER = "yes"
 
     envcheck()
     try_build()

@@ -19,14 +19,20 @@ namespace CClash
         FileAdded,
         FileChanged,
         NoPreviousBuild,
-        CacheCorrupt,
+        CacheCorrupt,        
     }
 
     public sealed class DataHash
     {
         public string InputName { get; set; }
         public DataHashResult Result { get; set; }
+        
         public string Hash { get; set; }
+
+        // hash of everything (compiler, cwd, envs, args) except the source file content
+        public string SessionHash { get; set; }
+        // hash of the source file
+        public string SourceHash { get; set; }
         public DateTime TimeStamp { get; set; }
         public bool Cached { get; set; }
 

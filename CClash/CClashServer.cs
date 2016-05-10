@@ -14,11 +14,6 @@ namespace CClash
         bool quitnow = false;
         DirectCompilerCacheServer cache;
 
-        /// <summary>
-        /// The maximum number of pending requests.
-        /// </summary>
-        public const int DefaultMaxServerThreads = 20;
-
         public const int DefaultQuitAfterIdleMinutes = 90;
 
         public int MaxServerThreads
@@ -26,7 +21,7 @@ namespace CClash
             get
             {
                 var rv = Settings.MaxServerThreads;
-                if (rv == 0) rv = DefaultMaxServerThreads;
+                if (rv == 0) rv = Environment.ProcessorCount + 1;
                 return rv;
             }
         }

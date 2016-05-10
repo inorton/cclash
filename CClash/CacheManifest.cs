@@ -31,9 +31,9 @@ namespace CClash
         public int Duration { get; set; }
 
         /// <summary>
-        /// Hash of the compiler file, cl args and source file
+        /// Hash of the compiler, envs, cwd and args.
         /// </summary>
-        public string CommonHash { get; set; }
+        public string SessionHash { get; set; }
 
         /// <summary>
         /// Hash of the pre-existing PDB file before this object was created.
@@ -51,7 +51,7 @@ namespace CClash
         public string PdbHash { get; set; }
 
         /// <summary>
-        /// Hashes and names of each #included file
+        /// Hashes and names of each source file (includes and the source)
         /// </summary>
         public Dictionary<string, string> IncludeFiles { get; set; }
 
