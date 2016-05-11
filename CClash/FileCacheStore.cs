@@ -148,7 +148,16 @@ namespace CClash
         public Stream OpenFileStream(string key, string filename, FileMode mode, FileAccess access)
         {
             if (access == FileAccess.ReadWrite) throw new InvalidOperationException();
-            return File.Open(MakePath(key, filename), mode, access);
+            var fpath = MakePath(key, filename);
+            switch(mode) {
+                case FileMode.Create:
+                case FileMode.CreateNew:
+                    var fdir = Path.GetDirectoryName(fpath);
+                    if (!Directory.Exists(fdir))
+                        Directory.CreateDirectory(fdir);
+                break;
+            }
+            return File.Open(fpath, mode, access);
         }
 
         public void AddEntry(string key)

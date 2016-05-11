@@ -26,19 +26,16 @@ namespace CClash
             {
                 sb.WriteLine("disabled: no");
             }
-            if (compiler != null)
+            if (cache != null)
             {
-                if (cache != null)
+                using (var stats = new CacheInfo(cache.OutputCache))
                 {
-                    using (var stats = new CacheInfo(cache.OutputCache))
-                    {
-                        sb.WriteLine("outputCache usage: {0} kb", (int)(stats.CacheSize / 1024));
-                        sb.WriteLine("cached files: {0}", stats.CacheObjects);
-                        sb.WriteLine("hits: {0}", stats.CacheHits);
-                        sb.WriteLine("misses: {0}", stats.CacheMisses);
-                        sb.WriteLine("unsupported: {0}", stats.CacheUnsupported);
-                        sb.WriteLine("slow hits: {0}", stats.SlowHitCount);
-                    }
+                    sb.WriteLine("outputCache usage: {0} kb", (int)(stats.CacheSize / 1024));
+                    sb.WriteLine("cached files: {0}", stats.CacheObjects);
+                    sb.WriteLine("hits: {0}", stats.CacheHits);
+                    sb.WriteLine("misses: {0}", stats.CacheMisses);
+                    sb.WriteLine("unsupported: {0}", stats.CacheUnsupported);
+                    sb.WriteLine("slow hits: {0}", stats.SlowHitCount);
                 }
             }
             return sb.ToString();

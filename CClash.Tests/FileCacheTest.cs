@@ -7,7 +7,7 @@ using CClash;
 namespace CClash.Tests
 {
     [TestFixture]
-    public class FileCacheTest
+    public class FileCacheTest : FileCacheTestBase
     {
         string thistestdll = typeof(FileCacheTest).Assembly.Location;
 
@@ -68,6 +68,18 @@ namespace CClash.Tests
         public void FileMissing_FileUtilsFileMissing()
         {
             FileUtils.FileMissing("c:\\nosuchfile.txt");
+        }
+
+        [Test]
+        public void TestPopulateCacheFiles()
+        {
+            PopulateTest<FileCacheStore>();
+        }
+
+        [Test]
+        public void TestReadCacheFiles()
+        {
+            ReadTest<FileCacheStore>();
         }
     }
 }

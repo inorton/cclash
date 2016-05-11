@@ -16,6 +16,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "testprogram", "testprogram\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "testserver", "testserver\testserver.csproj", "{577366D6-AA87-47C8-97C8-62065AE54B2B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "cct", "cct\cct.csproj", "{847712E4-AC50-4C76-8979-56880470CF67}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		CD_ROM|Any CPU = CD_ROM|Any CPU
@@ -65,6 +67,16 @@ Global
 		{577366D6-AA87-47C8-97C8-62065AE54B2B}.Release|Any CPU.Build.0 = Release|Any CPU
 		{577366D6-AA87-47C8-97C8-62065AE54B2B}.SingleImage|Any CPU.ActiveCfg = Release|Any CPU
 		{577366D6-AA87-47C8-97C8-62065AE54B2B}.SingleImage|Any CPU.Build.0 = Release|Any CPU
+		{847712E4-AC50-4C76-8979-56880470CF67}.CD_ROM|Any CPU.ActiveCfg = Release|Any CPU
+		{847712E4-AC50-4C76-8979-56880470CF67}.CD_ROM|Any CPU.Build.0 = Release|Any CPU
+		{847712E4-AC50-4C76-8979-56880470CF67}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{847712E4-AC50-4C76-8979-56880470CF67}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{847712E4-AC50-4C76-8979-56880470CF67}.DVD-5|Any CPU.ActiveCfg = Debug|Any CPU
+		{847712E4-AC50-4C76-8979-56880470CF67}.DVD-5|Any CPU.Build.0 = Debug|Any CPU
+		{847712E4-AC50-4C76-8979-56880470CF67}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{847712E4-AC50-4C76-8979-56880470CF67}.Release|Any CPU.Build.0 = Release|Any CPU
+		{847712E4-AC50-4C76-8979-56880470CF67}.SingleImage|Any CPU.ActiveCfg = Release|Any CPU
+		{847712E4-AC50-4C76-8979-56880470CF67}.SingleImage|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
