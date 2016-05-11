@@ -14,10 +14,13 @@ namespace CClash
 
         public static CClashServer Server = null;
 
+        public static bool WasHit { get; private set; }
+
         public static int Main(string[] args)
         {
             var start = DateTime.Now;
-
+            WasHit = false;
+            
             var dbg = Environment.GetEnvironmentVariable("CCLASH_DEBUG");
             if (!string.IsNullOrEmpty(dbg))
             {
@@ -229,7 +232,23 @@ namespace CClash
                     {
                         if (comp != null) spawnServer = true;
                         cc.SetCaptureCallback(comp, stdout, stderr);
-                        return cc.CompileOrCache(comp, args);
+                        long last_hits = 0;
+                        if (!Settings.ServiceMode)
+                        {
+                            last_hits = cc.Stats.CacheHits;
+                        }
+
+                        int res = cc.CompileOrCache(comp, args);
+
+                        if (!Settings.ServiceMode)
+                        {
+                            if (last_hits < cc.Stats.CacheHits)
+                            {
+                                WasHit = true;
+                            }
+                        }
+
+                        return res;
                     }
                 }
                 else

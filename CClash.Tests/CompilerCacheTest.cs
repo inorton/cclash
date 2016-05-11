@@ -65,7 +65,7 @@ namespace CClash.Tests
             if (FileUtils.Exists(pdb)) System.IO.File.Delete(pdb);
             Assert.IsFalse(FileUtils.Exists(pdb));
             sw.Start();
-            var rv = Program.Main(new string[] { "/nologo", "/Zi", "/Fd" + pdb, "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
+            var rv = Program.Main(new string[] { "/nologo", "/EHsc", "/Zi", "/Fd" + pdb, "/c", @"test-sources\hello.cc", "/Itest-sources\\inc with spaces" });
             sw.Stop();
 
             var duration1 = sw.Elapsed;
@@ -77,7 +77,7 @@ namespace CClash.Tests
             for (int i = 0; i < times; i++)
             {
                 
-                rv = Program.Main(new string[] { "/nologo", "/Zi", "/Fd" + pdb, "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
+                rv = Program.Main(new string[] { "/nologo",  "/EHsc", "/Zi", "/Fd" + pdb, "/c", @"test-sources\hello.cc", "/Itest-sources\\inc with spaces" });
                 Assert.IsTrue(FileUtils.Exists(pdb));
                 Assert.AreEqual(0, rv);
             }
@@ -98,7 +98,7 @@ namespace CClash.Tests
                 @"C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\amd64\cl.exe",
                 @"C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\x86_amd64\cl.exe",
             };
-            var src = @"test-sources\hello.c";
+            var src = @"test-sources\hello.cc";
 
             var res = new List<DataHash>();
 
@@ -108,7 +108,7 @@ namespace CClash.Tests
                 using (var cache = CompilerCacheFactory.Get(true, Settings.CacheDirectory, comp, Environment.CurrentDirectory, Compiler.GetEnvironmentDictionary(), out c))
                 {
                     Assert.IsNotNull(c);
-                    Assert.IsTrue(c.ProcessArguments(new string[] { "/nologo", "/c", src }));
+                    Assert.IsTrue(c.ProcessArguments(new string[] { "/nologo",  "/EHsc", "/c", src }));
                     Assert.IsNotNull(cache);
                     var hash = cache.DeriveHashKey(c, c.CompileArgs);
                     Assert.IsFalse(res.Contains(hash), "expected unique hash key for each compiler");
@@ -118,27 +118,45 @@ namespace CClash.Tests
         }
 
         [Test]
-        [TestCase(10)]
+        [TestCase(100)]
+        [TestCase(20)]
+        [TestCase(3)]
         public void RunEnabledDirect(int times)
         {
             Assert.IsFalse(Settings.Disabled);
             Assert.IsTrue(Settings.DirectMode);
             var comp = CompilerTest.CompilerPath;
+            var perturb = "/I" + Guid.NewGuid().ToString();
             Environment.SetEnvironmentVariable("PATH", System.IO.Path.GetDirectoryName( comp ) + ";" + Environment.GetEnvironmentVariable("PATH"));
+            var start = DateTime.Now;
+            var args = new string[] { "/c", "/EHsc", @"test-sources\hello.cc", "/Itest-sources\\inc with spaces", perturb };
+            var realerr = new StringBuilder();
+            var realout = new StringBuilder();
+            RunSubprocess(Compiler.Find(), args, realout, realerr);
+            var end = DateTime.Now;
+            TimeSpan duration = end - start;
+
+            var cachestart = DateTime.Now;
             for (int i = 0; i < times; i++)
             {
-                var args = new string[] { "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" };
-                var realerr = new StringBuilder();
-                var realout = new StringBuilder();
-                RunSubprocess(Compiler.Find(), args, realout, realerr);
+                
                 Program.MainStdErr.Clear();
                 Program.MainStdOut.Clear();
                 var rv = Program.Main(args);
-
+                if (i > 0)
+                {
+                    Assert.IsTrue(Program.WasHit);
+                }
                 Assert.AreEqual(realerr.ToString(), Program.MainStdErr.ToString());
                 Assert.AreEqual(realout.ToString(), Program.MainStdOut.ToString());
                 Assert.AreEqual(0, rv);
             }
+            var cacheend = DateTime.Now;
+            TimeSpan cacheduration = cacheend - cachestart;
+
+            var avgtime = cacheduration.TotalMilliseconds / times;
+            // be always better than 45% the speed
+            Assert.IsTrue(avgtime < (duration.TotalMilliseconds * 0.45));
         }
 
         void RunSubprocess(string prog, string[] argv, StringBuilder stdout, StringBuilder stderr) {
@@ -179,7 +197,7 @@ namespace CClash.Tests
             Environment.SetEnvironmentVariable("PATH", System.IO.Path.GetDirectoryName(comp) + ";" + Environment.GetEnvironmentVariable("PATH"));
             for (int i = 0; i < times; i++)
             {
-                var args = new string[] { "/E", "/nologo", "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" };
+                var args = new string[] { "/E", "/nologo", "/c", @"test-sources\hello.cc", "/Itest-sources\\inc with spaces" };
                 var realerr = new StringBuilder();
                 var realout = new StringBuilder();
                 RunSubprocess(Compiler.Find(), args, realout, realerr);
@@ -216,12 +234,12 @@ namespace CClash.Tests
             {
                 Environment.CurrentDirectory = CClashTestsFixtureSetup.InitialDir;
                 
-                var rv = Program.Main(new string[] { "/nologo", "/Fo" + obj, "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
+                var rv = Program.Main(new string[] { "/nologo",  "/EHsc", "/Fo" + obj, "/c", @"test-sources\hello.cc", "/Itest-sources\\inc with spaces" });
                 Assert.IsTrue(FileUtils.Exists(obj));
                 System.IO.File.Delete(obj);
                 Assert.AreEqual(0, rv);
 
-                var rv2 = Program.Main(new string[] { "/nologo", "/Fo" + obj, "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
+                var rv2 = Program.Main(new string[] { "/nologo",  "/EHsc", "/Fo" + obj, "/c", @"test-sources\hello.cc", "/Itest-sources\\inc with spaces" });
                 Assert.IsTrue(FileUtils.Exists(obj));
                 System.IO.File.Delete(obj);
 
@@ -248,7 +266,16 @@ namespace CClash.Tests
                 var folder = System.IO.Path.Combine(root, dn);
                 System.IO.Directory.CreateDirectory(folder);
                 var file = System.IO.Path.Combine(folder, fn);
-                System.IO.File.WriteAllText(file, @"int foo(void) { return 1; }");
+                System.IO.File.WriteAllText(file, @"
+#include <stdio.h>
+#include <string.h>
+#include <assert.h>
+#include <errno.h>
+#include <time.h>
+int foo(void) { 
+  return 1; 
+}
+// " + Guid.NewGuid().ToString());                    
                 rv.Add(file);
             }
             return rv;
@@ -261,7 +288,8 @@ namespace CClash.Tests
         public void MPTest(int files)
         {
             var fl = MakeLotsOfFiles(files);
-            var args = new List<string> { "/c", "/MP", "/nologo" };
+            var perturb = "/I" + Guid.NewGuid().ToString();
+            var args = new List<string> { perturb, "/c", "/MP", "/nologo" };
             args.AddRange(fl);
             Assert.IsTrue(Program.Main(args.ToArray()) == 0);
         }
@@ -341,7 +369,7 @@ namespace CClash.Tests
             for (int i = 0; i < times; i++)
             {
                 Console.Error.WriteLine("{0}/{1}", i, times);
-                var rv = Program.Main(new string[] { "/nologo", "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
+                var rv = Program.Main(new string[] { "/nologo",  "/EHsc", "/c", @"test-sources\hello.cc", "/Itest-sources\\inc with spaces" });
                 Assert.AreEqual(0, rv);
             }
         }
@@ -355,7 +383,7 @@ namespace CClash.Tests
             Environment.SetEnvironmentVariable("CCLASH_DISABLE_WHEN_VALUES", "X,RED,GREEN");
             Environment.SetEnvironmentVariable("TESTTEST", "RED");
             Assert.IsTrue(Settings.Disabled);
-            var rv = Program.Main(new string[] { "/nologo", "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
+            var rv = Program.Main(new string[] { "/nologo",  "/EHsc", "/c", @"test-sources\hello.cc", "/Itest-sources\\inc with spaces" });
             Assert.AreEqual(0, rv);
         }
 
@@ -370,7 +398,7 @@ namespace CClash.Tests
             Environment.SetEnvironmentVariable("CCLASH_ENABLE_WHEN_VALUES", "X,RED,GREEN");
             Environment.SetEnvironmentVariable("TESTTEST", "RED");
             Assert.IsFalse(Settings.Disabled);
-            var rv = Program.Main(new string[] { "/nologo", "/c", @"test-sources\hello.c", "/Itest-sources\\inc with spaces" });
+            var rv = Program.Main(new string[] { "/nologo",  "/EHsc", "/c", @"test-sources\hello.cc", "/Itest-sources\\inc with spaces" });
             Assert.AreEqual(0, rv);
         }
     }

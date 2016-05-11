@@ -88,6 +88,9 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="test-sources\hello.cc">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="test-sources\hello2.h">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
