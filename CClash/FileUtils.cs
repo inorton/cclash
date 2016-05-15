@@ -61,7 +61,7 @@ namespace CClash {
             return missing;
         }
 
-        static int FileIORetrySleep = 100;
+        static int FileIORetrySleep = 10;
         static int FileIORetryCount = 4;
 
         public static void WriteTextFile(string path, string content)
@@ -83,6 +83,13 @@ namespace CClash {
             } while (true);
         }
 
+        [DllImport("Kernel32.dll", CharSet = CharSet.Unicode)]
+        static extern bool CreateHardLink(
+        string lpFileName,
+        string lpExistingFileName,
+        IntPtr lpSecurityAttributes
+        );      
+
         public static void CopyUnlocked(string from, string to)
         {
             int attempts = FileIORetryCount;
@@ -90,9 +97,9 @@ namespace CClash {
             {
                 try
                 {
-                    using (var ifs = new FileStream(from, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    using (var ifs = new FileStream(from, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.SequentialScan))
                     {
-                        using (var ofs = new FileStream(to, FileMode.OpenOrCreate, FileAccess.Write))
+                        using (var ofs = new FileStream(to, FileMode.Create, FileAccess.Write, FileShare.Write, 4096))
                         {
                             ifs.CopyTo(ofs);
                             return;

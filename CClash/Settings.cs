@@ -264,6 +264,14 @@ namespace CClash
                 return DefaultCacheType;
             }
         }
+
+        public static bool HonorCPPTimes
+        {
+            get
+            {
+                return GetString("CCLASH_HONOR_CPP_TIMES", "yes") == "yes";
+            }
+        }
         
     }
 }

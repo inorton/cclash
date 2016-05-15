@@ -282,6 +282,7 @@ int foo(void) {
         }
 
         [Test]
+        [TestCase(500)]
         [TestCase(100)]
         [TestCase(10)]
         [TestCase(1)]
