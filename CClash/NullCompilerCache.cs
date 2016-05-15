@@ -19,7 +19,7 @@ namespace CClash {
             
         }
 
-        public FileCacheStore OutputCache
+        public IFileCacheStore OutputCache
         {
             get
             {

@@ -12,9 +12,11 @@ OSLVERSION = "1.0.2g"
 THISDIR = os.path.dirname(os.path.abspath(__file__))
 DIST = "Release"
 STARTSERVER = True
+STATS = True
+TRACKER = "no"
 
 
-def envcheck():
+def envcheck(bindir=None):
     """
     Check vcvars
     """
@@ -24,12 +26,13 @@ def envcheck():
     except AssertionError:
         print "Run this from a visual studio command prompt"
         sys.exit(1)
-    bindir = os.path.join(THISDIR, "CClash", "bin", DIST)
+    if bindir is None:
+        bindir = os.path.join(THISDIR, "CClash", "bin", DIST)
     pathvar = os.getenv("PATH")
     os.environ["PATH"] = bindir + os.pathsep + pathvar
     os.environ["CCLASH_Z7_OBJ"] = "yes"
     os.environ["CCLASH_SERVER"] = "1"
-    os.environ["CCLASH_TRACKER_MODE"] = "yes"
+    os.environ["CCLASH_TRACKER_MODE"] = TRACKER
 
     cachedir = os.path.join(THISDIR, "oslcache")
     os.environ["CCLASH_DIR"] = cachedir
@@ -46,20 +49,11 @@ def build():
     """
     Build openssl using cclash
     """
+    if STATS:
+        print subprocess.check_output(["cl", "--cclash"])
     oslsrc = "openssl-" + OSLVERSION
     os.chdir(THISDIR)
-    if os.path.exists("buildtemp"):
-        print ".. delete earlier build.."
-        repeat = 4
-        while repeat > 0:
-            try:
-                time.sleep(20)  # antivirus might still be in here..
-                shutil.rmtree("buildtemp")
-                repeat = 0
-            except:
-                repeat -= 1
-                if repeat == 0:
-                    raise
+    clean_build()
 
     sys.stdout.write(".. copying openssl source tree ..")
     shutil.copytree(os.path.join(THISDIR, oslsrc), 
@@ -84,7 +78,24 @@ def build():
     print "done."
     print "total time = {}sec".format(int(ended - started))
 
- 
+
+def clean_build():
+    if os.path.exists("buildtemp"):
+        print ".. move earlier build.."
+        repeat = 4
+        while repeat > 0:
+            try:
+                time.sleep(20)  # antivirus might still be in here..
+                os.rename("buildtemp", "buildtemp." + str(time.time()))
+                repeat = 0
+            except Exception as err:
+                print "cant move! " + str(err)
+                repeat -= 1
+                if repeat == 0:
+                    raise
+        print ".. moved"
+
+
 def try_build():
     """
     Print errors when it goes wrong
@@ -101,8 +112,17 @@ if __name__ == "__main__":
         DIST = "Debug"
     if "--no-start" in sys.argv:
         STARTSERVER = False
+    if "--tracker" in sys.argv:
+        TRACKER = "yes"
+    bindir = None
 
-    envcheck()
+    for item in sys.argv[1:]:
+        if os.path.isdir(item):
+            bindir = item
+            STATS = False
+            break
+
+    envcheck(bindir)
     try_build()
     try_build()
     try_build()

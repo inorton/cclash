@@ -20,7 +20,7 @@ namespace CClash
             pipename = CClashServer.MakePipeName(cachedir);
         }
 
-        public FileCacheStore OutputCache
+        public IFileCacheStore OutputCache
         {
             get
             {

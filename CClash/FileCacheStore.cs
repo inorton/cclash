@@ -5,64 +5,66 @@ using System.Threading;
 
 namespace CClash
 {
-    public sealed class FileCacheStore : IDisposable
+    public class FileCacheStore : FileCacheBase, IFileCacheStore
     {
-        public delegate void FileCacheStoreAddedHandler(object sender, FileCacheStoreAddedEventArgs e);
-        public delegate void FileCacheStoreRemovedHandler(object sender, FileCacheStoreRemovedEventArgs e);
-
-        public static FileCacheStore Load(string cacheFolder)
+        public static IFileCacheStore Load<T>(string cachefolder) where T :  class, IFileCacheStore, new()
         {
-            return new FileCacheStore(cacheFolder);
+            var cache = new T();
+            cache.Open(cachefolder);
+            return cache;
         }
 
-        public string FolderPath { get; private set; }
-        
-        Mutex mtx = null;
-
-        public void WaitOne()
+        public static IFileCacheStore Load(string cacheFolder)
         {
-            Logging.Emit("WaitOne {0}", FolderPath);
-            if (!mtx.WaitOne()) throw new InvalidProgramException("mutex lock failed " + mtx.ToString());
-            
+            var ctype = Settings.CacheType;
+            switch (ctype)
+            {
+                case CacheStoreType.FileCache:
+                    return Load<FileCacheStore>(cacheFolder);
+                case CacheStoreType.SQLite:
+                    return Load<FileCacheDatabase>(cacheFolder);
+                default:
+                    throw new NotImplementedException(ctype.ToString());
+            }      
         }
 
-        public void ReleaseMutex()
-        {
-            Logging.Emit("ReleaseMutex {0}", FolderPath);
-            mtx.ReleaseMutex();
-        }
-
-        FileCacheStore( string folderPath )
+        public void Open( string folderPath )
         {
             FolderPath = Path.GetFullPath(folderPath);
-            mtx = new Mutex(false, "cclash_mtx_" + FolderPath.ToLower().GetHashCode());
+            SetupLocks();
             Logging.Emit("locking file store: {0}", FolderPath);
             WaitOne();
             
             var tlist = new List<Thread>();
             try
             {
-                if (!Directory.Exists(FolderPath))
+                if (Directory.Exists(FolderPath))
                 {
-                    Directory.CreateDirectory(FolderPath);
-                }
-                else
-                {
-                    bool bad_cache_format = true;
+                    bool bad_cache_format = false;
                     if (File.Exists(Path.Combine(FolderPath, CacheInfo.F_CacheVersion)))
                     {
                         var cdv = File.ReadAllText(Path.Combine(FolderPath, CacheInfo.F_CacheVersion));
                         bad_cache_format = cdv != CacheInfo.CacheFormat;
                     }
 
+                    if (File.Exists(Path.Combine(FolderPath, CacheInfo.F_CacheType)))
+                    {
+                        var ct = File.ReadAllText(Path.Combine(FolderPath, CacheInfo.F_CacheType));
+                        bad_cache_format = ct != Settings.CacheType.ToString();
+                    }
+
                     if (bad_cache_format)
                     {
-                        Logging.Emit("corrupt filestore, deleting: {0}", FolderPath);
-                        // cache is too old, wiping
+                        Logging.Emit("corrupt/new filestore, deleting: {0}", FolderPath);                        
                         Directory.Delete(FolderPath, true);
-                        Directory.CreateDirectory(FolderPath);
-                        File.WriteAllText(Path.Combine(FolderPath, CacheInfo.F_CacheVersion), CacheInfo.CacheFormat);
                     }
+                }
+
+                if (!Directory.Exists(FolderPath)){
+                    Logging.Emit("create fresh filestore");
+                    Directory.CreateDirectory(FolderPath);
+                    File.WriteAllText(Path.Combine(FolderPath, CacheInfo.F_CacheVersion), CacheInfo.CacheFormat);
+                    File.WriteAllText(Path.Combine(FolderPath, CacheInfo.F_CacheType), Settings.CacheType.ToString());
                 }
                 Logging.Emit("filestore ready: {0}", FolderPath);
             }
@@ -80,13 +82,13 @@ namespace CClash
             }
         }
 
-        public string MakePath(string key )
+        string MakePath(string key )
         {
             var tlf = key.Substring(0, 2);
             return Path.Combine(FolderPath, tlf, key);
         }
 
-        public string MakePath(string key, string contentFile)
+        string MakePath(string key, string contentFile)
         {
             var tlf = key.Substring(0, 2);
             return Path.Combine(FolderPath, tlf, key, contentFile);
@@ -143,6 +145,21 @@ namespace CClash
             return rv;
         }
 
+        public Stream OpenFileStream(string key, string filename, FileMode mode, FileAccess access)
+        {
+            if (access == FileAccess.ReadWrite) throw new InvalidOperationException();
+            var fpath = MakePath(key, filename);
+            switch(mode) {
+                case FileMode.Create:
+                case FileMode.CreateNew:
+                    var fdir = Path.GetDirectoryName(fpath);
+                    if (!Directory.Exists(fdir))
+                        Directory.CreateDirectory(fdir);
+                break;
+            }
+            return File.Open(fpath, mode, access);
+        }
+
         public void AddEntry(string key)
         {
             EnsureKey(key);
@@ -191,23 +208,5 @@ namespace CClash
                 }
             }
         }
-
-        public void Dispose()
-        {
-            if (mtx != null)
-            {
-                mtx.Dispose();
-            }
-        }
-    }
-
-    public class FileCacheStoreAddedEventArgs : EventArgs
-    {
-        public int SizeKB { get; set; }
-    }
-
-    public class FileCacheStoreRemovedEventArgs : EventArgs
-    {
-        public int SizeKB { get; set; }
     }
 }

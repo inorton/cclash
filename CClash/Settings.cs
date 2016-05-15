@@ -6,6 +6,12 @@ using System.Threading.Tasks;
 
 namespace CClash
 {
+    public enum CacheStoreType
+    {
+        FileCache,
+        SQLite,
+    }
+
     public sealed class Settings
     {
         public static bool DebugEnabled { get; set; }
@@ -196,10 +202,17 @@ namespace CClash
             }
         }
 
-        static int GetInteger(string envvar, int defaultvalue)
+        static string GetString(string envvar, string defaultValue)
         {
-            int rv = defaultvalue;
             var env = Environment.GetEnvironmentVariable(envvar);
+            if (env == null) return defaultValue;
+            return env;
+        }
+
+        static int GetInteger(string envvar, int defaultValue)
+        {
+            int rv = defaultValue;
+            var env = GetString(envvar, null);
             if (env != null)
             {
                 Int32.TryParse(env, out rv);
@@ -228,15 +241,37 @@ namespace CClash
         {
             get
             {
-                int rv = 0;
-                var env = Environment.GetEnvironmentVariable("CCLASH_MAX_SERVER_THREADS");
-                if (env != null)
-                {
-                    Int32.TryParse(env, out rv);
-                    if (rv < 0) rv = 0;
-                }
-                return (int)rv;
+                return GetInteger("CCLASH_MAX_SERVER_THREADS", 0);
             }
         }
+
+
+        const CacheStoreType DefaultCacheType = CacheStoreType.FileCache;
+
+        public static CacheStoreType CacheType
+        {
+            get
+            {
+                string st = GetString("CCLASH_CACHE_TYPE", "files");
+                switch (st)
+                {
+                    case "sqlite":
+                        return CacheStoreType.SQLite;
+
+                    case "files":
+                        return CacheStoreType.FileCache;
+                }
+                return DefaultCacheType;
+            }
+        }
+
+        public static bool HonorCPPTimes
+        {
+            get
+            {
+                return GetString("CCLASH_HONOR_CPP_TIMES", "yes") == "yes";
+            }
+        }
+        
     }
 }

@@ -7,7 +7,7 @@ using CClash;
 namespace CClash.Tests
 {
     [TestFixture]
-    public class FileCacheTest
+    public class FileCacheTest : FileCacheTestBase
     {
         string thistestdll = typeof(FileCacheTest).Assembly.Location;
 
@@ -38,10 +38,9 @@ namespace CClash.Tests
                 try
                 {
                     fc.AddTextFileContent("aa12345", "test.txt", "hello");
-                    Assert.IsTrue(File.Exists(fc.MakePath("aa12345", "test.txt")));
+                    Assert.IsTrue(fc.ContainsEntry("aa12345", "test.txt"));                    
                     fc.Remove("aa12345");
-                    Assert.IsFalse(File.Exists(fc.MakePath("aa12345", "test.txt")));
-                    Assert.IsTrue(Directory.Exists(Path.Combine(fc.FolderPath, "aa")));
+                    Assert.IsFalse(fc.ContainsEntry("aa12345", "test.txt"));                    
                 }
                 finally
                 {
@@ -69,6 +68,18 @@ namespace CClash.Tests
         public void FileMissing_FileUtilsFileMissing()
         {
             FileUtils.FileMissing("c:\\nosuchfile.txt");
+        }
+
+        [Test]
+        public void TestPopulateCacheFiles()
+        {
+            PopulateTest<FileCacheStore>();
+        }
+
+        [Test]
+        public void TestReadCacheFiles()
+        {
+            ReadTest<FileCacheStore>();
         }
     }
 }

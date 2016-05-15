@@ -19,14 +19,20 @@ namespace CClash
         FileAdded,
         FileChanged,
         NoPreviousBuild,
-        CacheCorrupt,
+        CacheCorrupt,        
     }
 
     public sealed class DataHash
     {
         public string InputName { get; set; }
         public DataHashResult Result { get; set; }
+        
         public string Hash { get; set; }
+
+        // hash of everything (compiler, cwd, envs, args) except the source file content
+        public string SessionHash { get; set; }
+        // hash of the source file
+        public string SourceHash { get; set; }
         public DateTime TimeStamp { get; set; }
         public bool Cached { get; set; }
 
@@ -54,9 +60,9 @@ namespace CClash
 
         static Regex FindDateTime = new Regex(FindDateTimePattern);
 
-        FileCacheStore includeCache;
+        IFileCacheStore includeCache;
 
-        public HashUtil(FileCacheStore includecache) {
+        public HashUtil(IFileCacheStore includecache) {
             if (includecache == null) throw new ArgumentNullException("includecache");
             includeCache = includecache;
         }
@@ -259,66 +265,62 @@ namespace CClash
 
             if (!FileUtils.Exists(filepath)) return rv;
             provider.Initialize();
-            var fs = new FileStream(filepath, FileMode.Open, FileAccess.Read, FileShare.Read);
+            var fs = new FileStream(filepath, FileMode.Open, FileAccess.Read, FileShare.Read, 2048, FileOptions.SequentialScan);
             using (var bs = new BufferedStream(fs))
             {
                 Logging.Emit("digest {0}", filepath);
                 rv.Hash = new SoapHexBinary(provider.ComputeHash(bs)).ToString();
                 rv.Result = DataHashResult.Ok;
+
                 
-                if (findDateTime != null) {
-                    // check include cache for this file
-                    
-                    if (includeCache.ContainsEntry(rv.Hash, F_NotDateTime)) 
+                if (findDateTime != null)
+                {
+                    bool mark_with_datetime = false;
+                    if (Settings.HonorCPPTimes)
                     {
-                        return rv;
-                    }
-                    if (includeCache.ContainsEntry(rv.Hash, F_HasDateTime)) 
-                    {
-                        rv.Result = DataHashResult.ContainsTimeOrDate;
-                        return rv;
-                    }
-
-                    bs.Seek(0, SeekOrigin.Begin);
-                    using (var ts = new StreamReader(bs))
-                    {
-                        string line = null;
-                        do
+                        // check include cache for this file                    
+                        if (includeCache.ContainsEntry(rv.Hash, F_NotDateTime))
                         {
-                            line = ts.ReadLine();
-                            if (line == null) 
+                            return rv;
+                        }
+                        if (includeCache.ContainsEntry(rv.Hash, F_HasDateTime))
+                        {
+                            rv.Result = DataHashResult.ContainsTimeOrDate;
+                            return rv;
+                        }
+
+                        
+                        bs.Seek(0, SeekOrigin.Begin);
+                        using (var ts = new StreamReader(bs))
+                        {
+                            string line = null;
+                            do
                             {
-                                includeCache.WaitOne();
-                                try
+                                line = ts.ReadLine();
+                                if (line != null)
                                 {
-                                    includeCache.AddTextFileContent(rv.Hash, F_NotDateTime, "");
+                                    if (findDateTime.IsMatch(line))
+                                    {
+                                        mark_with_datetime = true;
+                                        break;
+                                    }
                                 }
-                                finally
-                                {
-                                    includeCache.ReleaseMutex();
-                                }
-                                break;
-                            }
 
-                            if (findDateTime.IsMatch(line))
-                            {
-                                rv.Result = DataHashResult.ContainsTimeOrDate;
-
-                                includeCache.WaitOne();
-                                try
-                                {
-                                    includeCache.AddTextFileContent(rv.Hash, F_HasDateTime, "");
-                                }
-                                finally
-                                {
-                                    includeCache.ReleaseMutex();
-                                }
-                                
-                                break;
-                            }
-
-                        } while (true);
+                            } while (line != null);
+                        }
                     }
+
+                    includeCache.WaitOne();
+                    if (!mark_with_datetime)
+                    {
+                        includeCache.AddTextFileContent(rv.Hash, F_NotDateTime, "");
+                    }
+                    else
+                    {
+                        includeCache.AddTextFileContent(rv.Hash, F_HasDateTime, "");
+                    }
+                    includeCache.ReleaseMutex();
+                    
                 }
             }
             rv.Result = DataHashResult.Ok;

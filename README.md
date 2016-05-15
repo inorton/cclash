@@ -60,6 +60,18 @@ There are a number of things that might happen to make cclash faster and applica
    * pre-compiled headers
    * build mapping ( make gantt-like charts of the sources involved in builds )
 
+## Experimental Features
+
+CCLASH_CACHE_TYPE=sqlite
+
+Included is a SQLite based version of the file cache, it is currently quite a bit slower than the normal file based cache but may be useful if
+your system is forced to use aggressive antivirus scanning.  
+
+CCLASH_TRACKER_MODE=yes
+
+You can enable tracker.exe use, this lets cclash trace the compiler in the same way msbuild does but does not currently offer much in the way of a speed boost for c builds.
+It may help c++ builds though.
+
 ## GPL v3.0 License
 
 This program (cclash) is free software: you can redistribute it and/or modify

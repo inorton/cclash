@@ -14,10 +14,13 @@ namespace CClash
 
         public static CClashServer Server = null;
 
+        public static bool WasHit { get; private set; }
+
         public static int Main(string[] args)
         {
             var start = DateTime.Now;
-
+            WasHit = false;
+            
             var dbg = Environment.GetEnvironmentVariable("CCLASH_DEBUG");
             if (!string.IsNullOrEmpty(dbg))
             {
@@ -36,32 +39,48 @@ namespace CClash
 
             if (args.Contains("--cclash-server"))
             {
+                foreach (var opt in args)
+                {
+                    switch (opt)
+                    {
+                        case "--attempt-pdb":
+                            Environment.SetEnvironmentVariable("CCLASH_ATTEMPT_PDB_CACHE", "yes");
+                            break;
+                        case "--pdb-to-z7":
+                            Environment.SetEnvironmentVariable("CCLASH_Z7_OBJ", "yes");
+                            break;
+                        case "--sqlite":
+                            Environment.SetEnvironmentVariable("CCLASH_CACHE_TYPE", "sqlite");
+                            break;
+                        case "--debug":
+                            if (Settings.DebugFile == null) {
+                                Settings.DebugFile = "Console";
+                                Settings.DebugEnabled = true;
+                            }
+                            break;
+                        default:
+                            if (opt.StartsWith("--cachedir="))
+                            {
+                                var dir = opt.Substring(1 + opt.IndexOf('='));
+                                dir = Path.GetFullPath(dir);
+                                Settings.CacheDirectory = dir;
+                            }
+                            break;
+                    }
+                }
                 
-                if (args.Contains("--attempt-pdb"))
-                {
-                    Environment.SetEnvironmentVariable("CCLASH_ATTEMPT_PDB_CACHE", "yes");
-                }
-                if (args.Contains("--pdb-to-z7"))
-                {
-                    Environment.SetEnvironmentVariable("CCLASH_Z7_OBJ", "yes");
-                }
 
                 if (Settings.DebugEnabled)
                 {
-                    if (Settings.DebugFile != null)
+                    if (Settings.DebugFile != null && Settings.DebugFile != "Console")
                     {
                         Settings.DebugFile += ".serv";
                     }
                 }
 
-                if (args.Contains("--debug")) {
-                    if (Settings.DebugFile == null) {
-                        Settings.DebugFile = "Console";
-                        Settings.DebugEnabled = true;
-                    }
-                }
-
                 Logging.Emit("starting in server mode");
+                Logging.Emit("cache dir is {0}", Settings.CacheDirectory);
+                Logging.Emit("cache type is {0}", Settings.CacheType);
 
                 if (Settings.DebugFile != "Console") {
                     Logging.Emit("closing server console");
@@ -116,7 +135,8 @@ namespace CClash
                                     Console.Out.WriteLine("starting server");
                                     CClashServerClient.StartBackgroundServer();
                                 } else {
-                                    Console.Out.WriteLine(cc.GetStats(compiler));
+                                    var stats = cc.Transact(new CClashRequest() { cmd = Command.GetStats });
+                                    Console.Out.WriteLine(stats.stdout);
                                 }
                                 return 0;
 
@@ -212,7 +232,23 @@ namespace CClash
                     {
                         if (comp != null) spawnServer = true;
                         cc.SetCaptureCallback(comp, stdout, stderr);
-                        return cc.CompileOrCache(comp, args);
+                        long last_hits = 0;
+                        if (!Settings.ServiceMode)
+                        {
+                            last_hits = cc.Stats.CacheHits;
+                        }
+
+                        int res = cc.CompileOrCache(comp, args);
+
+                        if (!Settings.ServiceMode)
+                        {
+                            if (last_hits < cc.Stats.CacheHits)
+                            {
+                                WasHit = true;
+                            }
+                        }
+
+                        return res;
                     }
                 }
                 else

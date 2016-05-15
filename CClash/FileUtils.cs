@@ -37,13 +37,31 @@ namespace CClash {
         [DllImport("Shlwapi.dll", SetLastError = true, CharSet = CharSet.Auto, BestFitMapping = false, ThrowOnUnmappableChar = true)]
         private extern static bool PathFileExists(StringBuilder path);
 
+        static Dictionary<string, DateTime> recent_missing = new Dictionary<string, DateTime>();
+
         public static bool FileMissing(string path)
         {
+            DateTime mt;
+            DateTime now = DateTime.Now;
+            if (recent_missing.TryGetValue(path, out mt))
+            {
+                if (now.Subtract(mt).TotalMilliseconds < 200) return true;
+            }
+
             var sb = new StringBuilder(path);
-            return !PathFileExists(sb);
+            var missing = !PathFileExists(sb);
+            if (missing)
+            {
+                lock (recent_missing)
+                {
+                    if (recent_missing.Count > 5000) recent_missing.Clear();
+                    recent_missing[path] = DateTime.Now;
+                }
+            }
+            return missing;
         }
 
-        static int FileIORetrySleep = 100;
+        static int FileIORetrySleep = 10;
         static int FileIORetryCount = 4;
 
         public static void WriteTextFile(string path, string content)
@@ -65,6 +83,13 @@ namespace CClash {
             } while (true);
         }
 
+        [DllImport("Kernel32.dll", CharSet = CharSet.Unicode)]
+        static extern bool CreateHardLink(
+        string lpFileName,
+        string lpExistingFileName,
+        IntPtr lpSecurityAttributes
+        );      
+
         public static void CopyUnlocked(string from, string to)
         {
             int attempts = FileIORetryCount;
@@ -72,9 +97,9 @@ namespace CClash {
             {
                 try
                 {
-                    using (var ifs = new FileStream(from, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    using (var ifs = new FileStream(from, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.SequentialScan))
                     {
-                        using (var ofs = new FileStream(to, FileMode.OpenOrCreate, FileAccess.Write))
+                        using (var ofs = new FileStream(to, FileMode.Create, FileAccess.Write, FileShare.Write, 4096))
                         {
                             ifs.CopyTo(ofs);
                             return;
