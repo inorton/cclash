@@ -17,6 +17,7 @@ def setup_module():
     Before all tests
     :return:
     """
+    assert os.path.isfile(os.path.join(CCLASH_BIN, "cl.exe")), "you need to build a Debug cclash first"
     tpo.get_vc_envs()
     tpo.download_openssl()
 
