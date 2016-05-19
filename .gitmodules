@@ -1,0 +1,4 @@
+[submodule "speedtest/clcache"]
+	path = speedtest/clcache
+	url = git@github.com:inorton/clcache
+	branch = speedtest
