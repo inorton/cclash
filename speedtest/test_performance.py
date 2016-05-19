@@ -57,11 +57,11 @@ def test_build_withcclache_00_cold():
     envs = setup_cclache_envs()
     tpo.retry_delete(envs["CCLACHE_DIR"])
     tpo.build_openssl(CCLASH_BIN, envs)
-    tpo.test_build_withcclache_00_cold.success = True
+    test_build_withcclache_00_cold.success = True
 test_build_withcclache_00_cold.success = False
 
 
-def test_build_withclcache_01_warm():
+def test_build_withcclache_01_warm():
     """
     Time an openssl build with a warm cache
     :return:
