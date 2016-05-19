@@ -6,7 +6,7 @@ import os
 import pytest
 
 THISDIR = os.path.dirname(os.path.abspath(__file__))
-CCLASH_BIN = os.path.join(os.path.dirname(THISDIR), "cclash", "cclash", "bin", "debug")
+CCLASH_BIN = os.path.join(os.path.dirname(THISDIR), "cclash", "bin", "debug")
 
 sys.path.append(os.path.join(THISDIR, "clcache", "speedtest"))
 import test_performance_openssl as tpo
