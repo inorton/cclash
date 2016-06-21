@@ -11,6 +11,10 @@ namespace CClash
     /// </summary>
     public class ArgumentUtils
     {
+        static char[] force_escape = new char[] {
+            '\t', ' '
+        };
+
         /// <summary>
         /// Join a list of command line args such that it can be passed as a single
         /// escaped string for subprocess arguments.
@@ -19,18 +23,29 @@ namespace CClash
         /// <returns></returns>
         public static string JoinAguments(IEnumerable<string> args)
         {
-            var sb = new System.Text.StringBuilder();
-            foreach (var a in args)
+
+            var sb = new System.Text.StringBuilder(512);
+            foreach (string arg in args)
             {
-                if (a.Contains(' ') || a.Contains('\t'))
+                string a = arg;
+                if (a.Contains("\""))
                 {
-                    sb.AppendFormat("\"{0}\"", a);
+                    sb.Append(a.Replace("\"", "\\\""));
                 }
                 else
                 {
-                    sb.Append(a);
+                    if (a.IndexOfAny(force_escape) != -1)
+                    {
+                        sb.Append('\"');
+                        sb.Append(a);
+                        sb.Append('\"');
+                    }
+                    else
+                    {
+                        sb.Append(a);
+                    }
+                    sb.Append(" ");
                 }
-                sb.Append(" ");
             }
             return sb.ToString().TrimEnd();
         }

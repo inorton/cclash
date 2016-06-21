@@ -18,5 +18,10 @@ int main( int argc, char** argv )
 	printf(FOO);
 #endif
 
+
+#ifdef EXPAND
+	printf("%s\n", EXPAND);
+#endif
+
 	return HELLO_TEST;
 }

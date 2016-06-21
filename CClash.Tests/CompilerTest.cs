@@ -174,6 +174,7 @@ namespace CClash.Tests
         [Test]
         [TestCase("/c", "test-sources\\hello.c", "/Itest-sources\\inc with spaces")]
         [TestCase("/c", "test-sources\\hello.c", "/I", "test-sources\\inc with spaces", "/D", "a_hash_define")]
+        [TestCase("/c", "test-sources\\hello.c", "/I", "test-sources\\inc with spaces", "/DEXPAND=\"test.123\"")]
         [TestCase("@test-sources\\compiler1.resp")]
         public void PreprocessorTest(params string[] argv)
         {
@@ -197,6 +198,7 @@ namespace CClash.Tests
         [Test]
         [TestCase("/c", "test-sources\\hello.c", "/Itest-sources\\inc with spaces")]
         [TestCase("/c", "test-sources\\hello.c", "/I","test-sources\\inc with spaces","/D","a_hash_define")]
+        [TestCase("/c", "test-sources\\hello.c", "/I", "test-sources\\inc with spaces", "/DEXPAND=\"test.123\"")]
         [TestCase("@test-sources\\compiler1.resp")]
         public void CompileObjectTest(params string[] argv)
         {

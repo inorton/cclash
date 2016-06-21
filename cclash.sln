@@ -8,7 +8,6 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{88D43731-8971-4CCE-999F-B8FE7060AA8E}"
 	ProjectSection(SolutionItems) = preProject
 		build_openssl.py = build_openssl.py
-		Performance1.psess = Performance1.psess
 		README.md = README.md
 	EndProjectSection
 EndProject

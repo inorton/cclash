@@ -155,8 +155,11 @@ namespace CClash.Tests
             TimeSpan cacheduration = cacheend - cachestart;
 
             var avgtime = cacheduration.TotalMilliseconds / times;
-            // be always better than 45% the speed
-            Assert.IsTrue(avgtime < (duration.TotalMilliseconds * 0.45));
+            // be always better than 65% the speed
+            var worst_acceptable = duration.TotalMilliseconds * 0.65;
+            Assert.IsTrue(avgtime < worst_acceptable,
+                String.Format("test was too slow. took {0}, wanted no worse than {1}. Cold cache took {2}",
+                avgtime, worst_acceptable, duration.TotalMilliseconds));
         }
 
         void RunSubprocess(string prog, string[] argv, StringBuilder stdout, StringBuilder stderr) {
