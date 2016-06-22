@@ -44,8 +44,8 @@ namespace CClash
                     {
                         sb.Append(a);
                     }
-                    sb.Append(" ");
                 }
+                sb.Append(" ");
             }
             return sb.ToString().TrimEnd();
         }
