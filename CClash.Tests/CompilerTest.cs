@@ -30,6 +30,7 @@ namespace CClash.Tests
             Environment.SetEnvironmentVariable("CCLASH_DISABLE_WHEN_VAR", null);
             Environment.SetEnvironmentVariable("CCLASH_ENABLE_WHEN_VAR", null);
             Environment.SetEnvironmentVariable("CCLASH_SLOWOBJ_TIMEOUT", "3000");
+            Environment.SetEnvironmentVariable("CCLASH_Z7_OBJ", null);
             if (!setpaths)
             {
                 Environment.SetEnvironmentVariable("PATH",
@@ -155,6 +156,17 @@ namespace CClash.Tests
         }
 
         [Test]
+        public void ParseQTArgs()
+        {
+            Environment.SetEnvironmentVariable("CCLASH_Z7_OBJ", "yes");
+            var argv = "/nologo /TP -DLIBSNORE_PLUGIN_PATH=\"r:/plugins/libsnore-qt5\" -DQT_CORE_LIB -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_NO_CAST_FROM_ASCII -DQT_NO_CAST_FROM_BYTEARRAY -DQT_NO_CAST_TO_ASCII -DQT_NO_SIGNALS_SLOTS_KEYWORDS -DQT_NO_URL_CAST_FROM_STRING -DQT_STRICT_ITERATORS -DQT_USE_FAST_OPERATOR_PLUS -DQT_USE_QSTRINGBUILDER -DSNORE_SUFFIX=\"-qt5\" -DUNICODE -DWIN32_LEAN_AND_MEAN -DWINVER=0x0600 -D_CRT_NONSTDC_NO_DEPRECATE -D_CRT_SECURE_NO_DEPRECATE -D_CRT_SECURE_NO_WARNINGS -D_SCL_SECURE_NO_WARNINGS -D_UNICODE -D_USE_MATH_DEFINES -D_WIN32_IE=0x0600 -D_WIN32_WINNT=0x0600 -Dlibsnore_EXPORTS -Isrc\\libsnore -IQ:\\snorenotify\\src\\libsnore -IQ:\\snorenotify\\src -Isrc -IR:\\include\\qt5 -IR:\\include\\qt5\\QtCore -IR:\\.\\mkspecs\\win32-msvc2015 -IR:\\include\\qt5\\QtGui -IR:\\include\\qt5\\QtNetwork /DWIN32 /D_WINDOWS /W3 /GR /EHsc /wd4250 /wd4251 /wd4396 /wd4661 /D_DEBUG /MDd /Zi /Ob0 /Od /RTC1 /showIncludes /Fosrc\\libsnore\\CMakeFiles\\libsnore.dir\\plugins\\plugincontainer.cpp.obj /Fdsrc\\libsnore\\CMakeFiles\\libsnore.dir\\ /FS -c Q:\\snorenotify\\src\\libsnore\\plugins\\plugincontainer.cpp";
+            var args = argv.Split(new char[] {' '});
+            var c = new Compiler();
+            c.SetWorkingDirectory(InitialDir);
+            Assert.IsFalse(c.ProcessArguments(args));
+        }
+
+        [Test]
         [TestCase("/c", "test-sources\\hello.c", "/Itest-sources\\inc with spaces")]
         public void IncludeFileTest(params string[] argv)
         {
@@ -174,8 +186,7 @@ namespace CClash.Tests
         [Test]
         [TestCase("/c", "test-sources\\hello.c", "/Itest-sources\\inc with spaces")]
         [TestCase("/c", "test-sources\\hello.c", "/I", "test-sources\\inc with spaces", "/D", "a_hash_define")]
-        [TestCase("/c", "test-sources\\hello.c", "/I", "test-sources\\inc with spaces", "/DEXPAND=\"test.123\"")]
-        [TestCase("@test-sources\\compiler1.resp")]
+        [TestCase("/c", "test-sources\\hello.c", "/I", "test-sources\\inc with spaces", "/DEXPAND=\"test.123\"")]        
         public void PreprocessorTest(params string[] argv)
         {
             var c = new Compiler() { CompilerExe = CompilerPath };
@@ -196,10 +207,15 @@ namespace CClash.Tests
         }
 
         [Test]
+        public void PreprocessorRespFileTest()
+        {
+            PreprocessorTest("@test-sources\\compiler1.resp");
+        }
+
+        [Test]
         [TestCase("/c", "test-sources\\hello.c", "/Itest-sources\\inc with spaces")]
         [TestCase("/c", "test-sources\\hello.c", "/I","test-sources\\inc with spaces","/D","a_hash_define")]
         [TestCase("/c", "test-sources\\hello.c", "/I", "test-sources\\inc with spaces", "/DEXPAND=\"test.123\"")]
-        [TestCase("@test-sources\\compiler1.resp")]
         public void CompileObjectTest(params string[] argv)
         {
             var c = new Compiler() { CompilerExe = CompilerPath };
@@ -218,9 +234,14 @@ namespace CClash.Tests
         }
 
         [Test]
+        public void CompileObjectRespFileTest()
+        {
+            CompileObjectTest("@test-sources\\compiler1.resp");
+        }
+
+        [Test]
         [TestCase("/o","foo.exe")]
         [TestCase("/c","test-sources\\exists.c","test-sources\\hello.c")]
-        [TestCase("/link")]
         public void DetectNotSupported(params string[] argv)
         {
             var c = new Compiler() { 
@@ -228,6 +249,12 @@ namespace CClash.Tests
             c.SetWorkingDirectory(InitialDir);
             c.SetEnvironment(Compiler.GetEnvironmentDictionary());
             Assert.IsFalse(c.ProcessArguments(argv));
+        }
+
+        [Test]
+        public void DetectLinkNotSupported()
+        {
+            DetectNotSupported("/link");
         }
     }
 }

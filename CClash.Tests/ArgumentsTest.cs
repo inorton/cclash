@@ -13,7 +13,7 @@ namespace CClash.Tests
         [Test]
         public void EscapeSpaces()
         {
-            Assert.AreEqual("\"foo\" bar \"baz spaces\" \"bar spaces\"",
+            Assert.AreEqual("\\\"foo\\\" bar \"baz spaces\" \"bar spaces\"",
                 ArgumentUtils.JoinAguments(new string[] { "\"foo\"", "bar", "baz spaces", "bar spaces" }));
 
             Assert.AreEqual("\" \" \"x x x\"",

@@ -122,6 +122,12 @@ namespace CClash
                     }
                     if (cachedir.Contains('"'))
                         cachedir = cachedir.Replace("\"", "");
+
+                    cachedir.TrimEnd(new[] { '\\' });
+                    if (ServiceMode)
+                    {
+                        cachedir = System.IO.Path.Combine(cachedir, "server");
+                    }
                 }
                 return cachedir;
             }

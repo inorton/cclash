@@ -265,7 +265,7 @@ namespace CClash.Tests
             while (rv.Count < count)
             {
                 var dn = Guid.NewGuid().ToString();
-                var fn = Guid.NewGuid().ToString() + ".c";
+                var fn = Guid.NewGuid().ToString().Substring(0, 9) + ".c";
                 var folder = System.IO.Path.Combine(root, dn);
                 System.IO.Directory.CreateDirectory(folder);
                 var file = System.IO.Path.Combine(folder, fn);
@@ -285,7 +285,7 @@ int foo(void) {
         }
 
         [Test]
-        [TestCase(500)]
+        [TestCase(200)]
         [TestCase(100)]
         [TestCase(10)]
         [TestCase(1)]
