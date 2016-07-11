@@ -124,7 +124,14 @@ namespace CClash
         public DataHash DeriveHashKey( ICompiler comp, IEnumerable<string> args)
         {
             Logging.Emit("compiler is {0}", comp.CompilerExe);
-            var comphash = DigestCompiler(comp.CompilerExe);
+            var tmp = DigestCompiler(comp.CompilerExe);
+            var comphash = new DataHash()
+            {
+                InputName = tmp.InputName,
+                Result = tmp.Result,
+                Hash = tmp.Hash,
+            };
+
             if (comphash.Result == DataHashResult.Ok)
             {
                 var buf = new StringWriter();
