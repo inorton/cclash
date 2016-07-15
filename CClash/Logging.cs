@@ -16,12 +16,23 @@ namespace CClash
 
         public static void Miss( string hc, DataHashResult reason, string dir, string srcfile, string headerfile)
         {
-            HitMissRecord(reason.ToString() + "hc=" + hc, dir, srcfile, headerfile);
+            switch (reason)
+            {
+                case DataHashResult.FileNotFound:
+                    break;
+                default:
+                    break;
+            }
+
+            HitMissRecord(reason.ToString() + " hc=" + hc, dir, srcfile, headerfile);
         }
 
         public static void Hit( string hashkey, string dir, string obj)
         {
-            //AppendMissLog(string.Format(" {0},dir={1},obj={2}", hashkey, dir, obj));
+            if (Settings.DebugEnabled)
+            {
+                AppendMissLog(string.Format("HIT {0},dir={1},obj={2}", hashkey, dir, obj));
+            }
         }
 
         static void AppendMissLog(string str)

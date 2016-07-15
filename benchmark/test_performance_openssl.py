@@ -35,9 +35,9 @@ def retry_delete(path):
             shutil.rmtree(path)
             return
         except WindowsError:
-            time.sleep(2)
-        if os.path.exists(path):
-            raise Exception("could not delete {}".format(path))
+            time.sleep(5)
+    if os.path.exists(path):
+        raise Exception("could not delete {}".format(path))
 
 
 class BlockMessage(object):

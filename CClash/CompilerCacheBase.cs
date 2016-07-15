@@ -215,9 +215,9 @@ namespace CClash
             
         }
 
-        public virtual Dictionary<string, DataHash> GetHashes(IEnumerable<string> fnames)
+        public virtual Dictionary<string, DataHash> GetHashes(IEnumerable<string> fnames, string workdir)
         {
-            return hasher.DigestFiles(fnames);
+            return hasher.DigestFiles(fnames, workdir);
         }
 
         public virtual bool FileExists(string path)

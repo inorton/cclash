@@ -141,7 +141,7 @@ namespace CClash
 
         Dictionary<string, DataHash> hashcache = new Dictionary<string, DataHash>();
 
-        public override Dictionary<string, DataHash> GetHashes(IEnumerable<string> fnames)
+        public override Dictionary<string, DataHash> GetHashes(IEnumerable<string> fnames, string workdir)
         {
             if (hashcache.Count > 20000)
             {
@@ -172,7 +172,7 @@ namespace CClash
             if (unknown.Count > 0)
             {
                 Logging.Emit("hash {0}/{1} new/changed files", unknown.Count, fnames.Count());
-                var tmp = base.GetHashes(fnames);
+                var tmp = base.GetHashes(fnames, workdir);
                 lock (hashcache)
                 {
                     foreach (var filename in tmp.Keys)

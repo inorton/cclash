@@ -66,7 +66,7 @@ namespace CClash
                 }
                 var files = new List<string>();                                
                 files.AddRange(manifest.IncludeFiles.Keys);
-                var hashes = GetHashes(files);
+                var hashes = GetHashes(files, comp.WorkingDirectory);
 
                 foreach (var h in hashes)
                 {
@@ -246,7 +246,7 @@ namespace CClash
 
                 #endregion
 
-                var hashes = GetHashes(ifiles);
+                var hashes = GetHashes(ifiles, c.WorkingDirectory);
 
                 #region check include files
 

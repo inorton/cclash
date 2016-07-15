@@ -103,7 +103,7 @@ namespace CClash
             return rv;
         }
 
-        public Dictionary<string,DataHash> DigestFiles(IEnumerable<string> files)
+        public Dictionary<string,DataHash> DigestFiles(IEnumerable<string> files, string workdir)
         {
             var tohash = new List<string>();
             Dictionary<string, DataHash> rv = new Dictionary<string, DataHash>();
@@ -113,6 +113,14 @@ namespace CClash
             foreach (var f in files.Distinct())
             {
                 var filepath = f.ToLower();
+                if (!Path.IsPathRooted(filepath))
+                {
+                    if (!string.IsNullOrEmpty(workdir))
+                    {
+                        filepath = Path.Combine(workdir, filepath);
+                    }
+                }
+
                 if (recentHashes.ContainsKey(filepath) && (recentHashes[filepath].Age.TotalMinutes < SavedHashMaxAgeMinutes))
                 {
                     rv[filepath] = recentHashes[filepath];
