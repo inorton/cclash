@@ -191,7 +191,7 @@ namespace CClash
             }
         }
 
-        protected override int OnCacheMissLocked(ICompiler comp, DataHash hc, IEnumerable<string> args, CacheManifest m)
+        protected override int OnCacheMissLocked(ICompiler comp, DataHash hc, IEnumerable<string> args, CClashRequest req)
         {
             Logging.Emit("cache miss");
             outputCache.EnsureKey(hc.Hash);            
@@ -212,7 +212,7 @@ namespace CClash
                     // this unlocks for us
                     try
                     {
-                        DoCacheMiss(comp, hc, args, m, ifiles);
+                        DoCacheMiss(comp, hc, args, req, ifiles);
                     }
                     catch (CClashWarningException)
                     {
@@ -223,9 +223,10 @@ namespace CClash
             }
         }
 
-        protected virtual void DoCacheMiss(ICompiler c, DataHash hc, IEnumerable<string> args, CacheManifest m, List<string> ifiles)
+        protected virtual void DoCacheMiss(ICompiler c, DataHash hc, IEnumerable<string> args, CClashRequest req, List<string> ifiles)
         {
             bool good = true;
+            CacheManifest m = null;
             try
             {
                 var idirs = c.GetUsedIncludeDirs(ifiles);
@@ -239,6 +240,7 @@ namespace CClash
                 // save manifest and other things to cache
                 var others = c.GetPotentialIncludeFiles(idirs, ifiles);
                 m = new CacheManifest();
+                m.Request = req;
                 m.PotentialNewIncludes = others;
                 m.IncludeFiles = new Dictionary<string, string>();
                 m.TimeStamp = DateTime.Now.ToString("s");
@@ -276,7 +278,10 @@ namespace CClash
                     Lock(CacheLockType.ReadWrite);
                     try
                     {
-                        SaveOutputsLocked(m, c);
+                        if (m != null)
+                        {
+                            SaveOutputsLocked(m, c);
+                        }
                     }
                     finally
                     {

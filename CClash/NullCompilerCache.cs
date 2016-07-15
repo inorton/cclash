@@ -36,7 +36,7 @@ namespace CClash {
             throw new NotImplementedException();
         }
 
-        protected override int OnCacheMissLocked(ICompiler comp, DataHash hc, IEnumerable<string> args, CacheManifest m)
+        protected override int OnCacheMissLocked(ICompiler comp, DataHash hc, IEnumerable<string> args, CClashRequest req)
         {
             throw new NotImplementedException();
         }

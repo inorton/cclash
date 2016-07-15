@@ -13,7 +13,7 @@ namespace CClash
         bool CheckCache(ICompiler comp, IEnumerable<string> args, DataHash commonkey, out CacheManifest manifest);
         ICompiler SetCompiler(string compiler, string workdir, Dictionary<string, string> envs);
         bool IsSupported( ICompiler comp, IEnumerable<string> args);
-        int CompileOrCache( ICompiler comp, IEnumerable<string> args);
+        int CompileOrCache( ICompiler comp, IEnumerable<string> args, CClashRequest req);
         void SetCaptureCallback(ICompiler comp, Action<string> onOutput, Action<string> onError);
         DataHash DeriveHashKey(ICompiler comp, IEnumerable<string> args);
     }

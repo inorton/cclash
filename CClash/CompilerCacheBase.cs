@@ -278,7 +278,7 @@ namespace CClash
         }
 
         public abstract bool CheckCache(ICompiler comp, IEnumerable<string> args, DataHash commonkey, out CacheManifest manifest);
-        protected abstract int OnCacheMissLocked(ICompiler comp, DataHash hc, IEnumerable<string> args, CacheManifest m);
+        protected abstract int OnCacheMissLocked(ICompiler comp, DataHash hc, IEnumerable<string> args, CClashRequest req);
 
         protected virtual int CompileWithStreams(ICompiler comp, IEnumerable<string> args, StreamWriter stderr, StreamWriter stdout, List<string> includes)
         {
@@ -294,7 +294,7 @@ namespace CClash
             return rv;
         }
 
-        public virtual int CompileOrCache( ICompiler comp, IEnumerable<string> args)
+        public virtual int CompileOrCache( ICompiler comp, IEnumerable<string> args, CClashRequest req)
         {
             if (IsSupported(comp, args))
             {
@@ -310,7 +310,7 @@ namespace CClash
                     }
                     else
                     {   // miss, try build
-                        return OnCacheMissLocked(comp, hc, args, hm);
+                        return OnCacheMissLocked(comp, hc, args, req);
                     }
                 }
             }

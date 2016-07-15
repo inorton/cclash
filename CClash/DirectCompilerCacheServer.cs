@@ -188,9 +188,9 @@ namespace CClash
             return rv;  
         }
 
-        public override int CompileOrCache(ICompiler comp, IEnumerable<string> args)
+        public override int CompileOrCache(ICompiler comp, IEnumerable<string> args, CClashRequest req)
         {
-            return base.CompileOrCache(comp, args);
+            return base.CompileOrCache(comp, args, req);
         }
 
         protected override void Dispose( bool disposing)

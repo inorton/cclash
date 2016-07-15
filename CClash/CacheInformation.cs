@@ -95,7 +95,7 @@ namespace CClash
         public const string F_CacheType = "type.txt";
         public const string F_CacheSchema = "schema.txt";
 
-        public const string CacheFormat = "v6";
+        public const string CacheFormat = "v7a";
 
         IFileCacheStore cache;
         Mutex statMtx = null;

@@ -19,7 +19,11 @@ def run_server():
     :return:
     """
     envs = setup_cclache_envs()
-    print subprocess.check_output([CCLASH_EXE, "--cclash-server"], env=envs)
+    try:
+        print subprocess.check_output([CCLASH_EXE, "--cclash-server"], env=envs)
+    except subprocess.CalledProcessError as cpe:
+        print cpe.output
+        raise
 
 
 def setup_module():
@@ -89,6 +93,15 @@ def test_build_withcclache_01_warm():
     Time an openssl build with a warm cache
     :return:
     """
+    #
+    # Benchmarking on my win10 AMD A6-3500 (3 core).
+    # On a good run this is 12.5 mins total,
+    #
+    # approx 410 sec cold
+    # approx 120 sec warm
+    #
+    # overhead is non-compiler configure or clean time
+    #
     envs = setup_cclache_envs()
     print "-" * 80
     print "Start cold cache"

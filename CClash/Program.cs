@@ -238,7 +238,7 @@ namespace CClash
                             last_hits = cc.Stats.CacheHits;
                         }
 
-                        int res = cc.CompileOrCache(comp, args);
+                        int res = cc.CompileOrCache(comp, args, null);
 
                         if (!Settings.ServiceMode)
                         {

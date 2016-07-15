@@ -16,6 +16,16 @@ namespace CClash
         }
 
         /// <summary>
+        /// The next invocation of the compiler in this session (if any).
+        /// </summary>
+        public string NextOperation { get; set; }
+
+        /// <summary>
+        /// The request that created this entry.
+        /// </summary>
+        public CClashRequest Request { get; set; }
+        
+        /// <summary>
         /// Next time this job appears, just run the compiler.
         /// </summary>
         public bool Disable { get; set; }

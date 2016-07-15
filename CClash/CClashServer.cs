@@ -305,7 +305,7 @@ namespace CClash
                     if (DisableCaching) {
                         rv.exitcode = comp.InvokeCompiler(req.argv, null, null, false, new List<string>());
                     } else {
-                        rv.exitcode = cache.CompileOrCache(comp, req.argv);
+                        rv.exitcode = cache.CompileOrCache(comp, req.argv, req);
                     }
                     rv.supported = true;
                     rv.stderr = stderr.ToString();

@@ -160,7 +160,7 @@ namespace CClash
             stdErrCallback = onError;
         }
 
-        public int CompileOrCache(ICompiler comp, IEnumerable<string> args)
+        public int CompileOrCache(ICompiler comp, IEnumerable<string> args, CClashRequest unused)
         {
             Logging.Emit("client args: {0}", string.Join(" ", args.ToArray()));
 
