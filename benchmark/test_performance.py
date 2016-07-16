@@ -11,6 +11,9 @@ import test_performance_openssl as tpo
 THISDIR = os.path.dirname(os.path.abspath(__file__))
 CCLASH_BIN = os.path.join(os.path.dirname(THISDIR), "cclash", "bin", "debug")
 CCLASH_EXE = os.path.join(CCLASH_BIN, "cl.exe")
+if not os.path.exists(CCLASH_EXE):
+    CCLASH_BIN = os.path.join(os.path.dirname(THISDIR), "cclash", "bin", "release")
+    CCLASH_EXE = os.path.join(CCLASH_BIN, "cl.exe")
 
 
 def run_server():
@@ -32,6 +35,8 @@ def setup_module():
     :return:
     """
     assert os.path.isfile(CCLASH_EXE), "you need to build a Debug cclash first"
+    print "cclash is at {}".format(CCLASH_EXE)
+
     tpo.get_vc_envs()
     tpo.download_openssl()
     setup_module.server = threading.Thread(target=run_server)
@@ -54,7 +59,10 @@ def setup_function(request):
     :param request:
     :return:
     """
+    envs = setup_cclache_envs()
     tpo.setup_function(request)
+    print "cachedir {}".format(envs["CCLASH_DIR"])
+    print subprocess.check_output([CCLASH_EXE, "--cclash"], env=envs)
 
 
 def setup_cclache_envs():
@@ -64,7 +72,7 @@ def setup_cclache_envs():
     """
     envs = dict(tpo.ENVS)
     cachedir = os.path.join(os.getcwd(), "cclache_cachedir")
-    envs["CCLACHE_DIR"] = cachedir
+    envs["CCLASH_DIR"] = cachedir
     envs["CCLASH_Z7_OBJ"] = "yes"
     envs["CCLASH_SERVER"] = "1"
     return envs
@@ -84,7 +92,7 @@ def build_withcclache_cold():
     :return:
     """
     envs = setup_cclache_envs()
-    tpo.retry_delete(envs["CCLACHE_DIR"])
+    tpo.retry_delete(envs["CCLASH_DIR"])
     tpo.build_openssl(CCLASH_BIN, envs)
 
 
@@ -97,7 +105,7 @@ def test_build_withcclache_01_warm():
     # Benchmarking on my win10 AMD A6-3500 (3 core).
     # On a good run this is 12.5 mins total,
     #
-    # approx 410 sec cold
+    # approx 450 sec cold
     # approx 120 sec warm
     #
     # overhead is non-compiler configure or clean time
