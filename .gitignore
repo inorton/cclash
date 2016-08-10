@@ -4,6 +4,7 @@
 *.exe
 *.mdf
 *.vsp*
+/*.suo
 CClash.Tests/bin/*
 CClash.Tests/obj/*
 cclash/obj/*
