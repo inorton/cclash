@@ -63,10 +63,10 @@ namespace CClash.Tests
             {
                 var ht = new HashUtil(ic);
 
-                var hashes = ht.DigestFiles(Directory.GetFiles(IncludeDir));
+                var hashes = ht.DigestFiles(Directory.GetFiles(IncludeDir), IncludeDir);
                 Assert.IsTrue(hashes.Count > 0);
                 System.Threading.Thread.Sleep(500);
-                var hashes2 = ht.DigestFiles(Directory.GetFiles(IncludeDir));
+                var hashes2 = ht.DigestFiles(Directory.GetFiles(IncludeDir), IncludeDir);
                 foreach (var h in hashes2)
                 {
                     if (hashes.ContainsKey(h.Key))
