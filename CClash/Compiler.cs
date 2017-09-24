@@ -304,6 +304,24 @@ namespace CClash
         public bool PdbExistsAlready { get; set; }
         public string ResponseFile { get; set; }
 
+        public int ParallelCompilers { get; private set; }
+
+        public string[] OnlyOptions
+        {
+            get
+            {
+                return onlyOptions.ToArray();
+            }
+        }
+
+        public string[] SourceFilesOptions
+        {
+            get
+            {
+                return srcsOptions.ToArray();
+            }
+        }
+
         public Action<string> StdErrorCallback { get; set; }
         public Action<string> StdOutputCallback { get; set; }
 
@@ -311,6 +329,8 @@ namespace CClash
         List<string> incs = new List<string>();
         List<string> cliincs = new List<string>();
 
+        List<string> onlyOptions = new List<string>();
+        List<string> srcsOptions = new List<string>();
 
         public List<string> CliIncludePaths
         {
@@ -441,6 +461,8 @@ namespace CClash
                     var opt = getOption(args[i]);
                     var full = getFullOption(args[i]);
 
+                    onlyOptions.Add(full);
+
                     #region switch process each argument type
                     switch (opt)
                     {
@@ -454,6 +476,7 @@ namespace CClash
                             {
                                 // define value is next argument...
                                 i++;
+                                onlyOptions.Add(args[i]);
                             }
                             break;
                         case "/I":
@@ -467,6 +490,9 @@ namespace CClash
                                     return NotSupported("-I has no path!");
                                 }
                                 full = "/I" + args[i];
+
+                                onlyOptions.Add(args[i]);
+
                                 goto default;
                             }
                             break;
@@ -518,6 +544,10 @@ namespace CClash
                             if (FileUtils.Exists(srcfile))
                             {
                                 srcs.Add(srcfile);
+
+                                // remove last added option
+                                onlyOptions.RemoveAt(onlyOptions.Count - 1);
+                                srcsOptions.Add(full);
                             }
                             else
                             {
@@ -531,6 +561,22 @@ namespace CClash
                         case "/EP":
                             return NotSupported(opt);
 
+                        case "/MP":
+                            var numOfCompilersStr = full.Substring(3);
+                            if (string.IsNullOrEmpty(numOfCompilersStr))
+                            {
+                                ParallelCompilers = Environment.ProcessorCount;
+                            }
+                            else
+                            {
+                                int parallel;
+                                if (int.TryParse(numOfCompilersStr, out parallel))
+                                    ParallelCompilers = parallel;
+                                else
+                                    ParallelCompilers = Environment.ProcessorCount;
+                            }
+                            break;
+
                         default:
                             #region positional or other flag options
 
@@ -542,6 +588,9 @@ namespace CClash
 
                             if (opt.StartsWith("@"))
                             {
+                                // remove last added option
+                                onlyOptions.RemoveAt(onlyOptions.Count - 1);
+
                                 #region response file
                                 ResponseFile = ArgumentUtils.MakeWindowsPath(full.Substring(1));
 
@@ -587,6 +636,10 @@ namespace CClash
                                 if (FileUtils.Exists(file))
                                 {
                                     srcs.Add(file);
+
+                                    // remove last added option
+                                    onlyOptions.RemoveAt(onlyOptions.Count - 1);
+                                    srcsOptions.Add(full);
                                     continue;
                                 }
                             }

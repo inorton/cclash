@@ -34,6 +34,10 @@ namespace CClash
         string WorkingDirectory { get; }
         void EnableTracker(string folder);
         string TrackerFolder { get; }
+        int ParallelCompilers { get; }
+
+        string[] OnlyOptions { get; }
+        string[] SourceFilesOptions { get; }
 
         Action<string> StdErrorCallback { get; set; }
         Action<string> StdOutputCallback { get; set; }

@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 
@@ -99,7 +101,10 @@ namespace CClash
                 var rv = comp.ProcessArguments(args.ToArray());
                 if (!rv)
                 {
-                    Logging.Emit("unsupported args: {0}", string.Join(" ",args.ToArray()));
+                    if (comp.SingleSource)
+                        Logging.Emit("unsupported args: {0}", string.Join(" ", args.ToArray()));
+                    else
+                        Logging.Emit("Multiple source files.");
                 }
                 else
                 {
@@ -108,6 +113,92 @@ namespace CClash
                 return rv;
             }
             throw new FileNotFoundException(compilerPath);
+        }
+
+        private int RunMultipleCompilers(ICompiler comp, IEnumerable<string> args)
+        {
+            var sourceFiles = comp.SourceFilesOptions;
+            var onlyOptions = comp.OnlyOptions;
+
+            StringBuilder optionsStrBuilder = new StringBuilder();
+            foreach(string opt in onlyOptions)
+            {
+                optionsStrBuilder.Append(opt);
+                optionsStrBuilder.Append(" ");
+            }
+
+            string optionsStr = optionsStrBuilder.ToString();
+
+            int result = 0;
+
+            Parallel.ForEach(sourceFiles,
+                new ParallelOptions()
+                {
+                    MaxDegreeOfParallelism = Math.Max(comp.ParallelCompilers, 1)
+                },
+                (string srcFile) => 
+                {
+                    string argsStr = optionsStr + srcFile;
+
+                    int slaveResult = RunSlaveCompiler(comp, argsStr);
+                    Interlocked.CompareExchange(ref result, slaveResult, 0);
+                });
+
+            return result;
+        }
+
+        private int RunSlaveCompiler(ICompiler comp, string optionsStr)
+        {
+            var myProcess = Process.GetCurrentProcess();
+
+            var psi = new ProcessStartInfo(myProcess.MainModule.FileName, optionsStr)
+            {
+                UseShellExecute = false,
+                RedirectStandardError = true,
+                RedirectStandardOutput = true,
+                WorkingDirectory = comp.WorkingDirectory,
+                ErrorDialog = true,
+            };
+
+            var newCompiler = Process.Start(psi);
+
+            newCompiler.OutputDataReceived += (o, a) =>
+            {
+                if (a.Data != null)
+                {
+
+                    if (comp.StdOutputCallback != null)
+                    {
+                        comp.StdOutputCallback(a.Data + Environment.NewLine);
+                    }
+                    
+                    if (Settings.DebugEnabled)
+                        Logging.Emit("stdout {0}", a.Data);
+                }
+
+            };
+
+            newCompiler.ErrorDataReceived += (o, a) =>
+            {
+                if (a.Data != null)
+                {
+                    if (comp.StdErrorCallback != null)
+                    {
+                        comp.StdErrorCallback(a.Data + Environment.NewLine);
+                    }
+                    
+                    if (Settings.DebugEnabled)
+                        Logging.Emit("stderr {0}", a.Data);
+                }
+            };
+
+            newCompiler.BeginErrorReadLine();
+            newCompiler.BeginOutputReadLine();
+
+            newCompiler.WaitForExit();
+
+
+            return newCompiler.ExitCode;
         }
 
         public virtual DataHash DigestBinaryFile(string path)
@@ -316,7 +407,12 @@ namespace CClash
             }
             else
             {
-                Stats.LockStatsCall(() => Stats.CacheUnsupported++);
+                if (comp.SingleSource || comp.SourceFiles.Count() == 0)
+                    Stats.LockStatsCall(() => Stats.CacheUnsupported++);
+                else
+                {
+                    return RunMultipleCompilers(comp, args);
+                }
             }
 
             if (comp.ResponseFile != null)
